@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patrik's weather daily — v2.28</title>
+<link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
+<style>
+html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{padding:20px;transition:background .2s}
+#wrap{--bg:#ffffff;--surf:#f1efe8;--tp:#1a1a18;--ts:rgba(0,0,0,0.62);--bd:rgba(0,0,0,0.28);--cool:#084a8f;background:var(--bg);color:var(--tp);padding:16px;border-radius:12px;width:100%;max-width:900px;margin:0 auto;box-sizing:border-box}
+#wrap.dark{--bg:#262624;--surf:#33322f;--tp:#ffffff;--ts:rgba(255,255,255,0.72);--bd:rgba(255,255,255,0.22);--cool:#7cc4f5}
+#wrap.mobile{padding:14px}
+#wrap.big{zoom:1.5;width:calc(100%/1.5);max-width:600px}
+.card{background:var(--surf);border-radius:8px;padding:0.85rem 1rem;position:relative}
+.lab{font-size:13px;color:var(--ts)}
+.big-n{font-size:24px;font-weight:500}
+.ctx{font-size:11.5px;color:var(--ts);line-height:1.45;margin-top:2px}
+.aw{color:#D85A30;font-weight:500}
+.ac{color:var(--cool);font-weight:500}
+.dotA{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2caaf0;margin-right:5px;vertical-align:1px}
+.dotB{display:inline-block;width:8px;height:8px;border-radius:50%;background:#a64ce8;margin-right:5px;vertical-align:1px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 2rem}
+#wrap.mobile .cards{grid-template-columns:1fr 1fr;gap:10px}
+#wrap.mobile .ttl{font-size:16px}
+.hd{font-size:16px;font-weight:500;letter-spacing:0.08em;margin:0 0 0.75rem}
+.dark .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.92) saturate(0.7);}
+#mapBox{position:relative;width:100%;height:300px;border-radius:10px;overflow:hidden;border:0.5px solid var(--bd);}
+#mapSec.mapfull{position:fixed;inset:0;z-index:1000;background:var(--bg);margin:0;padding:10px;}
+#mapSec.mapfull #mapBox{height:calc(100% - 46px);border-radius:8px;}
+.stpop b{font-size:13px}.stpop button{margin-top:6px;background:#2caaf0;color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+.lbtn:disabled{opacity:0.35;cursor:not-allowed;}
+.info{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1.4px solid var(--ts);font-size:8px;font-weight:700;line-height:1;color:var(--ts);cursor:help;font-style:normal;font-family:Georgia,serif;position:absolute;bottom:6px;right:8px;margin:0;}
+.info:hover,.info:focus{border-color:var(--tp);color:var(--tp);}
+.info .tip{display:none;cursor:auto;position:absolute;bottom:135%;right:-4px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;width:min(320px,78vw);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--tp);z-index:60;text-align:left;font-weight:400;letter-spacing:0;text-transform:none;box-shadow:0 6px 18px rgba(0,0,0,0.18);white-space:normal;}
+.info:hover .tip,.info:focus .tip{display:block;}
+#locIn{background:var(--surf);color:var(--tp);border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;width:130px}
+.state{background:var(--surf);border-radius:8px;padding:1.5rem 1.25rem;margin:0 0 1rem}
+.state.center{text-align:center;padding:2rem 1rem}
+.pulse{height:8px;width:140px;margin:14px auto 0;border-radius:999px;background:linear-gradient(90deg,var(--bd),var(--surf),var(--bd));background-size:200% 100%;animation:sweep 1.2s linear infinite;opacity:.5}
+@keyframes sweep{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+.hidden{display:none}
+.rng{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap;align-items:center}
+.rsep{width:1px;height:18px;background:var(--bd);margin:0 4px}
+@media(max-width:520px){.cards{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="wrap">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 1.25rem;flex-wrap:wrap;">
+  <div class="ttl" data-i="title" style="font-size:20px;font-weight:500;letter-spacing:0.04em;">PATRIK'S WEATHER DAILY</div>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+    <input id="locIn" value="Zagreb" aria-label="Location" onkeydown="if(event.key==='Enter')hardRefresh()">
+    <button class="lbtn" id="btn-rf" onclick="hardRefresh()" aria-label="Refresh"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
+    <button class="lbtn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lbtn" id="btn-hr" onclick="setLang('hr')">HR</button>
+    <button class="lbtn" id="btn-lt" onclick="applyTheme('light')" aria-label="Light mode"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+    <button class="lbtn" id="btn-dk" onclick="applyTheme('dark')" aria-label="Dark mode"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <button class="lbtn" id="btn-fs" onclick="toggleFont()" aria-label="Large font"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="9" cy="10" r="4.5"/><path d="M12.2 13.2L16 17"/><path d="M7 10h4M9 8v4"/></svg></button>
+    <button class="lbtn" id="btn-mp" onclick="toggleMP()" aria-label="Monty Python mode" title="Monty Python mode" style="font-weight:600;">MP</button>
+    <button class="lbtn" id="btn-pr" onclick="togglePres()" aria-label="Air pressure overlay" title="Air pressure hPa"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><path d="M5 19a9 9 0 1 1 14 0"/><path d="M12 14l3.2-4.2"/><circle cx="12" cy="14" r="1.1" fill="currentColor"/></svg></button>
+    <button class="lbtn" id="btn-cf" onclick="toggleConf()" aria-label="Forecast confidence" title="Forecast confidence %"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><path d="M3 17C6 11 9 19 12 13s6-2 9-8" stroke-dasharray="2.5 3"/></svg></button>
+  </div>
+</div>
+<div class="rng" style="margin:-6px 0 16px;align-items:center;"><button class="lbtn" id="btn-geo" onclick="goGeo()" aria-label="Use my location" title="Forecast for my current (browser) location"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button><span id="locRow" style="display:contents;"></span></div>
+
+<div id="loading" class="state center">
+  <div data-i="loading" style="font-size:14px;">Fetching the live forecast…</div>
+  <div class="lab" id="loadingSub" style="margin-top:4px;font-size:12px;"></div>
+  <div class="pulse"></div>
+</div>
+<div id="error" class="state hidden">
+  <div data-i="errTitle" style="font-size:14px;font-weight:500;margin-bottom:8px;">Couldn't load the forecast</div>
+  <div class="lab" id="errDirect" style="margin-bottom:4px;"></div>
+  <div class="lab" id="errAI" style="margin-bottom:10px;"></div>
+  <div class="lab" id="errTip" style="line-height:1.5;"></div>
+</div>
+
+<div id="dash" class="hidden">
+<div class="hd" data-i="h1">RIGHT NOW</div>
+<div class="lab" id="stationLine" style="margin:-6px 0 10px;font-size:12px;"></div>
+<div class="cards" id="nowCards"></div>
+
+<div style="background:var(--bg);border:0.5px solid var(--bd);border-radius:12px;padding:1rem 1.25rem;margin:0 0 2rem;">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px" aria-hidden="true"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"/><circle cx="12" cy="12" r="4"/></svg>
+    <span id="todayLbl" style="font-weight:500;font-size:15px;"></span>
+    <span id="badge" style="font-size:12px;padding:4px 12px;border-radius:8px;"></span>
+  </div>
+  <p class="lab" id="recTxt" style="margin:0;line-height:1.6;"></p>
+</div>
+
+<div id="hrSec">
+<div class="hd" data-i="h2">NEXT 24 HOURS</div>
+<div id="hrwrap" style="position:relative;width:100%;height:260px;margin:0 0 6px;">
+  <canvas id="hourly" role="img" aria-label="Hourly temperature with precipitation chance and forecast confidence; two lines when comparing locations"></canvas>
+</div>
+<div class="lab" id="hrLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 2rem;font-size:12px;"></div>
+</div>
+
+<div id="seaSec" class="hidden">
+<div class="hd" data-i="h4">SEA TEMPERATURE</div>
+<p class="lab" id="seaSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+<div id="seawrap" style="position:relative;width:100%;height:200px;margin:0 0 6px;">
+  <canvas id="sea" role="img" aria-label="Daily sea surface temperature forecast"></canvas>
+</div>
+<div class="lab" id="seaLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 2rem;font-size:12px;"></div>
+</div>
+
+<div class="hd"><span data-i="h3">OUTLOOK</span><span id="h3note" class="lab" style="font-weight:400;letter-spacing:0;margin-left:8px;font-size:12px;"></span></div>
+<p class="lab" id="wkSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+<div class="rng">
+  <button class="lbtn rbtn" id="btn-r3" onclick="setRange(3)">3d</button>
+  <button class="lbtn rbtn" id="btn-r7" onclick="setRange(7)">7d</button>
+  <button class="lbtn rbtn" id="btn-r14" onclick="setRange(14)">14d</button>
+  <button class="lbtn rbtn" id="btn-r30" onclick="setRange(30)">30d</button>
+  <span class="rsep"></span>
+  <button class="lbtn" id="btn-c0" onclick="setCMode(0)" title="Standard towers">STD</button>
+  <button class="lbtn" id="btn-c1" onclick="setCMode(1)" title="Color by temperature within shown range">°C</button>
+  <button class="lbtn" id="btn-c2" onclick="setCMode(2)" title="Color by anomaly vs 1991–2020 normal for each date">Δ°</button>
+  <span class="rsep"></span>
+  <button class="lbtn" id="btn-moon" onclick="toggleMoon()" title="Moon phases">🌙</button>
+  <button class="lbtn" id="btn-tide" onclick="toggleTide()" title="Tide hi/lo (single coastal location)">🌊</button>
+  <button class="lbtn" id="btn-bbq" onclick="toggleBbq()" title="BBQ score line (single location)">🍖</button>
+</div>
+<div id="wkwrap" style="position:relative;width:100%;height:340px;margin:0 0 6px;">
+  <canvas id="week" role="img" aria-label="Daily temperature range bars with precipitation chance and forecast confidence; paired bars when comparing locations"></canvas>
+</div>
+<div class="lab" id="wkLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
+
+<div id="bioSec" class="hidden">
+<div class="hd" data-i="h6">BIOMETEO</div>
+<p class="lab" id="bioSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+<div class="rng">
+  <button class="lbtn" id="btn-bh" onclick="setBRange('h')">24h</button>
+  <button class="lbtn" id="btn-b3" onclick="setBRange(3)">3d</button>
+  <button class="lbtn" id="btn-b7" onclick="setBRange(7)">7d</button>
+</div>
+<div id="biowrap" style="position:relative;width:100%;height:170px;margin:0 0 6px;">
+  <canvas id="bio" role="img" aria-label="Biometeorological load forecast as colored bars: green favorable, amber moderately unfavorable, red unfavorable"></canvas>
+</div>
+<div class="lab" id="bioLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
+</div>
+
+<div id="mtSec" class="hidden">
+<div class="hd" data-i="h5">MOON &amp; TIDE</div>
+<div id="mtwrap" style="position:relative;width:100%;height:190px;margin:0 0 6px;">
+  <canvas id="mt" role="img" aria-label="Moon illumination with phase icons and daily tide high-low levels"></canvas>
+</div>
+<div class="lab" id="mtLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
+</div>
+
+<div id="factSec" class="hidden" style="background:var(--surf);border-radius:8px;padding:0.85rem 1rem;margin:0 0 0.5rem;">
+  <div class="lab" style="letter-spacing:0.08em;font-weight:500;" data-i="h7">INTERESTING FACT</div>
+  <p class="lab" id="factTxt" style="margin:6px 0 0;line-height:1.6;color:var(--tp);"></p>
+</div>
+<div id="mapSec" class="hidden" style="margin:0 0 0.5rem;">
+  <div class="hd" style="display:flex;align-items:center;gap:10px;"><span data-i="h8">WEATHER STATIONS (DHMZ)</span>
+    <button class="lbtn" id="btn-mx" onclick="mapMax()" aria-label="Maximize map" title="Maximize / restore map" style="margin-left:auto;">⛶</button>
+  </div>
+  <p class="lab" id="mapNote" style="margin:-2px 0 8px;font-size:12px;"></p>
+  <div id="mapBox"></div>
+</div>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v2.28 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){if(typeof window.console==='undefined')window.console={};var noop=function(){};['log','info','warn','error','debug'].forEach(function(k){if(typeof console[k]!=='function')console[k]=console.log&&typeof console.log==='function'?console.log.bind(console):noop;});})();
+const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn:'#BA7517',bad:'#A32D2D',sea:'#0E7490',pres:'#6E8B3D',bbq:'#A0522D'};
+const CMP={a:'#2caaf0',b:'#a64ce8'};
+const BIOE=['🙂','😐','☹️'];
+const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
+const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
+const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
+const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
+const DEFAULT_RECENTS=['Zagreb','Primošten','Punat','Ugljan','New York'];
+function titleCase(s){return (s||'').trim().split(/\s+/).map(w=>w.split('-').map(p=>/^[a-zà-ž]/i.test(p)?p.charAt(0).toLocaleUpperCase('hr')+p.slice(1).toLocaleLowerCase('hr'):p).join('-')).join(' ');}
+let recents=DEFAULT_RECENTS.slice();
+try{const s=localStorage.getItem('wd_recents');if(s){const a=JSON.parse(s);if(Array.isArray(a)&&a.length)recents=a.slice(0,5);}}catch(e){}
+function saveRecents(){try{localStorage.setItem('wd_recents',JSON.stringify(recents));}catch(e){}}
+let theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+let layout='',fontbig=false,lang='en',RANGE=7,CMODE=0,CONF=false,MOON=false,TIDE=false,PRES=false,BBQ=false;
+let GEO_LOC=null;
+let MAPL=null,MAPMARKS=[],MAP_LOC=null,CUR_LOC=null;
+const MOONS=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
+function moonPh(iso){const synodic=29.530588853;const ref=Date.UTC(2000,0,6,18,14);const t=new Date(iso+'T12:00:00Z').getTime();const days=(t-ref)/86400000;return ((days%synodic)+synodic)%synodic/synodic;}
+function moonIcon(iso){return MOONS[Math.round(moonPh(iso)*8)%8];}
+function moonIllum(iso){return (1-Math.cos(2*Math.PI*moonPh(iso)))/2*100;}
+function moonName(iso){return (LBL.moonNames||T.en.moonNames)[Math.round(moonPh(iso)*8)%8];}
+function todayIso(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function uvLvl(v){return v<3?0:v<6?1:v<8?2:v<11?3:4;}
+function polLvl(v){return v<10?0:v<50?1:2;}
+let BRANGE='h';
+function setBRange(v){BRANGE=v;markBtns();if(D&&D.bio)drawBio();}
+function bioLvl(s){return s<=1?0:s<=3?1:2;}
+function scoreBio(o){let s=0;const r=[];
+ if(o.dp!=null){const a=Math.abs(o.dp);if(a>8){s+=2;r.push('rPress');}else if(a>4){s+=1;r.push('rPress');}}
+ if(o.fl!=null){if(o.fl>=30){s+=2;r.push('rHeat');}else if(o.fl>=27){s+=1;r.push('rHeat');}if(o.fl<=-5){s+=1;r.push('rCold');}}
+ if(o.rh!=null&&o.fl!=null&&o.rh>=85&&o.fl>=22){s+=1;r.push('rHum');}
+ if(o.wind!=null&&o.wind>=40){s+=1;r.push('rWind');}
+ if(o.cond==='storm'){s+=2;r.push('rStorm');}
+ if(o.swing!=null&&o.swing>=14){s+=1;r.push('rSwing');}
+ return{s:s,r:r};}
+function toggleConf(){CONF=!CONF;markBtns();if(D)render();}
+function toggleMoon(){MOON=!MOON;markBtns();if(D)render();}
+function toggleTide(){TIDE=!TIDE;markBtns();if(D)render();}
+function togglePres(){PRES=!PRES;markBtns();if(D)render();}
+function toggleBbq(){BBQ=!BBQ;markBtns();if(D)render();}
+let MP=false;
+function toggleMP(){MP=!MP;markBtns();if(D)render();}
+const MPBIO=['Lovely — dead lovely','Merely a flesh wound','Nobody expects this front!'];
+const MPBADGE={g:'Always look on the bright side',y:"'Tis but a drizzle",r:'Run away! Run away!'};
+const MPP={aRun:'Silly running',aHike:'The Quest',aSwim:'Swimming (no newts)',runGo:'proceed at a silly pace ~',runCare:'a flesh-wound forecast — gently ~',hikeGood:'a quest-worthy day',hikeRain:'the sky may taunt you a second time',uvNote:'the sun is not the Messiah — wear protection',swimNice:'lovely plumage\u2026 er, water',swimCool:'bracing; complain accordingly',swimCold:'colder than a certain parrot',swimStorm:'Run away! (from thunder)'};
+function bioName(i){return MP?MPBIO[i]:LBL.bioLevels[i];}
+const MPBBQ=['Bring out yer ribs!','A most agreeable grill','Passable, mostly','The coals shall taunt you','The fire is merely resting'];
+const BBQI=['\uD83D\uDD25\uD83E\uDD69','\uD83C\uDF56','\uD83C\uDF2D','\uD83C\uDF62','\uD83E\uDDEF'];
+function bbqTier(v){return v>=90?0:(v>=70?1:(v>=50?2:(v>=30?3:4)));}
+function bbqName(i){return MP?MPBBQ[i]:LBL.bbqTiers[i];}
+function bbqDay(x,bs){
+ if(!x||x.hi==null||x.lo==null)return null;
+ const evT=x.hi-0.3*(x.hi-x.lo);
+ let v=100;
+ v-=0.9*(x.pp??0);
+ if(evT>26)v-=Math.min(40,4*(evT-26));else if(evT<18)v-=Math.min(40,4*(18-evT));
+ if(x.w!=null&&x.w>20)v-=Math.min(20,x.w-20);
+ if(bs!=null&&bs>0)v-=6*bs;
+ if(x.cond==='storm')v=Math.min(v,15);
+ return Math.max(1,Math.min(100,Math.round(v)));
+}
+function bbqDayArr(d,Wv){
+ const bm={};
+ if(d.bio&&d.bio.d)d.bio.d.forEach(b=>{bm[b.dt]=b.s;});
+ return Wv.map(x=>bbqDay(x,bm[x.dt]));
+}
+function bbqScore(d){
+ if(!d||!d.days||!d.days.length)return null;
+ const d0=d.days[0];const H=d.hours||[];
+ const ev=H.filter(x=>{const hh=parseInt(x.h,10);return hh>=17&&hh<=21;});
+ const evT=ev.length?(ev.reduce((a,x)=>a+x.t,0)/ev.length):(d0.hi!=null?d0.hi:20);
+ const evP=ev.length?Math.max.apply(null,ev.map(x=>x.pp??0)):(d0.pp??0);
+ const storm=ev.some(x=>x.cond==='storm')||(!ev.length&&d0.cond==='storm');
+ const wind=(d.now&&d.now.wind!=null)?d.now.wind:0;
+ const rh=(d.now&&d.now.rh!=null)?d.now.rh:null;
+ const bs=(d.bio&&d.bio.d&&d.bio.d.length)?d.bio.d[0].s:0;
+ let v=100;const ded=[];
+ const pr=0.9*evP;if(pr>0){v-=pr;ded.push(['rain',pr]);}
+ let td=0,tk=null;
+ if(evT>26){td=Math.min(40,4*(evT-26));tk='hot';}else if(evT<18){td=Math.min(40,4*(18-evT));tk='cold';}
+ if(td>0){v-=td;ded.push([tk,td]);}
+ if(wind>20){const w=Math.min(20,wind-20);v-=w;ded.push(['wind',w]);}
+ if(bs>0){const b=6*bs;v-=b;ded.push(['bio',b]);}
+ if(rh!=null&&rh>=80&&evT>=24){v-=8;ded.push(['hum',8]);}
+ if(storm){v=Math.min(v,15);ded.push(['storm',99]);}
+ v=Math.max(1,Math.min(100,Math.round(v)));
+ ded.sort((a,b)=>b[1]-a[1]);
+ return{v:v,why:ded.length?ded[0][0]:null};
+}
+let selB=null;
+let BG,txt,strong,halo,grid,ptb;
+const cache={};
+const climoCache={};
+const marineCache={};
+const airCache={};
+function calc(){const D=theme==='dark';BG=D?'#262624':'#ffffff';txt=D?'rgba(255,255,255,0.72)':'rgba(0,0,0,0.62)';strong=D?'#fff':'#1a1a18';halo=D?'rgba(38,38,36,0.85)':'rgba(255,255,255,0.85)';grid=D?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.08)';ptb=D?'#262624':'#ffffff';}
+calc();
+const bgPlug={id:'bg',beforeDraw(c){const x=c.ctx;x.save();x.globalCompositeOperation='destination-over';x.fillStyle=BG;x.fillRect(0,0,c.width,c.height);x.restore();}};
+
+const T={
+ en:{title:"PATRIK'S WEATHER DAILY",h1:"RIGHT NOW",h2:"NEXT 24 HOURS",h3:"OUTLOOK",h4:"SEA TEMPERATURE",
+  loading:"Fetching the live forecast…",errTitle:"Couldn't load the forecast",
+  lgT:"Temperature °C",lgP:"Precip chance %",lgHi:"High",lgLo:"Low",
+  lgC:"Forecast confidence %",anomVs:"vs normal",
+  cT:"Temperature",cMax:"Daily max",cFL:"Feels like",cH:"Humidity",cW:"Wind",cP:"Chance of rain",cS:"Sea temp",
+  station:"Station area: ",badges:{g:"Green light",y:"Caution",r:"Stay flexible"},
+  longNote:"Beyond ~10 days this is trend-level guidance — confidence drops with distance.",
+  capNote:"(direct feed tops out at 16 days)",
+  best:"Best window",worst:"Wettest risk",dry:"dry all day",
+  vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
+  zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",h7:"INTERESTING FACT",h8:"WEATHER STATIONS (DHMZ)",useSt:"Use this station",cBbq:"BBQ score",bbqInfo:"<b>The premise.</b> Every day starts at a perfect 100 \u2014 much like every grill master's confidence.<br><br><b>Rain, the arch-enemy.</b> Each percent of evening shower risk burns 0.9 points, because soggy \u010devapi help nobody. A forecast thunderstorm slams the score to 15 \u2014 lightning is the only thing allowed to flame-grill you.<br><br><b>Temperature.</b> Judged for prime tong hours (17\u201321 h): the sweet spot is 18\u201326\u00B0, every degree outside costs 4 points.<br><br><b>Wind &amp; air.</b> Above 20 km/h the wind steals a point per km/h \u2014 smoke in your eyes, napkins next door. Sultry evenings (humidity over 80% at 24\u00B0+) cost 8 points and one shirt. A grumpy biometeo docks 6 points per level \u2014 guests with pressure headaches eat suspiciously little.<br><br><b>The verdict \u2014 which icon is which.</b><br>\uD83D\uDD25\uD83E\uDD69 90\u2013100 \u00B7 grill god<br>\uD83C\uDF56 70\u201389 \u00B7 prime grilling<br>\uD83C\uDF2D 50\u201369 \u00B7 decent grilling<br>\uD83C\uDF62 30\u201349 \u00B7 for the brave<br>\uD83E\uDDEF 1\u201329 \u00B7 extinguisher weather<br><br>The biggest culprit is named on the card. Advice, not destiny \u2014 true masters grill in anything.",bioInfo:"<b>What it measures.</b> How hard today's weather leans on the weather-sensitive \u2014 a load score built from the same data the charts show.<br><br><b>Pressure.</b> A 24-hour swing over 4 hPa adds a point; over 8 hPa adds two. Fronts announce themselves in your sinuses first.<br><br><b>Heat &amp; cold.</b> Feels-like of 27\u00B0+ adds one, 30\u00B0+ two; \u22125\u00B0 or below adds one. Sultry air (humidity \u226585% when warm) adds another.<br><br><b>Wind &amp; storms.</b> Wind of 40+ km/h adds one; a thunderstorm adds two. A day swinging more than 14\u00B0 between low and high adds one more.<br><br><b>The smileys.</b> 0\u20131 \u2192 \uD83D\uDE42 favorable; 2\u20133 \u2192 \uD83D\uDE10 moderately unfavorable; 4+ \u2192 \u2639\uFE0F unfavorable. Triggers are listed on the card \u2014 so you know whether to blame the front, the heat, or simply Monday.",bbqTiers:['Grill god conditions','Prime grilling','Decent grilling','For the brave','Extinguisher weather'],bbqWhy:{rain:'rain risk',hot:'too hot',cold:'too cold',wind:'windy',bio:'biometeo',hum:'sultry',storm:'thunderstorm'},mapNote:"10 nearest DHMZ stations to the selected location (approx. coordinates) \u00B7 map \u00A9 OpenStreetMap",cBio:"Biometeo",cPres:"Pressure",presTrend:['Rising','Steady','Falling'],lgPr:"Pressure hPa",bioLevels:['Favorable','Moderately unfavorable','Unfavorable'],bioR:{rPress:'pressure swing',rHeat:'heat',rCold:'cold',rHum:'sultry',rWind:'wind',rStorm:'storm',rSwing:'temp swing'},aRun:'Running',aHike:'Hiking',aSwim:'Swimming',runGo:'good — best ~',runCare:'easy does it (heat/biometeo) — if so ~',hikeGood:'good day',hikeRain:'rain risk — plan windows',uvNote:'high UV midday, protect',swimNice:'pleasant',swimCool:'fresh — short swims',swimCold:'cold — wetsuit',swimStorm:'skip during storm risk',moonNames:['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent'],
+  normFoot:"normal: ERA5 "+NORM_LBL+" ±"+WIN+"d",
+  errDirect:"Direct feed (Open-Meteo): ",errAI:"AI feed (Claude): ",
+  errTip:"This usually means the app you opened the file in blocks network requests. Open the file in a regular browser (Chrome, Safari, Firefox), check ad-blockers, or host it (e.g. GitHub Pages). The AI feed only works while running inside Claude.",
+  aiOnly:"only available inside Claude",
+  dows:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']},
+ hr:{title:"PATRIKOVA DNEVNA PROGNOZA",h1:"TRENUTNO",h2:"SLJEDEĆA 24 SATA",h3:"IZGLEDI",h4:"TEMPERATURA MORA",
+  loading:"Dohvaćam prognozu…",errTitle:"Prognoza se nije učitala",
+  lgT:"Temperatura °C",lgP:"Vjerojatnost oborina %",lgHi:"Najviša",lgLo:"Najniža",
+  lgC:"Pouzdanost prognoze %",anomVs:"vs normala",
+  cT:"Temperatura",cMax:"Dnevni maksimum",cFL:"Osjet",cH:"Vlažnost",cW:"Vjetar",cP:"Vjerojatnost kiše",cS:"More",
+  station:"Područje postaje: ",badges:{g:"Zeleno svjetlo",y:"Oprez",r:"Budi fleksibilan"},
+  longNote:"Nakon ~10 dana ovo je prognoza trenda — pouzdanost pada s udaljenošću.",
+  capNote:"(izravni izvor ide do 16 dana)",
+  best:"Najbolji prozor",worst:"Najveći rizik kiše",dry:"suho cijeli dan",
+  vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
+  zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",h7:"ZANIMLJIVOST",h8:"METEOROLO\u0160KE POSTAJE (DHMZ)",useSt:"Odaberi postaju",cBbq:"Ro\u0161tilj indeks",bbqInfo:"<b>Premisa.</b> Svaki dan po\u010dinje sa savr\u0161enih 100 \u2014 ba\u0161 kao samopouzdanje svakog majstora ro\u0161tilja.<br><br><b>Ki\u0161a, glavni neprijatelj.</b> Svaki posto ve\u010dernjeg rizika spaljuje 0,9 bodova, jer raskva\u0161eni \u0107evapi nikome ne poma\u017eu. Najavljena grmljavina ru\u0161i indeks na 15 \u2014 jedino munji dopu\u0161tamo flambiranje.<br><br><b>Temperatura.</b> Ocjenjuje se za zlatno doba hvataljki (17\u201321 h): idealno je 18\u201326\u00B0, svaki stupanj izvan toga ko\u0161ta 4 boda.<br><br><b>Vjetar i zrak.</b> Preko 20 km/h vjetar krade bod po km/h \u2014 dim u o\u010di, salvete u susjedovo dvori\u0161te. Sparne ve\u010deri (vlaga preko 80% uz 24\u00B0+) nose 8 bodova i jednu majicu. Mrzovoljan biometeo skida 6 bodova po razini \u2014 gosti s glavoboljom sumnjivo malo jedu.<br><br><b>Presuda \u2014 koja ikona je koji rezultat.</b><br>\uD83D\uDD25\uD83E\uDD69 90\u2013100 \u00B7 bo\u017eanski ro\u0161tilj<br>\uD83C\uDF56 70\u201389 \u00B7 odli\u010dno<br>\uD83C\uDF2D 50\u201369 \u00B7 sasvim solidno<br>\uD83C\uDF62 30\u201349 \u00B7 za hrabre<br>\uD83E\uDDEF 1\u201329 \u00B7 vrijeme za aparat<br><br>Najve\u0107eg krivca pi\u0161emo na kartici. Savjet, a ne sudbina \u2014 pravi majstori ro\u0161tiljaju po svemu.",bioInfo:"<b>\u0160to mjeri.</b> Koliko dana\u0161nje vrijeme pritisak stavlja na meteoropate \u2014 indeks optere\u0107enja iz istih podataka koje vidite na grafovima.<br><br><b>Tlak.</b> Promjena ve\u0107a od 4 hPa u 24 h donosi bod; preko 8 hPa dva. Fronte se najprije najave u sinusima.<br><br><b>Vru\u0107ina i hladno\u0107a.</b> Osje\u0107aj od 27\u00B0+ donosi bod, 30\u00B0+ dva; \u22125\u00B0 ili ni\u017ee jo\u0161 jedan. Sparina (vlaga \u226585% uz toplo) dodaje bod.<br><br><b>Vjetar i nevrijeme.</b> Vjetar od 40+ km/h donosi bod; grmljavina dva. Dan koji se nji\u0161e vi\u0161e od 14\u00B0 izme\u0111u minimuma i maksimuma jo\u0161 jedan.<br><br><b>Smajli\u0107i.</b> 0\u20131 \u2192 \uD83D\uDE42 povoljno; 2\u20133 \u2192 \uD83D\uDE10 umjereno nepovoljno; 4+ \u2192 \u2639\uFE0F nepovoljno. Okida\u010di su navedeni na kartici \u2014 da znate krivite li frontu, vru\u0107inu ili jednostavno ponedjeljak.",bbqTiers:['Bo\u017eanski ro\u0161tilj','Odli\u010dno za ro\u0161tilj','Sasvim solidno','Za hrabre','Vrijeme za aparat'],bbqWhy:{rain:'rizik ki\u0161e',hot:'prevru\u0107e',cold:'prehladno',wind:'vjetrovito',bio:'biometeo',hum:'sparina',storm:'grmljavina'},mapNote:"10 najbli\u017eih DHMZ postaja odabranoj lokaciji (pribli\u017ene koordinate) \u00B7 karta \u00A9 OpenStreetMap",cBio:"Biometeo",cPres:"Tlak zraka",presTrend:['Raste','Stabilno','Pada'],lgPr:"Tlak hPa",bioLevels:['Povoljno','Umjereno nepovoljno','Nepovoljno'],bioR:{rPress:'promjena tlaka',rHeat:'vrućina',rCold:'hladnoća',rHum:'sparina',rWind:'vjetar',rStorm:'nevrijeme',rSwing:'kolebanje temp.'},aRun:'Trčanje',aHike:'Planinarenje',aSwim:'Plivanje',runGo:'dobro — najbolje ~',runCare:'polako (vrućina/biometeo) — ako ideš ~',hikeGood:'dobar dan',hikeRain:'rizik kiše — planiraj prozore',uvNote:'jak UV oko podneva, zaštita',swimNice:'ugodno',swimCool:'svježe — kraće plivanje',swimCold:'hladno — neopren',swimStorm:'preskoči za rizika nevremena',moonNames:['Mlađak','Rastući srp','Prva četvrt','Rastući mjesec','Puni mjesec','Opadajući mjesec','Zadnja četvrt','Opadajući srp'],
+  normFoot:"normala: ERA5 "+NORM_LBL+" ±"+WIN+"d",
+  errDirect:"Izravni izvor (Open-Meteo): ",errAI:"AI izvor (Claude): ",
+  errTip:"Ovo obično znači da aplikacija u kojoj je datoteka otvorena blokira mrežne zahtjeve. Otvori datoteku u običnom pregledniku (Chrome, Safari, Firefox), provjeri blokatore oglasa ili je hostaj (npr. GitHub Pages). AI izvor radi samo unutar Claudea.",
+  aiOnly:"dostupno samo unutar Claudea",
+  dows:['Ned','Pon','Uto','Sri','Čet','Pet','Sub']}
+};
+let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, lastErrs=null;
+function cmp(){return !!(selB&&D2);}
+function locA(){return titleCase(document.getElementById('locIn').value)||DEFAULT_LOC.name;}
+
+const WMO=c=>{if(c===0)return'sun';if(c<=2)return'partcloud';if(c===3)return'cloud';if(c===45||c===48)return'fog';if(c>=95)return'storm';if((c>=71&&c<=77)||c===85||c===86)return'snow';if(c>=51)return'rain';return'cloud';};
+const COMPASS=d=>['N','NE','E','SE','S','SW','W','NW'][Math.round(((d%360)+360)%360/45)%8];
+function tfetch(url,ms){let t;const timer=new Promise((_,rej)=>{t=setTimeout(()=>rej(new Error('timeout '+ms+'ms')),ms);});return Promise.race([fetch(url),timer]).finally(()=>clearTimeout(t));}
+function hsl(h,s,l,a){return 'hsla('+h+','+s+'%,'+l+'%,'+(a==null?1:a)+')';}
+const confH=i=>Math.max(80,95-i);
+const confD=i=>Math.max(25,95-Math.round(i*4.5));
+function esc(s){return String(s==null?'':s).replace(/[<>&]/g,'');}
+
+/* ---------- Source 1: Open-Meteo forecast ---------- */
+async function geocode(q){
+ if(MAP_LOC&&q&&q.trim().toLowerCase()===MAP_LOC.name.toLowerCase())return MAP_LOC;
+ if(GEO_LOC&&q&&q.trim().toLowerCase()===GEO_LOC.name.toLowerCase())return GEO_LOC;
+ if(!q||q.trim().toLowerCase()===DEFAULT_LOC.name.toLowerCase())return DEFAULT_LOC;
+ const city=q.split(',').pop().trim()||q;
+ const r=await tfetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&name='+encodeURIComponent(city),8000);
+ const j=await r.json();
+ if(!j.results||!j.results.length)throw new Error('Location not found');
+ const g=j.results[0];
+ return{name:q,lat:g.latitude,lon:g.longitude,station:g.name+(g.country_code?', '+g.country_code:'')};
+}
+async function fetchOpenMeteo(loc,range){
+ const days=Math.min(range,16);
+ const url='https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+
+  '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,pressure_msl'+
+  '&hourly=temperature_2m,precipitation_probability,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,pressure_msl'+
+  '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,precipitation_sum,uv_index_max,wind_speed_10m_max,sunrise,sunset'+
+  '&forecast_days='+days+'&past_days=1&timezone=auto';
+ const r=await tfetch(url,10000);
+ if(!r.ok)throw new Error('Open-Meteo '+r.status);
+ const j=await r.json();
+ const cur=j.current,hl=j.hourly,dl=j.daily;
+ const yIdx=new Date().getHours();
+ const yest={
+  max:Math.round(dl.temperature_2m_max[0]),lo:Math.round(dl.temperature_2m_min[0]),
+  precip:dl.precipitation_sum?dl.precipitation_sum[0]:null,
+  t:hl.temperature_2m[yIdx],fl:hl.apparent_temperature[yIdx],
+  hum:hl.relative_humidity_2m[yIdx],wind:hl.wind_speed_10m[yIdx]
+ };
+ const nowIdx=Math.max(0,hl.time.findIndex(t=>new Date(t)>new Date()));
+ const hours=[];
+ for(let k=0;k<8;k++){const i=nowIdx+k*3;if(i>=hl.time.length)break;
+  hours.push({h:hl.time[i].slice(11,16),t:Math.round(hl.temperature_2m[i]),pp:Math.round(hl.precipitation_probability[i]??0),cond:WMO(hl.weather_code[i]),p:(hl.pressure_msl&&hl.pressure_msl[i]!=null)?Math.round(hl.pressure_msl[i]):null});}
+ const ds=dl.time.slice(1).map((t,i)=>({dt:t,hi:Math.round(dl.temperature_2m_max[i+1]),lo:Math.round(dl.temperature_2m_min[i+1]),pp:Math.round(dl.precipitation_probability_max[i+1]??0),cond:WMO(dl.weather_code[i+1])}));
+ let bi=0,wi=0;
+ hours.forEach((h,i)=>{if(h.pp<hours[bi].pp||(h.pp===hours[bi].pp&&Math.abs(h.t-20)<Math.abs(hours[bi].t-20)))bi=i;if(h.pp>hours[wi].pp)wi=i;});
+ const ppMax=ds[0]?ds[0].pp:0,wind=Math.round(cur.wind_speed_10m);
+ const badge=(ppMax>=60||WMO(cur.weather_code)==='storm')?'r':(ppMax>=30||wind>=35)?'y':'g';
+ const mk=l=>{const L=T[l];let s=L.best+': ~'+(hours[bi]?hours[bi].h:'—')+' ('+(hours[bi]?hours[bi].pp:0)+'% · '+(hours[bi]?hours[bi].t:'—')+'°). ';
+  s+=hours[wi]&&hours[wi].pp>15?(L.worst+': ~'+hours[wi].h+' ('+hours[wi].pp+'%). '):(L.dry.charAt(0).toUpperCase()+L.dry.slice(1)+'. ');
+  s+=(l==='en'?'Wind ':'Vjetar ')+wind+' km/h '+COMPASS(cur.wind_direction_10m)+'.';return s;};
+ const pmean=(a,b)=>{let t=0,n=0;for(let i=a;i<b&&i<hl.pressure_msl.length;i++){const v=hl.pressure_msl[i];if(v!=null){t+=v;n++;}}return n?t/n:null;};
+ const bioH=[];
+ for(let k=0;k<24;k++){const i=nowIdx+k;if(i>=hl.time.length)break;
+  const dp=(i>=24&&hl.pressure_msl[i]!=null&&hl.pressure_msl[i-24]!=null)?(hl.pressure_msl[i]-hl.pressure_msl[i-24]):null;
+  const sc=scoreBio({dp:dp,fl:hl.apparent_temperature[i],rh:hl.relative_humidity_2m[i],wind:hl.wind_speed_10m[i],cond:WMO(hl.weather_code[i]),swing:null});
+  bioH.push({h:hl.time[i].slice(11,16),s:sc.s,r:sc.r});}
+ const bioD=[];
+ for(let dd=1;dd<Math.min(dl.time.length,8);dd++){
+  const dp=(()=>{const a=pmean(dd*24,(dd+1)*24),b=pmean((dd-1)*24,dd*24);return(a!=null&&b!=null)?(a-b):null;})();
+  const hi2=dl.temperature_2m_max[dd],lo2=dl.temperature_2m_min[dd];
+  const sc=scoreBio({dp:dp,fl:hi2,rh:hl.relative_humidity_2m[dd*24+13],wind:dl.wind_speed_10m_max?dl.wind_speed_10m_max[dd]:null,cond:WMO(dl.weather_code[dd]),swing:(hi2!=null&&lo2!=null)?(hi2-lo2):null});
+  bioD.push({dt:dl.time[dd],s:sc.s,r:sc.r});}
+ ds.forEach((x,i)=>{const v=pmean((i+1)*24,(i+2)*24);x.p=v!=null?Math.round(v):null;x.w=(dl.wind_speed_10m_max&&dl.wind_speed_10m_max[i+1]!=null)?Math.round(dl.wind_speed_10m_max[i+1]):null;});
+ let sunObj=null;
+ if(dl.sunrise&&dl.sunset&&dl.sunrise[1]&&dl.sunset[1]){
+  const mins=(a,b)=>Math.round((new Date(b)-new Date(a))/60000);
+  const len0=mins(dl.sunrise[1],dl.sunset[1]);
+  const len1=(dl.sunrise[2]&&dl.sunset[2])?mins(dl.sunrise[2],dl.sunset[2]):len0;
+  sunObj={rise:dl.sunrise[1].slice(11,16),set:dl.sunset[1].slice(11,16),len:len0,dmin:len1-len0};
+ }
+ const pcur=(cur.pressure_msl!=null)?cur.pressure_msl:(hl.pressure_msl?hl.pressure_msl[nowIdx]:null);
+ let presObj=null;
+ if(pcur!=null&&hl.pressure_msl){
+  const p3=hl.pressure_msl[Math.max(0,nowIdx-3)],p24=hl.pressure_msl[Math.max(0,nowIdx-24)];
+  const d3=(p3!=null)?(pcur-p3):null,d24=(p24!=null)?(pcur-p24):null;
+  const ti2=(d3==null)?1:(d3>0.5?0:(d3<-0.5?2:1));
+  presObj={cur:Math.round(pcur),t:ti2,d3:d3!=null?Math.round(d3*10)/10:null,d24:d24!=null?Math.round(d24*10)/10:null};
+ }
+ const uvObj={cur:(hl.uv_index&&hl.uv_index[nowIdx]!=null)?Math.round(hl.uv_index[nowIdx]*10)/10:null,max:(dl.uv_index_max&&dl.uv_index_max[1]!=null)?Math.round(dl.uv_index_max[1]*10)/10:null};
+ return{loc:loc.name,station:loc.station,uv:uvObj,bio:{h:bioH,d:bioD},pres:presObj,sun:sunObj,
+  now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
+  hours:hours,days:ds,yest:yest,badge:badge,
+  today:{en:'Today: '+(ds[0]?ds[0].lo+'–'+ds[0].hi+'° ':'')+(ICON[ds[0]?ds[0].cond:'sun']||''),hr:'Danas: '+(ds[0]?ds[0].lo+'–'+ds[0].hi+'° ':'')+(ICON[ds[0]?ds[0].cond:'sun']||'')},
+  rec:{en:mk('en'),hr:mk('hr')},
+  src:'Open-Meteo (ICON/ECMWF)'+(range>16?' '+T[lang].capNote:''),mode:'direct'};
+}
+
+/* ---------- Marine: sea surface temperature ---------- */
+function ensureMarine(loc){
+ const k=loc.lat.toFixed(3)+','+loc.lon.toFixed(3);
+ if(marineCache[k])return marineCache[k];
+ marineCache[k]=(async()=>{
+  const r=await tfetch('https://marine-api.open-meteo.com/v1/marine?latitude='+loc.lat+'&longitude='+loc.lon+'&hourly=sea_surface_temperature,sea_level_height_msl&forecast_days=7&timezone=auto',10000);
+  if(!r.ok)return null;
+  const j=await r.json();
+  const tm=j.hourly&&j.hourly.time, vv=j.hourly&&j.hourly.sea_surface_temperature;
+  const lv=j.hourly&&j.hourly.sea_level_height_msl;
+  if(!tm||!vv)return null;
+  const byDate={},byLvl={};let cur=null;
+  for(let i=0;i<tm.length;i++){
+   const d=tm[i].slice(0,10);
+   const v=vv[i];
+   if(v!=null&&isFinite(v)){
+    if(cur===null&&new Date(tm[i])>=new Date())cur=v;
+    (byDate[d]=byDate[d]||[]).push(v);
+   }
+   const l=lv?lv[i]:null;
+   if(l!=null&&isFinite(l))(byLvl[d]=byLvl[d]||[]).push(l);
+  }
+  const dts=Object.keys(byDate).sort();
+  if(!dts.length)return null;
+  if(cur===null)cur=byDate[dts[0]][0];
+  const tide=Object.keys(byLvl).sort().map(d=>({dt:d,hi:Math.round(Math.max.apply(null,byLvl[d])*100),lo:Math.round(Math.min.apply(null,byLvl[d])*100)}));
+  return{cur:Math.round(cur*10)/10,days:dts.map(d=>({dt:d,t:Math.round((byDate[d].reduce((a,b)=>a+b,0)/byDate[d].length)*10)/10})),tide:tide};
+ })().catch(()=>null);
+ return marineCache[k];
+}
+
+/* ---------- Air quality: pollen ---------- */
+function ensureAir(loc){
+ const k=loc.lat.toFixed(3)+','+loc.lon.toFixed(3);
+ if(airCache[k])return airCache[k];
+ airCache[k]=(async()=>{
+  const r=await tfetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&forecast_days=1&timezone=auto',10000);
+  if(!r.ok)return null;
+  const j=await r.json();const h=j.hourly;if(!h||!h.time)return null;
+  let idx=h.time.findIndex(t=>new Date(t)>=new Date());if(idx<0)idx=h.time.length-1;
+  const keys=['alder','birch','grass','mugwort','olive','ragweed'];
+  const list=[];
+  keys.forEach(kk=>{const arr=h[kk+'_pollen'];const v=arr?arr[idx]:null;if(v!=null&&isFinite(v))list.push({k:kk,v:v});});
+  if(!list.length)return null;
+  let dom=list[0];list.forEach(x=>{if(x.v>dom.v)dom=x;});
+  return{list:list,dom:dom};
+ })().catch(()=>null);
+ return airCache[k];
+}
+
+/* ---------- Climatology: WMO-style normals ---------- */
+function mmdd(d){return String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function windowKeys(){
+ const keys=[];const ref=new Date(2000,new Date().getMonth(),new Date().getDate());
+ for(let o=-WIN;o<=WIN;o++){const d=new Date(ref);d.setDate(ref.getDate()+o);keys.push(mmdd(d));}
+ return keys;
+}
+function sameDayISO(yearsBack){
+ const d=new Date();const y=d.getFullYear()-yearsBack;
+ let dd=d.getDate();const mo=d.getMonth()+1;
+ if(mo===2&&dd===29)dd=28;
+ return y+'-'+String(mo).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+}
+function buildByDay(rawMax){
+ const out={};
+ for(let i=0;i<366;i++){
+  const c=new Date(2000,0,1+i);const key=mmdd(c);
+  const vals=[];
+  for(let o=-WIN;o<=WIN;o++){const w=new Date(2000,0,1+i+o);const arr=rawMax[mmdd(w)];if(arr)for(const v of arr)vals.push(v);}
+  if(vals.length)out[key]=vals.reduce((a,b)=>a+b,0)/vals.length;
+ }
+ return out;
+}
+function ensureClimo(loc){
+ const k=loc.lat.toFixed(3)+','+loc.lon.toFixed(3);
+ if(climoCache[k])return climoCache[k];
+ climoCache[k]=(async()=>{
+  const normP=tfetch('https://archive-api.open-meteo.com/v1/archive?latitude='+loc.lat+'&longitude='+loc.lon+
+   '&start_date='+NORM_START+'&end_date='+NORM_END+
+   '&daily=temperature_2m_max,temperature_2m_mean,precipitation_sum&timezone=auto',20000)
+   .then(r=>{if(!r.ok)throw new Error('archive '+r.status);return r.json();});
+  const lyDt=sameDayISO(1);
+  const lyP=tfetch('https://archive-api.open-meteo.com/v1/archive?latitude='+loc.lat+'&longitude='+loc.lon+
+   '&start_date='+lyDt+'&end_date='+lyDt+
+   '&daily=temperature_2m_max,temperature_2m_mean,precipitation_sum&timezone=auto',12000)
+   .then(r=>{if(!r.ok)throw new Error('archive '+r.status);return r.json();})
+   .then(j=>({max:j.daily.temperature_2m_max[0],mean:j.daily.temperature_2m_mean[0],precip:j.daily.precipitation_sum[0]}))
+   .catch(()=>null);
+  const [norm,ly]=await Promise.all([normP,lyP]);
+  const want=new Set(windowKeys());
+  const dt=norm.daily;
+  const mx=[],mn=[],pr=[],rawMax={};
+  for(let i=0;i<dt.time.length;i++){
+   const key=dt.time[i].slice(5);
+   const vMax=dt.temperature_2m_max[i];
+   if(vMax!=null)(rawMax[key]=rawMax[key]||[]).push(vMax);
+   if(!want.has(key))continue;
+   if(vMax!=null)mx.push(vMax);
+   if(dt.temperature_2m_mean[i]!=null)mn.push(dt.temperature_2m_mean[i]);
+   if(dt.precipitation_sum[i]!=null)pr.push(dt.precipitation_sum[i]);
+  }
+  if(!mx.length)throw new Error('no normals data');
+  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  return{ly:ly,avg:{max:mean(mx),mean:mean(mn),precip:mean(pr),n:mx.length},byDay:buildByDay(rawMax)};
+ })();
+ climoCache[k].catch(()=>{delete climoCache[k];});
+ return climoCache[k];
+}
+
+/* ---------- Source 2: Claude + web search ---------- */
+function aiPrompt(loc,days){
+ const wantHours=days<=7;
+ return 'Search the web for live weather for '+loc+'. Prefer Croatian DHMZ / meteo.hr data when the location is in Croatia; identify the nearest official meteorological station to the address (e.g. for Zagreb that is typically Zagreb-Maksimir or Zagreb-Grič). Use 2-3 searches. Today is '+new Date().toDateString()+'. Respond with ONLY valid JSON, no markdown fences, no prose:\n'+
+ '{"loc":"City","station":"station name","now":{"t":0,"fl":0,"hum":0,"wind":0,"wdir":"NW","pp":0,"cond":"sun"},"hours":['+(wantHours?'{"h":"09:00","t":0,"pp":0,"cond":"sun"}':'')+'],"days":[{"dt":"2026-06-13","hi":0,"lo":0,"pp":0,"cond":"rain"}],"badge":"g","today":{"en":"Today: ...","hr":"Danas: ..."},"rec":{"en":"...","hr":"..."},"src":"sources"}\n'+
+ 'Rules: '+(wantHours?'hours = 8 entries at 3-hour steps from the next full hour, each with cond. ':'hours = empty array. ')+'days = exactly '+days+' entries starting today; beyond reliable horizons give trend-level estimates. cond one of: sun, partcloud, cloud, rain, storm, snow, fog, wind. Temps °C integers, wind km/h, pp = precipitation probability %. today = 3-6 word headline. rec = max 45 words per language, practical morning briefing for outdoor training, name best and worst windows. badge: g good, y mixed, r poor. src short.';
+}
+async function fetchAI(locName,range){
+ const r=await fetch("https://api.anthropic.com/v1/messages",{
+  method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,
+   messages:[{role:"user",content:aiPrompt(locName,range)}],
+   tools:[{type:"web_search_20250305",name:"web_search"}]})
+ });
+ const data=await r.json();
+ if(data.error)throw new Error(data.error.message||"API error");
+ const text=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+ const s=text.indexOf("{"),e=text.lastIndexOf("}");
+ if(s<0||e<0)throw new Error("No forecast returned");
+ const out=JSON.parse(text.slice(s,e+1).replace(/```json|```/g,""));
+ out.mode='ai';return out;
+}
+
+/* ---------- Orchestration ---------- */
+async function fetchFor(locName,key,getCur){
+ if(IN_CLAUDE){
+  try{return await fetchAI(locName,RANGE);}
+  catch(eA){console.log('AI feed failed, trying direct feed:',eA);return await runDirect(locName,key,getCur);}
+ }else{
+  try{return await runDirect(locName,key,getCur);}
+  catch(eD){if(getCur===getA)lastErrs.direct=eD.message||String(eD);console.log('direct feed unavailable — using AI feed');return await fetchAI(locName,RANGE);}
+ }
+}
+function getA(){return D;}
+function getB(){return D2;}
+async function runDirect(locName,key,getCur){
+ const loc=await geocode(locName);
+ if(getCur===getA)CUR_LOC=loc;
+ const cp=ensureClimo(loc);
+ const mp=ensureMarine(loc);
+ const ap=ensureAir(loc);
+ const d=await fetchOpenMeteo(loc,RANGE);
+ cp.then(cl=>{d.climo=cl;cache[key]=d;if(getCur()===d)render();}).catch(e=>console.log('normals unavailable:',e));
+ mp.then(m=>{if(m){d.sea=m;cache[key]=d;if(getCur()===d)render();}}).catch(()=>{});
+ ap.then(a=>{if(a){d.air=a;cache[key]=d;if(getCur()===d)render();}}).catch(()=>{});
+ return d;
+}
+async function loadData(){
+ const btn=document.getElementById('btn-rf');btn.disabled=true;
+ const locName=locA();
+ document.getElementById('locIn').value=locName;
+ if(selB&&selB.toLowerCase()===locName.toLowerCase()){selB=null;D2=null;}
+ const key=RANGE+"|"+locName.trim().toLowerCase();
+ if(cache[key]){D=cache[key];addRecent(locName);render();show('dash');btn.disabled=false;loadSecondary();return;}
+ document.getElementById('loadingSub').textContent=RANGE+"d · "+locName;
+ show('loading');
+ lastErrs={direct:null,ai:null};
+ try{
+  D=await fetchFor(locName,key,getA);
+  cache[key]=D;addRecent(locName);render();show('dash');
+  loadSecondary();
+ }catch(err){
+  if(lastErrs.direct&&!lastErrs.ai)lastErrs.ai=err.message||String(err);
+  else if(!lastErrs.direct)lastErrs.direct=err.message||String(err);
+  console.error(err);
+  showError();
+ }finally{btn.disabled=false;}
+}
+async function loadSecondary(){
+ if(!selB){D2=null;render();return;}
+ const key=RANGE+"|"+selB.trim().toLowerCase();
+ if(cache[key]){D2=cache[key];render();return;}
+ try{
+  const d=await fetchFor(selB,key,getB);
+  cache[key]=d;
+  if(selB&&key===RANGE+"|"+selB.trim().toLowerCase()){D2=d;render();}
+ }catch(e){
+  console.log('secondary location failed:',e);
+  selB=null;D2=null;markBtns();render();
+ }
+}
+function showError(){
+ document.getElementById('errDirect').textContent=LBL.errDirect+(lastErrs&&lastErrs.direct?lastErrs.direct:'—');
+ document.getElementById('errAI').textContent=LBL.errAI+(lastErrs&&lastErrs.ai?(lastErrs.ai==='Failed to fetch'?LBL.aiOnly:lastErrs.ai):'—');
+ document.getElementById('errTip').textContent=LBL.errTip;
+ show('error');
+}
+function hardRefresh(){
+ const a=RANGE+"|"+locA().trim().toLowerCase();delete cache[a];
+ if(selB)delete cache[RANGE+"|"+selB.trim().toLowerCase()];
+ loadData();
+}
+function setRange(r){RANGE=r;markBtns();loadData();}
+function setCMode(m){CMODE=m;markBtns();if(D)render();}
+function show(id){for(const s of ['loading','error','dash'])document.getElementById(s).classList.toggle('hidden',s!==id);}
+
+/* ---------- Recents / selection ---------- */
+function addRecent(name){
+ if(!name||name.toLowerCase()===DEFAULT_LOC.name.toLowerCase())return;
+ recents=recents.filter(x=>x.toLowerCase()!==name.toLowerCase());
+ recents.unshift(name);recents=recents.slice(0,5);
+ saveRecents();renderRecents();
+}
+function renderRecents(){
+ const cust=MAP_LOC?('<button class="lbtn locbtn" data-n="'+MAP_LOC.name.replace(/"/g,'&quot;')+'" onclick="toggleLoc(this.dataset.n)" title="DHMZ station from map">\uD83D\uDCCD '+esc(MAP_LOC.name)+'</button>'):'';
+ document.getElementById('locRow').innerHTML=cust+recents.map(n=>'<button class="lbtn locbtn" data-n="'+n.replace(/"/g,'&quot;')+'" onclick="toggleLoc(this.dataset.n)">'+esc(n)+'</button>').join('');
+ markBtns();
+}
+function toggleLoc(n){
+ const a=locA();
+ if(n.toLowerCase()===a.toLowerCase()){
+  if(selB){document.getElementById('locIn').value=selB;selB=null;D2=null;loadData();}
+  else markBtns();
+  return;
+ }
+ if(selB&&n.toLowerCase()===selB.toLowerCase()){selB=null;D2=null;markBtns();render();return;}
+ const aIsShortcut=recents.some(x=>x.toLowerCase()===a.toLowerCase())||(MAP_LOC&&MAP_LOC.name.toLowerCase()===a.toLowerCase());
+ if(!aIsShortcut){document.getElementById('locIn').value=n;loadData();return;}
+ selB=n;markBtns();loadSecondary();
+}
+
+/* ---------- Rendering ---------- */
+function sgn(v,unit,dec){
+ if(v==null||isNaN(v))return'—';
+ const r=dec?v.toFixed(dec):Math.round(v);
+ const num=dec?parseFloat(r):r;
+ return (num>0?'+':(num===0?'±':''))+r+(unit||'');
+}
+function tAnom(v,unit,dec){
+ if(v==null||isNaN(v))return'—';
+ const cls=Math.abs(v)<0.05?'':(v>0?'aw':'ac');
+ return '<span class="'+cls+'">'+sgn(v,unit==null?'°':unit,dec)+'</span>';
+}
+function card(lab,val,sub,ctx){return '<div class="card"><div class="lab">'+lab+'</div><div class="big-n">'+val+'</div>'+(sub?'<div class="lab" style="font-size:12px;">'+sub+'</div>':'')+(ctx?'<div class="ctx">'+ctx+'</div>':'')+'</div>';}
+function cardCmp(lab,vA,vB){
+ return '<div class="card"><div class="lab">'+lab+'</div>'+
+  '<div style="font-size:19px;font-weight:500;"><span class="dotA"></span>'+(vA==null?'—':vA)+'</div>'+
+  '<div style="font-size:19px;font-weight:500;"><span class="dotB"></span>'+(vB==null?'—':vB)+'</div></div>';
+}
+function dayLab(iso){const d=new Date(iso+"T12:00");return LBL.dows[d.getDay()]+' '+d.getDate();}
+function defaultTower(){return theme==='dark'?'rgba(44,170,240,0.45)':'rgba(8,74,143,0.35)';}
+function towerColorsFor(W,data,shared){
+ if(CMODE===1){
+  const hs=W.map(x=>x.hi);
+  const mn=shared?shared.mn:Math.min(...hs), mx=shared?shared.mx:Math.max(...hs);
+  const sp=(mx-mn)||1;
+  return W.map(x=>{const f=(x.hi-mn)/sp;return hsl(210-200*f,62,theme==='dark'?55:46,0.8);});
+ }
+ if(CMODE===2&&data&&data.climo&&data.climo.byDay){
+  return W.map(x=>{
+   const nm=data.climo.byDay[x.dt.slice(5)];
+   if(nm==null)return defaultTower();
+   const dlt=Math.max(-5,Math.min(5,x.hi-nm));
+   const h=dlt<0?150+60*(-dlt/5):150-142*(dlt/5);
+   return hsl(h,60,theme==='dark'?55:44,0.85);
+  });
+ }
+ return null;
+}
+function legSwatch(html,label){return '<span style="display:flex;align-items:center;gap:4px;">'+html+'<span>'+label+'</span></span>';}
+function buildAdvice(d,l){
+ const L=T[l];
+ const ex=[];
+ if(d.uv&&d.uv.max!=null)ex.push('UV max '+d.uv.max+' ('+L.uvLevels[uvLvl(d.uv.max)].toLowerCase()+')');
+ if(d.air&&d.air.dom)ex.push((L.polNames[d.air.dom.k]||'')+' '+Math.round(d.air.dom.v)+'/m\u00B3 ('+L.polLevels[polLvl(d.air.dom.v)]+')');
+ if(d.bio&&d.bio.d&&d.bio.d.length){const bl2=bioLvl(d.bio.d[0].s);ex.push('Biometeo: '+BIOE[bl2]+' '+(MP?bioName(bl2):bioName(bl2).toLowerCase()));}
+ if(d.sea)ex.push((l==='hr'?'more ':'sea ')+d.sea.cur+'\u00B0');
+ const H=d.hours||[];
+ let cool=null;H.forEach(h=>{if((h.pp??0)<30&&(cool===null||h.t<cool.t))cool=h;});
+ const d0=(d.days&&d.days[0])||{};
+ const hot=(d0.hi!=null&&d0.hi>=28);
+ const bioBad=d.bio&&d.bio.d&&d.bio.d.length&&bioLvl(d.bio.d[0].s)>=1;
+ const uvHigh=d.uv&&d.uv.max!=null&&d.uv.max>=6;
+ const stormy=H.some(h=>h.cond==='storm');
+ const X=k=>MP?(MPP[k]!==undefined?MPP[k]:L[k]):L[k];
+ let run=(hot||bioBad?X('runCare'):X('runGo'))+(cool?cool.h:'');
+ let hike=((d0.pp??0)>=40?X('hikeRain'):X('hikeGood'))+(uvHigh?(', '+X('uvNote')):'');
+ let swim='';
+ if(d.sea){const t=d.sea.cur;swim=(t>=20?X('swimNice'):(t>=17?X('swimCool'):X('swimCold')))+' ('+t+'\u00B0)'+(stormy?(', '+X('swimStorm')):'');}
+ const act='<b>'+X('aRun')+':</b> '+esc(run)+'. <b>'+X('aHike')+':</b> '+esc(hike)+'.'+(swim?' <b>'+X('aSwim')+':</b> '+esc(swim)+'.':'');
+ return{ex:ex.join(' \u00B7 '),act:act};
+}
+
+const MOG={en:['January','February','March','April','May','June','July','August','September','October','November','December'],
+ hr:['siječnja','veljače','ožujka','travnja','svibnja','lipnja','srpnja','kolovoza','rujna','listopada','studenoga','prosinca']};
+function meanArr(a){const f=a.filter(v=>v!=null);return f.length?f.reduce((x,y)=>x+y,0)/f.length:null;}
+function buildWkSum(l){
+ const hrv=l==='hr';
+ if(cmp()&&D2.days&&D2.days.length){
+  const L2=Math.min(D.days.length,D2.days.length);
+  const aA=meanArr(D.days.slice(0,L2).map(x=>x.hi)),aB=meanArr(D2.days.slice(0,L2).map(x=>x.hi));
+  if(aA==null||aB==null)return'';
+  const warm=aA>=aB?(D.loc||locA()):(D2.loc||selB);
+  const dlt=Math.abs(aA-aB).toFixed(1);
+  const pA=Math.max.apply(null,D.days.slice(0,L2).map(x=>x.pp??0)),pB=Math.max.apply(null,D2.days.slice(0,L2).map(x=>x.pp??0));
+  const wet=pA>=pB?(D.loc||locA()):(D2.loc||selB);
+  return hrv?(esc(warm)+' je u prosjeku '+dlt+'° topliji u razdoblju; najveći rizik kiše: '+esc(wet)+' ('+Math.max(pA,pB)+'%).')
+            :(esc(warm)+' runs on average '+dlt+'° warmer over the span; highest rain risk: '+esc(wet)+' ('+Math.max(pA,pB)+'%).');
+ }
+ const W=D.days||[];if(!W.length)return'';
+ let hiI=0,ppI=0;W.forEach((x,i)=>{if(x.hi>W[hiI].hi)hiI=i;if((x.pp??0)>(W[ppI].pp??0))ppI=i;});
+ const lo=Math.min.apply(null,W.map(x=>x.lo)),hi=Math.max.apply(null,W.map(x=>x.hi));
+ const rainy=W.filter(x=>(x.pp??0)>=40).length;
+ const h2=Math.floor(W.length/2);
+ const tr=(W.length>=4)?(meanArr(W.slice(h2).map(x=>x.hi))-meanArr(W.slice(0,h2).map(x=>x.hi))):0;
+ let an=null;
+ if(D.climo&&D.climo.byDay){const ds=W.map(x=>{const n=D.climo.byDay[x.dt.slice(5)];return n!=null?(x.hi-n):null;});an=meanArr(ds);}
+ let t=W.length+(hrv?' d: ':'-day span ')+lo+'–'+hi+'°. ';
+ t+=hrv?('Najtopliji '+dayLab(W[hiI].dt)+' ('+W[hiI].hi+'°)'):('Warmest '+dayLab(W[hiI].dt)+' ('+W[hiI].hi+'°)');
+ t+=(W[ppI].pp??0)>=20?((hrv?', najkišovitiji ':', wettest ')+dayLab(W[ppI].dt)+' ('+W[ppI].pp+'%). '):'. ';
+ t+=rainy?(rainy+(hrv?' kišnih dana. ':' rainy day(s). ')):(hrv?'Bez kišnih dana. ':'No rainy days. ');
+ if(Math.abs(tr)>=1.5)t+=(hrv?('Trend: '+(tr>0?'zatopljenje ':'zahlađenje ')):'Trend: '+(tr>0?'warming ':'cooling '))+Math.abs(tr).toFixed(1)+'°. ';
+ if(an!=null&&Math.abs(an)>=1)t+=(hrv?(sgn(an,'°',1)+' u odnosu na normalu 1991–2020.'):(sgn(an,'°',1)+' vs the 1991–2020 normal.'));
+ return t.trim();
+}
+function buildSeaSum(l){
+ const hrv=l==='hr';
+ const S=(D.sea&&D.sea.days)||[];
+ if(cmp()&&D2.sea&&D2.sea.days&&D2.sea.days.length&&S.length){
+  const a=D.sea.cur,b=D2.sea.cur;
+  const warm=a>=b?(D.loc||locA()):(D2.loc||selB);
+  return hrv?(esc(warm)+' ima toplije more za '+Math.abs(a-b).toFixed(1)+'° ('+a+'° vs '+b+'°).')
+            :(esc(warm)+' has the warmer sea by '+Math.abs(a-b).toFixed(1)+'° ('+a+'° vs '+b+'°).');
+ }
+ if(!S.length)return'';
+ const dlt=S[S.length-1].t-S[0].t;
+ const t=D.sea.cur;
+ const cls=t>=20?(hrv?'ugodno za plivanje':'pleasant for swimming'):(t>=17?(hrv?'svježe':'fresh'):(hrv?'hladno — neopren':'cold — wetsuit'));
+ let out=(hrv?'More ':'Sea ')+t+'° — '+cls+'. ';
+ if(Math.abs(dlt)>=0.5)out+=hrv?((dlt>0?'Zatopljava ':'Hladi se ')+sgn(dlt,'°',1)+' kroz tjedan.'):((dlt>0?'Warming ':'Cooling ')+sgn(dlt,'°',1)+' over the week.');
+ return out.trim();
+}
+function buildBioSum(l){
+ const hrv=l==='hr';
+ const B=D.bio;if(!B||!B.d||!B.d.length)return'';
+ let wI=0;B.d.forEach((x,i)=>{if(x.s>B.d[wI].s)wI=i;});
+ const today=B.d[0],tl=bioLvl(today.s),wl=bioLvl(B.d[wI].s);
+ if(wl===0)return hrv?('Cijelo razdoblje povoljno '+BIOE[0]+' — bez izraženijih biometeoroloških opterećenja.')
+                     :('Favorable across the whole span '+BIOE[0]+' — no notable biometeorological load.');
+ let t=(hrv?'Danas ':'Today ')+BIOE[tl]+' '+(MP?bioName(tl):bioName(tl).toLowerCase())+'. ';
+ if(wI>0)t+=(hrv?'Najzahtjevniji dan: ':'Most demanding day: ')+dayLab(B.d[wI].dt)+' '+BIOE[wl]+(B.d[wI].r.length?(' ('+B.d[wI].r.map(k=>LBL.bioR[k]||k).join(', ')+')'):'')+'. ';
+ else if(today.r.length)t+=(hrv?'Glavni okidači: ':'Main triggers: ')+today.r.map(k=>LBL.bioR[k]||k).join(', ')+'. ';
+ let hW=null;(B.h||[]).forEach(x=>{if(hW===null||x.s>hW.s)hW=x;});
+ if(hW&&bioLvl(hW.s)>=1)t+=(hrv?'Danas najteže oko ':'Toughest today around ')+hW.h+'.';
+ return t.trim();
+}
+function buildVersus(l){
+ if(!cmp())return'';
+ const hrv=l==='hr';
+ const An=esc(D.loc||locA()),Bn=esc(D2.loc||selB);
+ let a=0,b=0;const ra=[],rb=[];
+ const d0=(D.days&&D.days[0])||{},e0=(D2.days&&D2.days[0])||{};
+ if(d0.hi!=null&&e0.hi!=null&&d0.hi!==e0.hi){const w=d0.hi>e0.hi;(w?ra:rb).push((hrv?'toplije (+':'warmer (+')+Math.abs(d0.hi-e0.hi)+'\u00B0)');w?a++:b++;}
+ if((d0.pp??0)!==(e0.pp??0)){const w=(d0.pp??0)<(e0.pp??0);(w?ra:rb).push(hrv?'su\u0161e':'drier');w?a++:b++;}
+ const wA=D.now&&D.now.wind,wB=D2.now&&D2.now.wind;
+ if(wA!=null&&wB!=null&&Math.abs(wA-wB)>=8){const w=wA<wB;(w?ra:rb).push(hrv?'mirniji vjetar':'calmer wind');w?a++:b++;}
+ if(D.sea&&D2.sea){const w=D.sea.cur>D2.sea.cur;(w?ra:rb).push((hrv?'toplije more (':'warmer sea (')+(w?D.sea.cur:D2.sea.cur)+'\u00B0)');w?a++:b++;}
+ else if(D.sea&&!D2.sea){ra.push(hrv?'uop\u0107e ima more':'has a sea at all');a++;}
+ else if(D2.sea&&!D.sea){rb.push(hrv?'uop\u0107e ima more':'has a sea at all');b++;}
+ if(D.bio&&D2.bio&&D.bio.d&&D2.bio.d&&D.bio.d.length&&D2.bio.d.length){const sa=D.bio.d[0].s,sb=D2.bio.d[0].s;if(sa!==sb){const w=sa<sb;(w?ra:rb).push(hrv?'ugodniji biometeo':'kinder biometeo');w?a++:b++;}}
+ if(D.air&&D2.air&&D.air.dom&&D2.air.dom){const va=D.air.dom.v,vb=D2.air.dom.v;if(Math.abs(va-vb)>=5){const w=va<vb;(w?ra:rb).push(hrv?'manje peludi':'less pollen');w?a++:b++;}}
+ (function(){const qa=bbqScore(D),qb=bbqScore(D2);if(qa&&qb&&Math.abs(qa.v-qb.v)>=8){const w=qa.v>qb.v;(w?ra:rb).push((hrv?'bolji ro\u0161tilj (':'better BBQ (')+(w?qa.v:qb.v)+')');w?a++:b++;}})();
+ if(a===0&&b===0)return'';
+ if(a===b){
+  return MP?('The great '+An+' v '+Bn+' weather-off ends '+a+':'+b+' \u2014 a tie. We are the knights who say\u2026 both.')
+   :(hrv?('Neodlu\u010Deno '+a+':'+b+' \u2014 danas birajte srcem.'):('A '+a+':'+b+' tie \u2014 today, choose with your heart.'));
+ }
+ const aw=a>b;
+ const win=aw?An:Bn,lose=aw?Bn:An,wr=aw?ra:rb,lr=aw?rb:ra,sc=Math.max(a,b)+':'+Math.min(a,b);
+ if(MP){
+  let t='And now for something completely different \u2014 the great '+An+' v '+Bn+' weather-off. ';
+  t+=win+' triumphs '+sc+(wr.length?(': '+wr.join(', ')):'')+'. ';
+  t+=lose+(lr.length?(' clings to '+lr.join(', ')+' and'):'')+' is not quite dead yet.';
+  return t;
+ }
+ return hrv?
+  ('Verdikt: '+win+' vodi '+sc+(wr.length?(' \u2014 '+wr.join(', ')):'')+'. '+(lr.length?(lose+' uzima bod za: '+lr.join(', ')+'.'):(lose+' danas \u010Dasno gubi.'))):
+  ('Verdict: '+win+' leads '+sc+(wr.length?(' \u2014 '+wr.join(', ')):'')+'. '+(lr.length?(lose+' takes points for: '+lr.join(', ')+'.'):(lose+' loses honourably today.')));
+}
+
+function buildFact(d,l){
+ const hrv=l==='hr';
+ const cand=[];
+ const d0=(d.days&&d.days[0])||null;
+ const mo=new Date().getMonth();
+ if(d0&&d.climo&&d.climo.byDay){
+  const nm=d.climo.byDay[d0.dt.slice(5)];
+  if(nm!=null){
+   const an=d0.hi-nm;
+   if(Math.abs(an)>=2)cand.push({sc:Math.abs(an),t:hrv?
+    ('Današnji maksimum od '+d0.hi+'° je '+sgn(an,'°',1)+' u odnosu na normalu 1991–2020 za ovaj datum ('+nm.toFixed(1)+'°) — izrazito '+(an>0?'topao':'hladan')+' dan za sredinu '+MOG.hr[mo]+'.')
+   :("Today's high of "+d0.hi+'° runs '+sgn(an,'°',1)+' against the 1991–2020 normal for this date ('+nm.toFixed(1)+'°) — a distinctly '+(an>0?'warm':'cool')+' day for mid-'+MOG.en[mo]+'.')});
+  }
+ }
+ if(d.sun){
+  const now=new Date();const y=now.getFullYear();
+  const cands=[new Date(y,5,21),new Date(y,11,21),new Date(y+1,5,21)];
+  let nx=cands.find(c=>c>=new Date(y,now.getMonth(),now.getDate()));
+  const nDays=Math.round((nx-now)/86400000);
+  const summer=nx.getMonth()===5;
+  const H=Math.floor(d.sun.len/60),Mn=d.sun.len%60;
+  const dm=d.sun.dmin;
+  cand.push({sc:(nDays<=14?3.5:2.2),t:hrv?
+   ('Danas '+H+'h '+Mn+'m dnevnog svjetla (sunce '+d.sun.rise+'–'+d.sun.set+'); dani se '+(dm>=0?'produljuju':'skraćuju')+' za ~'+Math.abs(dm)+' min/dan — još '+nDays+' dana do '+(summer?'ljetnog':'zimskog')+' solsticija.')
+  :('Daylight today: '+H+'h '+Mn+'m (sun '+d.sun.rise+'–'+d.sun.set+'); days are '+(dm>=0?'lengthening':'shortening')+' by ~'+Math.abs(dm)+' min/day — '+nDays+' days to the '+(summer?'summer':'winter')+' solstice.')});
+ }
+ if(d.days&&d.days.length){
+  for(const x of d.days.slice(0,14)){
+   const idx=Math.round(moonPh(x.dt)*8)%8;
+   if(idx===4||idx===0){
+    const full=idx===4;
+    const clear=(x.cond==='sun'||x.cond==='partcloud');
+    cand.push({sc:full?2.4:1.8,t:hrv?
+     ((full?'Puni mjesec':'Mlađak')+' pada u '+dayLab(x.dt)+(full&&clear?' — uz vedru prognozu, večer kao stvorena za promatranje.':'.'))
+    :((full?'Full moon':'New moon')+' lands on '+dayLab(x.dt)+(full&&clear?' — and skies look clear, a prime evening for moonwatching.':'.'))});
+    break;
+   }
+  }
+  const allDry=d.days.every(x=>(x.pp??0)===0);
+  if(allDry&&d.days.length>=7)cand.push({sc:2.6,t:hrv?
+   ('Ni kapi na vidiku — 0% oborina kroz svih '+d.days.length+' dana, neuobičajeno suh niz za '+MOG.hr[mo]+'.')
+  :('Not a drop in sight — 0% precipitation across all '+d.days.length+' days, an unusually dry stretch for '+MOG.en[mo]+'.')});
+ }
+ if(d.pres&&d.pres.d24!=null&&Math.abs(d.pres.d24)>=6)cand.push({sc:Math.abs(d.pres.d24)/2.5,t:hrv?
+  ('Tlak se u 24 sata promijenio za '+sgn(d.pres.d24,' hPa',1)+' — upravo takve promjene meteoropati prvi osjete.')
+ :('Pressure has shifted '+sgn(d.pres.d24,' hPa',1)+' in 24 hours — exactly the kind of swing weather-sensitive people feel first.')});
+ if(d.sea&&d.sea.days&&d.sea.days.length>=2){
+  const dl2=d.sea.days[d.sea.days.length-1].t-d.sea.days[0].t;
+  if(Math.abs(dl2)>=1.2)cand.push({sc:Math.abs(dl2),t:hrv?
+   ('More se ovdje brzo '+(dl2>0?'grije':'hladi')+': promjena od '+sgn(dl2,'°',1)+' unutar jednog tjedna.')
+  :('The sea here is '+(dl2>0?'warming':'cooling')+' quickly: a '+sgn(dl2,'°',1)+' change forecast within a single week.')});
+ }
+ if(!cand.length)return null;
+ cand.sort((a,b)=>b.sc-a.sc);
+ return cand[0].t;
+}
+
+function buildLegends(){
+ const isC=cmp();
+ const nameA=esc(D&&D.loc||locA()), nameB=isC?esc(D2.loc||selB):'';
+ const lineSw=c=>'<span style="width:14px;height:0;border-top:3px solid '+c+';"></span>';
+ const dashSw=c=>'<span style="width:14px;height:0;border-top:2px dashed '+c+';"></span>';
+ const towerSw=c=>'<span style="width:6px;height:13px;border-radius:2px;background:'+c+';align-self:flex-end;"></span>';
+ const sqSw=c=>'<span style="width:10px;height:10px;border-radius:2px;background:'+c+';"></span>';
+ const confSw='<span style="width:14px;height:0;border-top:2px dotted #8a8a8a;"></span>';
+ const confLeg=CONF?legSwatch(confSw,LBL.lgC):'';
+ const modeLeg=CMODE===2?
+  '<span style="display:flex;align-items:center;gap:4px;">'+sqSw('hsl(210,60%,44%)')+'\u22125\u00B0 '+sqSw('hsl(150,60%,40%)')+'0\u00B0 '+sqSw('hsl(8,60%,46%)')+'+5\u00B0 <span>'+LBL.anomVs+'</span></span>'
+  :(CMODE===1?'<span style="display:flex;align-items:center;gap:4px;">'+sqSw('hsl(210,62%,46%)')+'\u2192'+sqSw('hsl(10,62%,46%)')+'<span>'+LBL.relLeg+'</span></span>':'');
+ const hZA=!!(D&&D.hours&&D.hours.length>0&&D.hours.every(x=>(x.pp??0)===0));
+ const hZB=!!(isC&&D2.hours&&D2.hours.length>0&&D2.hours.every(x=>(x.pp??0)===0));
+ if(isC){
+  const idA=CMODE>0?'<span style="width:10px;height:10px;border-radius:2px;border:2px solid '+CMP.a+';box-sizing:border-box;"></span>':sqSw('rgba(44,170,240,0.6)');
+  const idB=CMODE>0?'<span style="width:10px;height:10px;border-radius:2px;border:2px solid '+CMP.b+';box-sizing:border-box;"></span>':sqSw('rgba(166,76,232,0.6)');
+  document.getElementById('hrLeg').innerHTML=
+   legSwatch(lineSw(CMP.a),nameA+' \u00B0C')+legSwatch(lineSw(CMP.b),nameB+' \u00B0C')+
+   (hZA?'':legSwatch(dashSw(CMP.a),nameA+' '+LBL.lgP))+(hZB?'':legSwatch(dashSw(CMP.b),nameB+' '+LBL.lgP))+
+   confLeg;
+  document.getElementById('wkLeg').innerHTML=
+   legSwatch(idA,nameA+' '+LBL.lgHi+'/'+LBL.lgLo)+
+   legSwatch(idB,nameB+' '+LBL.lgHi+'/'+LBL.lgLo)+
+   legSwatch(dashSw(CMP.a),nameA+' '+LBL.lgP)+legSwatch(dashSw(CMP.b),nameB+' '+LBL.lgP)+
+   confLeg+modeLeg;
+  document.getElementById('seaLeg').innerHTML=
+   ((D&&D.sea)?legSwatch(lineSw(CMP.a),nameA):'')+((D2&&D2.sea)?legSwatch(lineSw(CMP.b),nameB):'');
+ }else{
+  const prH=PRES&&D&&D.hours&&D.hours.some(x=>x.p!=null);
+  const prW=PRES&&D&&D.days&&D.days.some(x=>x.p!=null);
+  const presLegH=prH?legSwatch(lineSw(C.pres),LBL.lgPr):'';
+  const presLegW=prW?legSwatch(lineSw(C.pres),LBL.lgPr):'';
+  const bbqLegW=(BBQ&&D&&D.days&&D.days.length)?legSwatch(lineSw(C.bbq)+'<span style="font-size:12px;margin-left:2px">\uD83C\uDF56</span>',LBL.cBbq):'';
+  document.getElementById('hrLeg').innerHTML=
+   legSwatch(lineSw(C.hi),LBL.lgT)+(hZA?'':legSwatch(towerSw(C.sky),LBL.lgP))+presLegH+confLeg;
+  document.getElementById('wkLeg').innerHTML=
+   legSwatch(sqSw(C.hi),LBL.lgHi)+legSwatch(sqSw(C.lo),LBL.lgLo)+legSwatch(towerSw(C.sky),LBL.lgP)+presLegW+bbqLegW+confLeg+modeLeg;
+  document.getElementById('seaLeg').innerHTML=legSwatch(lineSw(C.sea),'SST \u00B0C');
+ }
+ const tideOk=TIDE&&!isC&&D&&D.sea&&D.sea.tide&&D.sea.tide.length;
+ let mt='';
+ if(MOON)mt+=legSwatch(lineSw(C.sun),LBL.moonIllLeg)+legSwatch('<span style="font-size:13px;">\uD83C\uDF19</span>',LBL.moonLeg);
+ if(tideOk)mt+=legSwatch(lineSw(C.sea),LBL.tideHi+' (cm)')+legSwatch(dashSw(C.sea+'99'),LBL.tideLo+' (cm)');
+ const mtl=document.getElementById('mtLeg');if(mtl)mtl.innerHTML=mt;
+ const bl=document.getElementById('bioLeg');
+ if(bl)bl.innerHTML=[0,1,2].map(i=>legSwatch(sqSw([C.ok,C.warn,C.bad][i])+'<span style="font-size:12px;margin-left:2px">'+BIOE[i]+'</span>',bioName(i))).join('');
+}
+
+function render(){
+ if(!D)return;
+ const isC=cmp();
+ const n=D.now||{},d0=(D.days&&D.days[0])||{};
+ const n2=isC?(D2.now||{}):null,d20=isC?((D2.days&&D2.days[0])||{}):null;
+ buildLegends();
+ if(isC){
+  document.getElementById('stationLine').innerHTML='<span class="dotA"></span>'+esc(D.loc||locA())+(D.station?' — '+esc(D.station):'')+' &nbsp; <span class="dotB"></span>'+esc(D2.loc||selB)+(D2.station?' — '+esc(D2.station):'');
+  document.getElementById('nowCards').innerHTML=
+   cardCmp(LBL.cT,(n.t??'—')+'° '+(ICON[n.cond]||''),(n2.t??'—')+'° '+(ICON[n2.cond]||''))+
+   cardCmp(LBL.cMax,(d0.hi??'—')+'°',(d20.hi??'—')+'°')+
+   cardCmp(LBL.cP,(n.pp??d0.pp??'—')+'%',(n2.pp??d20.pp??'—')+'%')+
+   cardCmp(LBL.cFL,(n.fl??'—')+'°',(n2.fl??'—')+'°')+
+   cardCmp(LBL.cH,(n.hum??'—')+'%',(n2.hum??'—')+'%')+
+   cardCmp(LBL.cW,(n.wind??'—')+' km/h '+(n.wdir||''),(n2.wind??'—')+' km/h '+(n2.wdir||''))+
+   ((D.pres||D2.pres)?cardCmp(LBL.cPres,D.pres?D.pres.cur+' '+['\u2191','\u2192','\u2193'][D.pres.t]:null,D2.pres?D2.pres.cur+' '+['\u2191','\u2192','\u2193'][D2.pres.t]:null):'')+
+   ((D.sea||D2.sea)?cardCmp(LBL.cS+' 🌊',D.sea?D.sea.cur+'°':null,D2.sea?D2.sea.cur+'°':null):'')+
+   ((D.uv||D2.uv)?cardCmp(LBL.cUV,(D.uv&&D.uv.cur!=null)?D.uv.cur:null,(D2.uv&&D2.uv.cur!=null)?D2.uv.cur:null):'')+
+   (((D.air&&D.air.dom)||(D2.air&&D2.air.dom))?cardCmp(LBL.cPol,(D.air&&D.air.dom)?Math.round(D.air.dom.v)+' '+(LBL.polNames[D.air.dom.k]||''):null,(D2.air&&D2.air.dom)?Math.round(D2.air.dom.v)+' '+(LBL.polNames[D2.air.dom.k]||''):null):'')+
+   card(LBL.cMoon,moonIcon(todayIso()),moonName(todayIso())+' · '+Math.round(moonIllum(todayIso()))+'%','')+
+   (function(){const qa=bbqScore(D),qb=bbqScore(D2);return(qa||qb)?cardCmp(LBL.cBbq,qa?(BBQI[bbqTier(qa.v)]+' '+qa.v):null,qb?(BBQI[bbqTier(qb.v)]+' '+qb.v):null):'';})()+
+   (((D.bio&&D.bio.d&&D.bio.d.length)||(D2.bio&&D2.bio.d&&D2.bio.d.length))?cardCmp(LBL.cBio,(D.bio&&D.bio.d&&D.bio.d.length)?BIOE[bioLvl(D.bio.d[0].s)]+' '+bioName(bioLvl(D.bio.d[0].s)):null,(D2.bio&&D2.bio.d&&D2.bio.d.length)?BIOE[bioLvl(D2.bio.d[0].s)]+' '+bioName(bioLvl(D2.bio.d[0].s)):null):'');
+ }else{
+  const y=D.yest||null, cl=D.climo||null, ly=cl&&cl.ly, av=cl&&cl.avg;
+  document.getElementById('stationLine').textContent=D.station?(LBL.station+D.station):"";
+  const ctxT = y? tAnom(n.t-y.t)+' '+LBL.vsY : '';
+  const ctxMax = (y||ly||av)?
+    (y? tAnom(d0.hi-y.max)+' '+LBL.vsY+' ('+y.max+'°)':'')+
+    (ly? (y?'<br>':'')+tAnom(d0.hi-ly.max)+' '+LBL.vsLY+' ('+Math.round(ly.max)+'°)':'')+
+    (av? '<br>'+tAnom(d0.hi-av.max,null,1)+' '+LBL.vsN+' ('+av.max.toFixed(1)+'°)':'') : '';
+  const ctxP = (y&&y.precip!=null?LBL.yest+': '+y.precip.toFixed(1)+' mm':'')+
+    (av? (y&&y.precip!=null?'<br>':'')+LBL.norm+': '+av.precip.toFixed(1)+' mm':'');
+  const ctxFL = y? tAnom(n.fl-y.fl)+' '+LBL.vsY : '';
+  const ctxH = y? sgn(n.hum-y.hum,' %')+' '+LBL.vsY : '';
+  const ctxW = y? sgn(n.wind-y.wind,' km/h')+' '+LBL.vsY : '';
+  let cardsHtml=
+   '<div class="card"><div class="lab">'+LBL.cT+'</div><div style="display:flex;align-items:center;gap:6px;">'+
+   '<svg width="22" height="34" viewBox="0 0 24 38" fill="none" stroke="'+C.hi+'" stroke-width="2" stroke-linecap="round" aria-hidden="true">'+
+   '<path d="M12 4a3.5 3.5 0 0 1 3.5 3.5V22a6.5 6.5 0 1 1-7 0V7.5A3.5 3.5 0 0 1 12 4z"/>'+
+   '<line x1="12" y1="13" x2="12" y2="26" stroke-width="3.5"/><circle cx="12" cy="28.5" r="3.4" fill="'+C.hi+'" stroke="none"/></svg>'+
+   '<span class="big">'+((n.t??"—")+"°")+'</span><span style="font-size:20px;margin-left:2px;">'+(ICON[n.cond]||"")+'</span></div>'+
+   '<div class="ctx">'+ctxT+'</div></div>'+
+   card(LBL.cMax,(d0.hi??"—")+"°","",ctxMax)+
+   card(LBL.cP,(n.pp??d0.pp??"—")+"%","",ctxP)+
+   card(LBL.cFL,(n.fl??"—")+"°","",ctxFL)+
+   card(LBL.cH,(n.hum??"—")+"%","",ctxH)+
+   card(LBL.cW,(n.wind??"—")+" km/h",n.wdir||"",ctxW);
+  if(D.pres&&D.pres.cur!=null)cardsHtml+=card(LBL.cPres,D.pres.cur+' hPa',['\u2191','\u2192','\u2193'][D.pres.t]+' '+LBL.presTrend[D.pres.t],(D.pres.d3!=null?sgn(D.pres.d3,' /3h',1):'')+(D.pres.d24!=null?(' \u00B7 '+sgn(D.pres.d24,' /24h',1)):''));
+  if(D.sea)cardsHtml+=card(LBL.cS,D.sea.cur+"°","🌊","");
+  if(D.uv&&D.uv.cur!=null)cardsHtml+=card(LBL.cUV,D.uv.cur,LBL.uvLevels[uvLvl(D.uv.cur)],(D.uv.max!=null?('max '+D.uv.max+' · '+LBL.uvLevels[uvLvl(D.uv.max)]):''));
+  if(D.air&&D.air.dom)cardsHtml+=card(LBL.cPol,Math.round(D.air.dom.v),(LBL.polNames[D.air.dom.k]||D.air.dom.k)+' · '+LBL.polLevels[polLvl(D.air.dom.v)],'/m³');
+  const ti=todayIso();
+  cardsHtml+=card(LBL.cMoon,moonIcon(ti),moonName(ti)+' · '+Math.round(moonIllum(ti))+'%','');
+  if(D.bio&&D.bio.d&&D.bio.d.length){const b0=D.bio.d[0],bl=bioLvl(b0.s);
+   cardsHtml+='<div class="card"><div class="lab">'+LBL.cBio+'<span class="info" tabindex="0" role="button" aria-label="Biometeo criteria">i<span class="tip">'+LBL.bioInfo+(MP?'<br><br><i>\u2019Tis but a pressure swing.</i>':'')+'</span></span></div><div style="font-size:17px;font-weight:500;color:'+[C.ok,C.warn,C.bad][bl]+'">'+BIOE[bl]+' '+bioName(bl)+'</div><div class="ctx">'+(b0.r.length?b0.r.map(k=>LBL.bioR[k]||k).join(', '):'')+'</div></div>';}
+  const bq=bbqScore(D);
+  if(bq){const bt=bbqTier(bq.v);
+   cardsHtml+='<div class="card"><div class="lab">'+LBL.cBbq+'<span class="info" tabindex="0" role="button" aria-label="BBQ score criteria">i<span class="tip">'+LBL.bbqInfo+(MP?'<br><br><i>And remember \u2014 nobody expects the evening shower.</i>':'')+'</span></span>'+'</div><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:24px;">'+BBQI[bt]+'</span><span class="big">'+bq.v+'</span><span class="lab" style="font-size:11px;">/100</span></div><div class="ctx">'+esc(bbqName(bt))+(bq.why?(' \u00B7 '+(LBL.bbqWhy[bq.why]||'')):'')+'</div></div>';}
+  document.getElementById('nowCards').innerHTML=cardsHtml;
+ }
+ const hasHours=D.hours&&D.hours.length>0;
+ document.getElementById('hrSec').classList.toggle('hidden',!hasHours);
+ if(hasHours)drawHourly();
+ const hasSea=(D.sea)||(isC&&D2.sea);
+ document.getElementById('seaSec').classList.toggle('hidden',!hasSea);
+ if(hasSea)drawSea();
+ drawWeek();
+ const bioShow=!isC&&D.bio&&D.bio.h&&D.bio.h.length;
+ document.getElementById('bioSec').classList.toggle('hidden',!bioShow);
+ if(bioShow)drawBio();
+ const canTide=!!(!isC&&D.sea&&D.sea.tide&&D.sea.tide.length);
+ const tb=document.getElementById('btn-tide');if(tb)tb.disabled=!canTide;
+ const tideOk=canTide&&TIDE;
+ const mtShow=!!(MOON||tideOk);
+ const h5el=document.querySelector('#mtSec [data-i="h5"]');
+ if(h5el)h5el.textContent=(MOON&&tideOk)?LBL.h5:(tideOk?LBL.h5tide:LBL.h5moon);
+ document.getElementById('mtSec').classList.toggle('hidden',!mtShow);
+ if(mtShow)drawMT(tideOk);
+ const zA=D.days&&D.days.length>0&&D.days.every(x=>(x.pp??0)===0);
+ const zB=!isC||(D2.days&&D2.days.length>0&&D2.days.every(x=>(x.pp??0)===0));
+ document.getElementById('h3note').textContent=(zA&&zB)?('· '+LBL.zeroRain):'';
+ document.getElementById('wkSum').textContent=buildWkSum(lang);
+ document.getElementById('seaSum').textContent=hasSea?buildSeaSum(lang):'';
+ document.getElementById('bioSum').textContent=bioShow?buildBioSum(lang):'';
+ const h7el=document.querySelector('[data-i="h7"]');
+ if(h7el)h7el.textContent=MP?'AND NOW FOR SOMETHING COMPLETELY DIFFERENT':LBL.h7;
+ const fct=buildFact(D,lang);
+ document.getElementById('factSec').classList.toggle('hidden',!fct);
+ if(fct)document.getElementById('factTxt').textContent=fct;
+ try{updateMap();}catch(e){console.log('map skipped:',e);}
+ if(isC){
+  document.getElementById('todayLbl').textContent=esc(D.loc||locA())+' vs '+esc(D2.loc||selB);
+  document.getElementById('badge').style.display='none';
+  const vs=buildVersus(lang);
+  document.getElementById('recTxt').innerHTML=(vs?('\uD83C\uDFC6 '+vs+'<br>'):'')+'<span class="dotA"></span><b>'+esc(D.loc||locA())+':</b> '+esc((D.rec&&D.rec[lang])||'')+'<br><span class="dotB"></span><b>'+esc(D2.loc||selB)+':</b> '+esc((D2.rec&&D2.rec[lang])||'');
+ }else{
+  document.getElementById('todayLbl').textContent=(D.today&&D.today[lang])||"";
+  const b=document.getElementById('badge'),bk=D.badge||'g';
+  const col=bk==='g'?C.ok:(bk==='y'?C.warn:C.bad);
+  b.style.display='';b.textContent=MP?(MPBADGE[bk]||''):(LBL.badges[bk]||"");b.style.color=col;b.style.background=col+'26';
+  const adv=buildAdvice(D,lang);
+  document.getElementById('recTxt').innerHTML=esc((D.rec&&D.rec[lang])||"")+(adv.ex?('<br>'+esc(adv.ex)):'')+'<br>'+adv.act+(RANGE>10?('<br>'+esc(LBL.longNote)):'');
+ }
+ const av=D.climo&&D.climo.avg;
+ const now=new Date();
+ document.getElementById('foot').textContent=(lang==='hr'?"Prognoza: ":"Forecast: ")+esc(D.loc||locA())+(isC?(' + '+esc(D2.loc||selB)):'')+" · "+(D.src||"")+((!isC&&av)?(" · "+LBL.normFoot):"")+" · "+(lang==='hr'?"osvježeno ":"refreshed ")+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+function drawHourly(){
+ if(hourlyCh){hourlyCh.destroy();hourlyCh=null;}
+ const H=D.hours||[];
+ const isC=cmp()&&D2.hours&&D2.hours.length>0;
+ const H2=isC?D2.hours:null;
+ const zA=H.length>0&&H.every(x=>(x.pp??0)===0);
+ const zB=isC?H2.every(x=>(x.pp??0)===0):true;
+ const showPP=isC?(!zA||!zB):!zA;
+ const conf=H.map((x,i)=>confH(i));
+ const ds=[];
+ if(isC){
+  ds.push({type:'line',label:esc(D.loc||locA()),data:H.map(x=>x.t),borderColor:CMP.a,backgroundColor:CMP.a,yAxisID:'y',tension:0.35,borderWidth:3,pointRadius:3,pointBorderColor:ptb,pointBorderWidth:1,order:1});
+  ds.push({type:'line',label:esc(D2.loc||selB),data:H2.map(x=>x.t),borderColor:CMP.b,backgroundColor:CMP.b,yAxisID:'y',tension:0.35,borderWidth:3,pointRadius:3,pointBorderColor:ptb,pointBorderWidth:1,order:1});
+  if(!zA)ds.push({type:'line',label:'ppA',data:H.map(x=>x.pp),borderColor:CMP.a,borderDash:[6,4],borderWidth:2,pointRadius:0,tension:0.3,yAxisID:'y1',order:6});
+  if(!zB)ds.push({type:'line',label:'ppB',data:H2.map(x=>x.pp),borderColor:CMP.b,borderDash:[6,4],borderWidth:2,pointRadius:0,tension:0.3,yAxisID:'y1',order:6});
+ }else{
+  ds.push({type:'line',label:'\u00B0C',data:H.map(x=>x.t),borderColor:C.hi,backgroundColor:C.hi,yAxisID:'y',tension:0.35,borderWidth:3,pointRadius:4,pointBorderColor:ptb,pointBorderWidth:1.5,order:1});
+  if(!zA)ds.push({type:'bar',label:'%',data:H.map(x=>x.pp),backgroundColor:C.sky+'B3',borderRadius:3,barPercentage:0.45,yAxisID:'y1',order:10});
+ }
+ const hasP=!isC&&PRES&&H.some(x=>x.p!=null);
+ if(hasP)ds.push({type:'line',label:'pres',data:H.map(x=>x.p),borderColor:C.pres,backgroundColor:C.pres,borderWidth:2,pointRadius:2,pointBorderColor:ptb,pointBorderWidth:1,tension:0.3,spanGaps:true,yAxisID:'y4',order:3});
+ if(CONF)ds.push({type:'line',label:'conf',data:conf,borderColor:txt,borderDash:[2,4],borderWidth:1.5,pointRadius:0,tension:0.3,yAxisID:'y2',order:2});
+ hourlyCh=new Chart(document.getElementById('hourly'),{
+  data:{labels:H.map(x=>x.h),datasets:ds},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:46}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
+    if(c.dataset.yAxisID==='y4')return c.parsed.y+' hPa';
+    if(c.dataset.yAxisID==='y2')return LBL.conf+': '+c.parsed.y+' %';
+    if(c.dataset.yAxisID==='y1')return (c.dataset.label==='ppB'?esc(D2&&(D2.loc||selB)):(c.dataset.label==='ppA'?esc(D.loc||locA()):''))+' '+c.parsed.y+' %';
+    return c.dataset.label+': '+c.parsed.y+' °C';}}}},
+   scales:{
+    x:{grid:{display:false},ticks:{color:txt,font:{size:layout==='mobile'?9:11}}},
+    y:{position:'left',grace:'12%',grid:{color:grid},ticks:{color:txt,callback:v=>Math.round(v)+'\u00B0'}},
+    y1:{position:'right',display:showPP,min:0,max:400,grid:{drawOnChartArea:false},ticks:{color:txt,stepSize:50,callback:v=>(v===0||v===50||v===100)?v+'%':''}},
+    y2:{display:false,min:0,max:115},
+    y4:{position:'right',display:hasP,grace:'25%',grid:{drawOnChartArea:false},ticks:{color:C.pres,maxTicksLimit:4,callback:v=>Math.round(v)}}
+   }},
+  plugins:[bgPlug,{id:'tlab',afterDatasetsDraw(ch){
+   const{ctx}=ch;ctx.save();ctx.textAlign='center';
+   const M=layout==='mobile';
+   if(!isC){
+    ctx.font=(M?'12px ':'15px ')+'sans-serif';ctx.textBaseline='top';
+    ch.getDatasetMeta(0).data.forEach((pt,i)=>{if(H[i].cond)ctx.fillText(ICON[H[i].cond]||'',pt.x,6);});
+    ctx.textBaseline='alphabetic';
+    ctx.font=(M?'500 9px ':'500 11px ')+'sans-serif';
+    ch.getDatasetMeta(0).data.forEach((pt,i)=>{ctx.fillStyle=halo;ctx.fillRect(pt.x-12,pt.y-24,24,13);ctx.fillStyle=strong;ctx.fillText(H[i].t+'\u00B0',pt.x,pt.y-13);});
+    const pi=ch.data.datasets.findIndex(dd=>dd.label==='%');
+    if(pi>=0){ctx.font=(M?'500 8px ':'500 10px ')+'sans-serif';
+     ch.getDatasetMeta(pi).data.forEach((bar,i)=>{if((H[i].pp??0)>=5){ctx.fillStyle=halo;ctx.fillRect(bar.x-13,bar.y-13,26,11);ctx.fillStyle=C.sky;ctx.fillText(H[i].pp+'%',bar.x,bar.y-4);}});}
+   }else{
+    ctx.font=(M?'500 9px ':'500 10px ')+'sans-serif';
+    ch.getDatasetMeta(0).data.forEach((pt,i)=>{ctx.fillStyle=halo;ctx.fillRect(pt.x-12,pt.y-22,24,12);ctx.fillStyle=CMP.a;ctx.fillText(H[i].t+'\u00B0',pt.x,pt.y-12);});
+    ch.getDatasetMeta(1).data.forEach((pt,i)=>{ctx.fillStyle=halo;ctx.fillRect(pt.x-12,pt.y+9,24,12);ctx.fillStyle=CMP.b;ctx.fillText(H2[i].t+'\u00B0',pt.x,pt.y+19);});
+   }
+   if(CONF){
+    const ci=ch.data.datasets.findIndex(dd=>dd.label==='conf');
+    if(ci>=0){ctx.font=(M?'500 8px ':'500 9px ')+'sans-serif';
+     ch.getDatasetMeta(ci).data.forEach((pt,i)=>{ctx.fillStyle=halo;ctx.fillRect(pt.x-11,pt.y-6,22,12);ctx.fillStyle=txt;ctx.fillText(conf[i]+'%',pt.x,pt.y+3.5);});}
+   }
+   ctx.restore();}}]
+ });
+}
+
+function drawSea(){
+ if(seaCh){seaCh.destroy();seaCh=null;}
+ const isC=cmp();
+ const S=(D.sea&&D.sea.days)||[];
+ const S2=(isC&&D2.sea&&D2.sea.days)||[];
+ const mapA={},mapB={};
+ S.forEach(x=>{mapA[x.dt]=x.t;});
+ S2.forEach(x=>{mapB[x.dt]=x.t;});
+ const dates=Array.from(new Set(S.map(x=>x.dt).concat(S2.map(x=>x.dt)))).sort();
+ const ds=[];
+ if(S.length)ds.push({label:esc(D.loc||locA()),data:dates.map(dt=>mapA[dt]??null),lblc:isC?CMP.a:strong,borderColor:isC?CMP.a:C.sea,backgroundColor:isC?CMP.a:C.sea,tension:0.35,borderWidth:3,pointRadius:4,pointBorderColor:ptb,pointBorderWidth:1.5,fill:false,spanGaps:true});
+ if(S2.length)ds.push({label:esc(D2.loc||selB),data:dates.map(dt=>mapB[dt]??null),lblc:CMP.b,borderColor:CMP.b,backgroundColor:CMP.b,tension:0.35,borderWidth:3,pointRadius:4,pointBorderColor:ptb,pointBorderWidth:1.5,fill:false,spanGaps:true});
+ seaCh=new Chart(document.getElementById('sea'),{type:'line',
+  data:{labels:dates.map(x=>dayLab(x)),datasets:ds},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24,bottom:ds.length>1?14:0}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y+' °C'}}},
+   scales:{
+    x:{grid:{display:false},ticks:{color:txt,font:{size:layout==='mobile'?9:11}}},
+    y:{grace:'18%',grid:{color:grid},ticks:{color:txt,callback:v=>Math.round(v)+'°'}}
+   }},
+  plugins:[bgPlug,{id:'slab',afterDatasetsDraw(ch){
+   const{ctx}=ch;ctx.save();ctx.textAlign='center';ctx.font=(layout==='mobile'?'500 9px ':'500 11px ')+'sans-serif';
+   ch.data.datasets.forEach((d,di)=>{
+    const m=ch.getDatasetMeta(di);
+    const up=ch.data.datasets.length===1||di===0;
+    m.data.forEach((pt,i)=>{const v=d.data[i];if(v==null)return;
+     ctx.fillStyle=halo;ctx.fillRect(pt.x-14,up?pt.y-24:pt.y+9,28,13);
+     ctx.fillStyle=d.lblc||strong;ctx.fillText(v+'°',pt.x,up?pt.y-13:pt.y+19);});
+   });
+   ctx.restore();}}]
+ });
+}
+
+function drawWeek(){
+ if(weekCh){weekCh.destroy();weekCh=null;}
+ const W=D.days||[];
+ const isC=cmp()&&D2.days&&D2.days.length>0;
+ const W2=isC?D2.days:null;
+ const L=isC?Math.min(W.length,W2.length):W.length;
+ const Wv=W.slice(0,L), W2v=isC?W2.slice(0,L):null;
+ const dense=L>10, vdense=L>16;
+ const conf=Wv.map((x,i)=>confD(i));
+ const ds=[];
+ if(isC){
+  const allHi=Wv.map(x=>x.hi).concat(W2v.map(x=>x.hi));
+  const shared={mn:Math.min.apply(null,allHi),mx:Math.max.apply(null,allHi)};
+  const colsA=towerColorsFor(Wv,D,shared)||'rgba(44,170,240,0.5)';
+  const colsB=towerColorsFor(W2v,D2,shared)||'rgba(166,76,232,0.5)';
+  const bw=CMODE>0?1.5:0;
+  ds.push({type:'bar',label:'rangeA',data:Wv.map(x=>[x.lo,x.hi]),backgroundColor:colsA,borderColor:CMP.a,borderWidth:bw,borderRadius:dense?3:5,borderSkipped:false,yAxisID:'y',order:10,barPercentage:dense?0.85:0.7});
+  ds.push({type:'bar',label:'rangeB',data:W2v.map(x=>[x.lo,x.hi]),backgroundColor:colsB,borderColor:CMP.b,borderWidth:bw,borderRadius:dense?3:5,borderSkipped:false,yAxisID:'y',order:10,barPercentage:dense?0.85:0.7});
+  ds.push({type:'line',label:'ppA',data:Wv.map(x=>x.pp),borderColor:CMP.a,borderDash:[6,4],borderWidth:2,pointRadius:0,tension:0.3,yAxisID:'y1',order:6});
+  ds.push({type:'line',label:'ppB',data:W2v.map(x=>x.pp),borderColor:CMP.b,borderDash:[6,4],borderWidth:2,pointRadius:0,tension:0.3,yAxisID:'y1',order:6});
+ }else{
+  ds.push({type:'bar',label:'range',data:Wv.map(x=>[x.lo,x.hi]),backgroundColor:(towerColorsFor(Wv,D)||defaultTower()),borderRadius:dense?3:6,borderSkipped:false,yAxisID:'y',order:10,barPercentage:dense?0.7:0.55});
+  ds.push({type:'bar',label:'%',data:Wv.map(x=>x.pp),backgroundColor:C.sky+'B3',borderRadius:3,grouped:false,barPercentage:dense?0.5:0.28,yAxisID:'y1',order:5});
+ }
+ const bbqArr=(!isC&&BBQ)?bbqDayArr(D,Wv):null;
+ const hasB=!!(bbqArr&&bbqArr.some(v=>v!=null));
+ if(hasB)ds.push({type:'line',label:'bbq',data:bbqArr,borderColor:C.bbq,backgroundColor:C.bbq,borderWidth:2,pointRadius:2.5,pointBorderColor:ptb,pointBorderWidth:1,tension:0.3,spanGaps:true,yAxisID:'y5',order:3});
+ const hasP=!isC&&PRES&&Wv.some(x=>x.p!=null);
+ if(hasP)ds.push({type:'line',label:'pres',data:Wv.map(x=>x.p),borderColor:C.pres,backgroundColor:C.pres,borderWidth:2,pointRadius:2,pointBorderColor:ptb,pointBorderWidth:1,tension:0.3,spanGaps:true,yAxisID:'y4',order:3});
+ if(CONF)ds.push({type:'line',label:'conf',data:conf,borderColor:txt,borderDash:[2,4],borderWidth:1.5,pointRadius:0,tension:0.3,yAxisID:'y2',order:2});
+ const padTop=isC?(dense?18:30):34;
+ weekCh=new Chart(document.getElementById('week'),{
+  data:{labels:Wv.map(x=>vdense?String(new Date(x.dt+"T12:00").getDate()):dayLab(x.dt)),datasets:ds},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:padTop}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>dayLab(Wv[c[0].dataIndex].dt),label:c=>{
+    if(c.dataset.yAxisID==='y5'){const t5=bbqTier(c.parsed.y);return LBL.cBbq+': '+c.parsed.y+'/100 '+BBQI[t5]+' '+bbqName(t5);}
+    if(c.dataset.yAxisID==='y4')return c.parsed.y+' hPa';
+    if(c.dataset.yAxisID==='y2')return LBL.conf+': '+c.parsed.y+' %';
+    if(c.dataset.yAxisID==='y1'){const nm=c.dataset.label==='ppB'?esc(D2&&(D2.loc||selB)):(c.dataset.label==='ppA'?esc(D.loc||locA()):'');return (nm?nm+' ':'')+c.parsed.y+' %';}
+    const src=c.dataset.label==='rangeB'?W2v:Wv;const nm=c.dataset.label==='rangeB'?esc(D2&&(D2.loc||selB)):(c.dataset.label==='rangeA'?esc(D.loc||locA()):'');
+    return (nm?nm+': ':'')+src[c.dataIndex].lo+'\u00B0 \u2026 '+src[c.dataIndex].hi+'\u00B0 '+(ICON[src[c.dataIndex].cond]||'');}}}},
+   scales:{
+    x:{grid:{display:false},ticks:{autoSkip:vdense,color:txt,font:{size:layout==='mobile'?8:(dense?9:11)}}},
+    y:{grace:'15%',grid:{color:grid},ticks:{color:txt,callback:v=>Math.round(v)+'\u00B0'}},
+    y1:{position:'right',min:0,max:400,grid:{drawOnChartArea:false},ticks:{color:txt,stepSize:50,callback:v=>(v===0||v===50||v===100)?v+'%':''}},
+    y2:{display:false,min:0,max:115},
+    y4:{position:'right',display:hasP,grace:'25%',grid:{drawOnChartArea:false},ticks:{color:C.pres,maxTicksLimit:4,callback:v=>Math.round(v)}},
+    y5:{display:false,min:0,max:235}
+   }},
+  plugins:[bgPlug,{id:'wlab',afterDatasetsDraw(ch){
+   const{ctx}=ch;ctx.save();ctx.textAlign='center';
+   const M=layout==='mobile';
+   const step=vdense?2:1;
+   if(!isC){
+    ctx.textBaseline='top';
+    ctx.font=(M?(vdense?'10px ':'12px '):(dense?'12px ':'15px '))+'sans-serif';
+    ch.getDatasetMeta(0).data.forEach((bar,i)=>{if(i%step!==0)return;ctx.fillText(ICON[Wv[i].cond]||'',bar.x,8);});
+    ctx.textBaseline='alphabetic';
+   }
+   if(hasB){
+    const bi=ch.data.datasets.findIndex(dd=>dd.label==='bbq');
+    if(bi>=0){const bst=vdense?2:1;
+     ch.getDatasetMeta(bi).data.forEach((pt,i)=>{const v=bbqArr[i];if(v==null||i%bst!==0)return;
+      ctx.font=(M?'13px ':'16px ')+'sans-serif';
+      ctx.fillText(BBQI[bbqTier(v)],pt.x,pt.y-10);
+      ctx.font=(M?'600 8px ':'600 9px ')+'sans-serif';
+      ctx.fillStyle=halo;ctx.fillRect(pt.x-11,pt.y+5,22,11);
+      ctx.fillStyle=C.bbq;ctx.fillText(v,pt.x,pt.y+13);});}
+   }
+   if(CONF){
+    const ci=ch.data.datasets.findIndex(dd=>dd.label==='conf');
+    if(ci>=0){const cs=vdense?3:(dense?2:1);ctx.font=(M?'500 8px ':'500 9px ')+'sans-serif';
+     ch.getDatasetMeta(ci).data.forEach((pt,i)=>{if(i%cs!==0)return;ctx.fillStyle=halo;ctx.fillRect(pt.x-11,pt.y-6,22,12);ctx.fillStyle=txt;ctx.fillText(conf[i]+'%',pt.x,pt.y+3.5);});}
+   }
+   if(vdense||isC){ctx.restore();return;}
+   ch.getDatasetMeta(0).data.forEach((bar,i)=>{
+    const yHi=ch.scales.y.getPixelForValue(Wv[i].hi),yLo=ch.scales.y.getPixelForValue(Wv[i].lo);
+    ctx.font=(M?'500 8px ':(dense?'500 9px ':'500 11px '))+'sans-serif';
+    ctx.fillStyle=C.hi;ctx.fillText(Wv[i].hi+'\u00B0',bar.x,yHi-7);
+    ctx.fillStyle=theme==='dark'?'#7cc4f5':C.lo;ctx.fillText(Wv[i].lo+'\u00B0',bar.x,yLo+12);
+   });
+   ctx.font=(M?'500 8px ':(dense?'500 8px ':'500 10px '))+'sans-serif';
+   const pi=ch.data.datasets.findIndex(dd=>dd.label==='%');
+   if(pi>=0)ch.getDatasetMeta(pi).data.forEach((bar,i)=>{if((Wv[i].pp??0)>=5){ctx.fillStyle=halo;ctx.fillRect(bar.x-13,bar.y-13,26,11);ctx.fillStyle=C.sky;ctx.fillText(Wv[i].pp+'%',bar.x,bar.y-4);}});
+   ctx.restore();}}]
+ });
+}
+
+function drawBio(){
+ if(bioCh){bioCh.destroy();bioCh=null;}
+ const B=D.bio;if(!B)return;
+ const items=BRANGE==='h'?B.h:B.d.slice(0,BRANGE);
+ const labels=BRANGE==='h'?items.map(x=>x.h):items.map(x=>dayLab(x.dt));
+ const cols=items.map(x=>[C.ok,C.warn,C.bad][bioLvl(x.s)]);
+ bioCh=new Chart(document.getElementById('bio'),{type:'bar',
+  data:{labels:labels,datasets:[{data:items.map(x=>Math.max(x.s,0.25)),backgroundColor:cols,borderRadius:4,barPercentage:BRANGE==='h'?0.88:0.72,categoryPercentage:0.95}]},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
+    const it=items[c.dataIndex];
+    return BIOE[bioLvl(it.s)]+' '+bioName(bioLvl(it.s))+' ('+it.s+')'+(it.r.length?(' · '+it.r.map(k=>LBL.bioR[k]||k).join(', ')):'');}}}},
+   scales:{
+    x:{grid:{display:false},ticks:{autoSkip:BRANGE==='h',maxTicksLimit:12,color:txt,font:{size:layout==='mobile'?8:10}}},
+    y:{display:false,min:0,max:Math.max(2.2,Math.max.apply(null,items.map(x=>x.s))+0.9)}
+   }},
+  plugins:[bgPlug,{id:'blab',afterDatasetsDraw(ch){
+   const{ctx}=ch;ctx.save();ctx.textAlign='center';ctx.font=(layout==='mobile'?'500 8px ':'500 9px ')+'sans-serif';
+   const st=BRANGE==='h'?2:1;
+   ch.getDatasetMeta(0).data.forEach((bar,i)=>{if(i%st!==0)return;ctx.font=(layout==='mobile'?'11px ':'13px ')+'sans-serif';ctx.fillText(BIOE[bioLvl(items[i].s)],bar.x,bar.y-4);});
+   ctx.restore();}}]
+ });
+}
+
+function drawMT(tideOk){
+ if(mtCh){mtCh.destroy();mtCh=null;}
+ const Wd=D.days||[];
+ const L=Wd.length, dense=L>10, vdense=L>16, step=vdense?2:1;
+ const ds=[];
+ if(MOON)ds.push({type:'line',label:'ill',data:Wd.map(d=>Math.round(moonIllum(d.dt))),borderColor:C.sun,backgroundColor:C.sun,borderWidth:2,pointRadius:3,pointBorderColor:ptb,pointBorderWidth:1,tension:0.3,yAxisID:'y'});
+ let tH=null,tL=null;
+ if(tideOk){
+  const tmap={};D.sea.tide.forEach(t=>{tmap[t.dt]=t;});
+  tH=Wd.map(x=>tmap[x.dt]?tmap[x.dt].hi:null);
+  tL=Wd.map(x=>tmap[x.dt]?tmap[x.dt].lo:null);
+  ds.push({type:'line',label:'tideHi',data:tH,borderColor:C.sea,borderWidth:2,pointRadius:3,pointBorderColor:ptb,pointBorderWidth:1,tension:0.3,spanGaps:false,yAxisID:'yT'});
+  ds.push({type:'line',label:'tideLo',data:tL,borderColor:C.sea+'99',borderDash:[6,4],borderWidth:2,pointRadius:3,pointBorderColor:ptb,pointBorderWidth:1,tension:0.3,spanGaps:false,yAxisID:'yT'});
+ }
+ mtCh=new Chart(document.getElementById('mt'),{
+  data:{labels:Wd.map(x=>vdense?String(new Date(x.dt+"T12:00").getDate()):dayLab(x.dt)),datasets:ds},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:30}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
+    if(c.dataset.label==='ill')return moonName(Wd[c.dataIndex].dt)+' \u00B7 '+c.parsed.y+'%';
+    return (c.dataset.label==='tideHi'?LBL.tideHi:LBL.tideLo)+': '+c.parsed.y+' cm';}}}},
+   scales:{
+    x:{grid:{display:false},ticks:{autoSkip:vdense,color:txt,font:{size:layout==='mobile'?8:(dense?9:11)}}},
+    y:{display:MOON,min:0,max:108,grid:{color:MOON?grid:'rgba(0,0,0,0)'},ticks:{color:txt,stepSize:25,callback:v=>v<=100?v+'%':''}},
+    yT:{display:!!tideOk,position:'right',grace:'20%',grid:{drawOnChartArea:!MOON},ticks:{color:txt,callback:v=>Math.round(v)+' cm'}}
+   }},
+  plugins:[bgPlug,{id:'mtlab',afterDatasetsDraw(ch){
+   const{ctx}=ch;ctx.save();ctx.textAlign='center';
+   const M=layout==='mobile';
+   if(MOON){
+    const ii=ch.data.datasets.findIndex(dd=>dd.label==='ill');
+    if(ii>=0){ctx.font=(M?'11px ':'13px ')+'sans-serif';
+     ch.getDatasetMeta(ii).data.forEach((pt,i)=>{if(i%step!==0)return;ctx.fillText(moonIcon(Wd[i].dt),pt.x,pt.y-10);});}
+   }
+   if(tH){
+    const ts=dense?2:1;ctx.font=(M?'500 7px ':'500 8px ')+'sans-serif';
+    const hiI=ch.data.datasets.findIndex(dd=>dd.label==='tideHi');
+    const loI=ch.data.datasets.findIndex(dd=>dd.label==='tideLo');
+    if(hiI>=0)ch.getDatasetMeta(hiI).data.forEach((pt,i)=>{const v=tH[i];if(v==null||i%ts!==0)return;ctx.fillStyle=halo;ctx.fillRect(pt.x-12,pt.y-16,24,9);ctx.fillStyle=C.sea;ctx.fillText(v,pt.x,pt.y-9);});
+    if(loI>=0)ch.getDatasetMeta(loI).data.forEach((pt,i)=>{const v=tL[i];if(v==null||i%ts!==0)return;ctx.fillStyle=halo;ctx.fillRect(pt.x-12,pt.y+7,24,9);ctx.fillStyle=C.sea;ctx.fillText(v,pt.x,pt.y+14);});
+   }
+   ctx.restore();}}]
+ });
+}
+
+function applyTheme(t){theme=t;calc();document.getElementById('wrap').classList.toggle('dark',t==='dark');document.body.style.background=BG;markBtns();if(D)render();}
+function setLang(l){
+ lang=l;LBL=T[l];
+ document.querySelectorAll('[data-i]').forEach(el=>{const k=el.getAttribute('data-i');if(LBL[k])el.textContent=LBL[k];});
+ markBtns();
+ if(D)render(); else if(lastErrs&&!document.getElementById('error').classList.contains('hidden'))showError();
+}
+function applyResponsive(){
+ const want=window.innerWidth<560?'mobile':'desktop';
+ if(layout===want)return;layout=want;
+ document.getElementById('wrap').classList.toggle('mobile',want==='mobile');
+ document.getElementById('wkwrap').style.height=want==='mobile'?'300px':'340px';
+ document.getElementById('hrwrap').style.height=want==='mobile'?'220px':'260px';
+ document.getElementById('seawrap').style.height=want==='mobile'?'170px':'200px';
+ document.getElementById('mtwrap').style.height=want==='mobile'?'160px':'190px';
+ document.getElementById('biowrap').style.height=want==='mobile'?'150px':'170px';
+ if(D)render();
+ markBtns();
+}
+function toggleFont(){fontbig=!fontbig;document.getElementById('wrap').classList.toggle('big',fontbig);markBtns();requestAnimationFrame(()=>{[hourlyCh,weekCh,seaCh,mtCh,bioCh].forEach(c=>{if(c){c.resize();c.update();}});});}
+function markBtns(){
+ const Dk=theme==='dark';
+ const actBg=Dk?'#e8e8e6':'#444441',actFg=Dk?'#262624':'#ffffff',inFg=Dk?'#e8e8e6':'#2c2c2a';
+ const bd=Dk?'1px solid rgba(255,255,255,0.35)':'1px solid rgba(0,0,0,0.4)';
+ const states={'btn-en':lang==='en','btn-hr':lang==='hr','btn-lt':theme==='light','btn-dk':theme==='dark','btn-fs':fontbig,'btn-rf':false,'btn-cf':CONF,'btn-pr':PRES,'btn-mp':MP,'btn-bbq':BBQ,
+  'btn-r3':RANGE===3,'btn-r7':RANGE===7,'btn-r14':RANGE===14,'btn-r30':RANGE===30,
+  'btn-c0':CMODE===0,'btn-c1':CMODE===1,'btn-c2':CMODE===2,'btn-moon':MOON,'btn-tide':TIDE,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7};
+ const paint=(b,on)=>{
+  b.style.background=on?actBg:'transparent';b.style.color=on?actFg:inFg;b.style.border=bd;
+  b.style.borderRadius='8px';b.style.padding='4px 10px';b.style.fontSize='12px';b.style.fontWeight='500';b.style.cursor='pointer';b.style.boxShadow='none';
+ };
+ Object.entries(states).forEach(([id,on])=>{const b=document.getElementById(id);if(b)paint(b,on);});
+ const curr=locA().toLowerCase();
+ document.querySelectorAll('.locbtn').forEach(b=>{
+  const nm=(b.dataset.n||'').toLowerCase();
+  const isA=nm===curr, isB=!!(selB&&nm===selB.toLowerCase());
+  paint(b,isA||isB);
+  if(isB)b.style.boxShadow='0 0 0 2px '+CMP.b;
+  if(isA&&selB)b.style.boxShadow='0 0 0 2px '+CMP.a;
+ });
+}
+applyTheme(theme);setLang('en');renderRecents();applyResponsive();
+let _rt;window.addEventListener('resize',()=>{clearTimeout(_rt);_rt=setTimeout(applyResponsive,150);});
+const STATIONS=[["Zagreb-Maksimir",45.82,16.03],["Zagreb-Gri\u010d",45.81,15.97],["Puntijarka",45.91,15.97],["Krapina",46.16,15.88],["Vara\u017edin",46.28,16.36],["\u010cakovec",46.39,16.43],["Bjelovar",45.90,16.85],["Kri\u017eevci",46.02,16.55],["Daruvar",45.60,17.23],["Osijek",45.50,18.56],["Slavonski Brod",45.16,18.01],["Po\u017eega",45.33,17.68],["Gradi\u0161te",45.15,18.70],["Sisak",45.50,16.37],["Karlovac",45.49,15.56],["Ogulin",45.26,15.23],["Parg",45.60,14.63],["Delnice",45.40,14.80],["Gospi\u0107",44.55,15.37],["Zavi\u017ean",44.82,14.98],["Senj",44.99,14.90],["Rijeka",45.34,14.44],["Crikvenica",45.18,14.69],["Mali Lo\u0161inj",44.53,14.47],["Rab",44.76,14.76],["Pula",44.87,13.85],["Pore\u010d",45.23,13.60],["Pazin",45.24,13.94],["Zadar",44.13,15.21],["Knin",44.04,16.20],["\u0160ibenik",43.73,15.91],["Split-Marjan",43.51,16.43],["Sinj",43.70,16.64],["Imotski",43.45,17.22],["Makarska",43.30,17.02],["Hvar",43.17,16.44],["Komi\u017ea",43.05,16.09],["Plo\u010de",43.06,17.43],["Dubrovnik",42.65,18.09],["Lastovo",42.77,16.90]];
+function havKm(a,b,c,d){const R=6371,p=Math.PI/180;const x=(c-a)*p,y=(d-b)*p;const h=Math.sin(x/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+let LEAF_STATE='idle';
+function loadLeaflet(){
+ if(LEAF_STATE!=='idle')return;
+ LEAF_STATE='loading';
+ try{
+  const css=document.createElement('link');
+  css.rel='stylesheet';css.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+  document.head.appendChild(css);
+  const js=document.createElement('script');
+  js.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+  js.onload=function(){LEAF_STATE='ready';try{updateMap();}catch(e){console.log('map init failed:',e);}};
+  js.onerror=function(){LEAF_STATE='failed';document.getElementById('mapSec').classList.add('hidden');};
+  document.head.appendChild(js);
+ }catch(e){LEAF_STATE='failed';}
+}
+function initMapIfNeeded(){
+ if(MAPL||typeof L==='undefined')return;
+ try{
+  MAPL=L.map('mapBox',{scrollWheelZoom:true});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'\u00A9 OpenStreetMap'}).addTo(MAPL);
+ }catch(e){MAPL=null;}
+}
+function updateMap(){
+ const sec=document.getElementById('mapSec');
+ if(typeof L==='undefined'){
+  if(LEAF_STATE==='idle')setTimeout(loadLeaflet,400);
+  if(LEAF_STATE==='failed')sec.classList.add('hidden');
+  return;
+ }
+ sec.classList.remove('hidden');
+ document.getElementById('mapNote').textContent=LBL.mapNote;
+ initMapIfNeeded();if(!MAPL)return;
+ const c=CUR_LOC||DEFAULT_LOC;
+ MAPMARKS.forEach(m=>MAPL.removeLayer(m));MAPMARKS=[];
+ const near=STATIONS.map(st=>({n:st[0],lat:st[1],lon:st[2],d:havKm(c.lat,c.lon,st[1],st[2])})).sort((a,b)=>a.d-b.d).slice(0,10);
+ const me=L.circleMarker([c.lat,c.lon],{radius:7,color:'#D85A30',fillColor:'#D85A30',fillOpacity:0.9});
+ me.bindPopup('<div class="stpop"><b>'+esc(c.name||'')+'</b></div>');me.addTo(MAPL);MAPMARKS.push(me);
+ near.forEach((st,i)=>{
+  const mk=L.circleMarker([st.lat,st.lon],{radius:6,color:'#2caaf0',fillColor:'#2caaf0',fillOpacity:0.85});
+  mk.bindPopup('<div class="stpop"><b>'+esc(st.n)+'</b><br>'+st.d.toFixed(0)+' km<br><button onclick="useStation('+STATIONS.findIndex(x=>x[0]===st.n)+')">'+esc(LBL.useSt)+'</button></div>');
+  mk.addTo(MAPL);MAPMARKS.push(mk);
+ });
+ const grp=L.featureGroup(MAPMARKS);
+ try{MAPL.fitBounds(grp.getBounds().pad(0.25));}catch(e){MAPL.setView([c.lat,c.lon],8);}
+}
+function useStation(i){
+ const st=STATIONS[i];if(!st)return;
+ MAP_LOC={name:st[0],lat:st[1],lon:st[2],station:st[0]+' (DHMZ)'};
+ if(MAPL)MAPL.closePopup();
+ document.getElementById('mapSec').classList.remove('mapfull');
+ selB=null;D2=null;
+ document.getElementById('locIn').value=MAP_LOC.name;
+ renderRecents();loadData();
+ document.getElementById('wrap').scrollIntoView({behavior:'smooth'});
+}
+function mapMax(){
+ const sec=document.getElementById('mapSec');
+ sec.classList.toggle('mapfull');
+ setTimeout(()=>{if(MAPL)MAPL.invalidateSize();},80);
+}
+function requestGeo(){
+ return new Promise(res=>{
+  try{
+   if(!navigator.geolocation){res(null);return;}
+   let done=false;
+   const tt=setTimeout(()=>{if(!done){done=true;res(null);}},5000);
+   navigator.geolocation.getCurrentPosition(async function(pos){
+    clearTimeout(tt);if(done)return;done=true;
+    const la=pos.coords.latitude,lo=pos.coords.longitude;
+    let nm=null;
+    try{
+     const r=await tfetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+la+'&lon='+lo,6000);
+     const j=await r.json();const a=j.address||{};
+     nm=a.city||a.town||a.village||a.municipality||a.suburb||a.county||null;
+    }catch(e){}
+    const label=nm?titleCase(nm):LBL.myLoc;
+    res({name:label,lat:la,lon:lo,station:label+' \u00B7 GPS '+la.toFixed(3)+', '+lo.toFixed(3)});
+   },function(){clearTimeout(tt);if(!done){done=true;res(null);}},{timeout:4500,maximumAge:600000});
+  }catch(e){res(null);}
+ });
+}
+async function goGeo(){
+ const g=await requestGeo();
+ if(!g)return;
+ GEO_LOC=g;selB=null;D2=null;
+ document.getElementById('locIn').value=g.name;
+ loadData();
+}
+
+function initLoc(){
+ requestGeo().then(g=>{
+  if(g){GEO_LOC=g;document.getElementById('locIn').value=g.name;}
+  loadData();
+ });
+}
+initLoc();
+</script>
+</body>
+</html>
