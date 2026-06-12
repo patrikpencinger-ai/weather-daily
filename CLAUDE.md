@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~1,400 lines). Current version: **v2.28**.
+(HTML + CSS + vanilla JS, ~1,500 lines). Current version: **v2.29**.
 
 There is no build step, no bundler, no package manager, and no backend. It is
 opened directly in a browser or served as a static file. Keep it that way.
@@ -73,8 +73,11 @@ Roughly top-to-bottom:
 
 - `<head>` / CSS — theme variables, `.big` large-font rule, layout.
 - `<body>` markup — header controls (lang / theme / font / toggles), then `#dash` sections:
-  RIGHT NOW · NEXT 24 HOURS · SEA TEMPERATURE · OUTLOOK · BIOMETEO · MOON & TIDE ·
-  INTERESTING FACT · WEATHER STATIONS (DHMZ) · footer.
+  RIGHT NOW · NEXT 24 HOURS · SEA TEMPERATURE · OUTLOOK · GRILLING · BIOMETEO · MOON & TIDE ·
+  INTERESTING FACT · MAP (pick a point) · footer.
+  The MAP section is click-to-forecast: tapping any point reverse-geocodes it (Nominatim) and
+  loads that point's forecast via `onMapClick`/`pickPoint`. The old fixed DHMZ-station list
+  (`STATIONS`/`useStation`) is retained but no longer plotted.
 - `<script>` — organized by `/* ---------- ... ---------- */` banners:
   state/helpers · `T` translations · data sources (forecast / marine / air / climatology / AI) ·
   orchestration (`loadData`, `fetchFor`, …) · recents/selection · rendering (`render`, `card`, …) ·
