@@ -76,8 +76,8 @@ Roughly top-to-bottom:
   RIGHT NOW · NEXT 24 HOURS · SEA TEMPERATURE · OUTLOOK · GRILLING · BIOMETEO · MOON & TIDE ·
   INTERESTING FACT · MAP (pick a point) · footer.
   The MAP section is click-to-forecast: tapping any point reverse-geocodes it (Nominatim) and
-  loads that point's forecast via `onMapClick`/`pickPoint`. The old fixed DHMZ-station list
-  (`STATIONS`/`useStation`) is retained but no longer plotted.
+  loads that point's forecast via `onMapClick`/`pickPoint`. (The old fixed DHMZ-station list was
+  removed in v2.29.)
 - `<script>` — organized by `/* ---------- ... ---------- */` banners:
   state/helpers · `T` translations · data sources (forecast / marine / air / climatology / AI) ·
   orchestration (`loadData`, `fetchFor`, …) · recents/selection · rendering (`render`, `card`, …) ·
