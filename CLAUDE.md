@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~1,500 lines). Current version: **v2.29**.
+(HTML + CSS + vanilla JS, ~1,500 lines). Current version: **v2.30**.
 
 There is no build step, no bundler, no package manager, and no backend. It is
 opened directly in a browser or served as a static file. Keep it that way.
@@ -21,6 +21,12 @@ python -m http.server 8000   # then visit http://localhost:8000/weather-dashboar
 
 A few features need a `https://`/`http://` origin rather than `file://`
 (browser geolocation, some fetches), so prefer the local server when testing those.
+
+**iOS caveat:** iPhone/iPad Safari blocks **all** network requests on `file://` pages, so
+opening the raw `.html` directly on iOS leaves it stuck/erroring with no data — it must be
+served over `http(s)` (GitHub Pages, Netlify, or a LAN web server) to work on a phone.
+The error screen now explains this, and the AI-feed fallback (`fetchAI` → `tfetchP`) has a
+timeout so a failed load shows the error rather than hanging forever.
 
 ## Data sources (all keyless, all client-side)
 
