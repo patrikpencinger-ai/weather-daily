@@ -11,6 +11,10 @@ The entire app is a **single self-contained file**: [weather-dashboard.html](wea
 There is no build step, no bundler, no package manager, and no backend. It is
 opened directly in a browser or served as a static file. Keep it that way.
 
+`index.html` is **not** the app — it's a tiny redirect stub so the bare domain
+(e.g. `weather-daily.pages.dev/`) forwards to `weather-dashboard.html`. All real
+work happens in `weather-dashboard.html`.
+
 ## Running it
 
 Just open `weather-dashboard.html` in a browser, or serve the folder statically:
