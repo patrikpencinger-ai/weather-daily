@@ -1,0 +1,6 @@
+# Files NOT to publish as part of the static site (gitignore-style patterns).
+.git
+.gitignore
+.assetsignore
+wrangler.toml
+CLAUDE.md

@@ -1,0 +1,9 @@
+# Cloudflare Workers config — serves this repo as a static site (assets-only Worker).
+# Connected via Cloudflare Workers Builds: every push to `main` runs `wrangler deploy`,
+# which uploads the static assets below and publishes them. No server code, no build step.
+name = "weather-daily"
+compatibility_date = "2026-06-13"
+
+[assets]
+directory = "."
+# Root "/" serves index.html, which redirects to weather-dashboard.html (the app).
