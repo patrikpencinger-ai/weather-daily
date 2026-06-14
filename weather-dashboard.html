@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v2.31</title>
+<title>Patrik's weather daily — v2.32</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -52,6 +52,7 @@ body{padding:20px;transition:background .2s}
   <div class="ttl" data-i="title" style="font-size:20px;font-weight:500;letter-spacing:0.04em;">PATRIK'S WEATHER DAILY</div>
   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
     <input id="locIn" value="Zagreb" aria-label="Location" onkeydown="if(event.key==='Enter')hardRefresh()">
+    <button class="lbtn hidden" id="btn-alert" onclick="document.getElementById('alertBox').scrollIntoView({behavior:'smooth',block:'center'})" aria-label="Weather warning" title="Weather warning" style="font-size:14px;">⚠️</button>
     <button class="lbtn" id="btn-rf" onclick="hardRefresh()" aria-label="Refresh"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
     <button class="lbtn" id="btn-en" onclick="setLang('en')">EN</button>
     <button class="lbtn" id="btn-hr" onclick="setLang('hr')">HR</button>
@@ -78,6 +79,10 @@ body{padding:20px;transition:background .2s}
 </div>
 
 <div id="dash" class="hidden">
+<div id="alertBox" class="hidden" style="border-radius:12px;padding:0.85rem 1.1rem;margin:0 0 1.25rem;display:flex;gap:10px;align-items:flex-start;">
+  <span id="alertIcon" style="font-size:22px;line-height:1.1;">⚠️</span>
+  <div style="min-width:0;"><div id="alertTitle" style="font-weight:600;font-size:12px;letter-spacing:0.06em;margin-bottom:3px;"></div><div id="alertTxt" class="lab" style="line-height:1.6;color:var(--tp);"></div></div>
+</div>
 <div class="hd" data-i="h1">RIGHT NOW</div>
 <div class="lab" id="stationLine" style="margin:-6px 0 10px;font-size:12px;"></div>
 <div class="cards" id="nowCards"></div>
@@ -181,7 +186,7 @@ body{padding:20px;transition:background .2s}
   <p class="lab" id="mapNote" style="margin:-2px 0 8px;font-size:12px;"></p>
   <div id="mapBox"></div>
 </div>
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v2.31 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v2.32 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -374,11 +379,12 @@ async function geocode(q){
 }
 async function fetchOpenMeteo(loc,range){
  const days=Math.min(range,16);
+ const fetchDays=Math.min(Math.max(days,14),16);
  const url='https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+
   '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,pressure_msl'+
   '&hourly=temperature_2m,precipitation_probability,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,pressure_msl'+
   '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,precipitation_sum,uv_index_max,wind_speed_10m_max,sunrise,sunset'+
-  '&forecast_days='+days+'&past_days=1&timezone=auto';
+  '&forecast_days='+fetchDays+'&past_days=1&timezone=auto';
  const r=await tfetch(url,10000);
  if(!r.ok)throw new Error('Open-Meteo '+r.status);
  const j=await r.json();
@@ -394,10 +400,10 @@ async function fetchOpenMeteo(loc,range){
  const hours=[];
  for(let k=0;k<8;k++){const i=nowIdx+k*3;if(i>=hl.time.length)break;
   hours.push({h:hl.time[i].slice(11,16),t:Math.round(hl.temperature_2m[i]),pp:Math.round(hl.precipitation_probability[i]??0),cond:WMO(hl.weather_code[i]),p:(hl.pressure_msl&&hl.pressure_msl[i]!=null)?Math.round(hl.pressure_msl[i]):null});}
- const ds=dl.time.slice(1).map((t,i)=>({dt:t,hi:Math.round(dl.temperature_2m_max[i+1]),lo:Math.round(dl.temperature_2m_min[i+1]),pp:Math.round(dl.precipitation_probability_max[i+1]??0),cond:WMO(dl.weather_code[i+1])}));
+ const fullDs=dl.time.slice(1).map((t,i)=>({dt:t,hi:Math.round(dl.temperature_2m_max[i+1]),lo:Math.round(dl.temperature_2m_min[i+1]),pp:Math.round(dl.precipitation_probability_max[i+1]??0),cond:WMO(dl.weather_code[i+1])}));
  let bi=0,wi=0;
  hours.forEach((h,i)=>{if(h.pp<hours[bi].pp||(h.pp===hours[bi].pp&&Math.abs(h.t-20)<Math.abs(hours[bi].t-20)))bi=i;if(h.pp>hours[wi].pp)wi=i;});
- const ppMax=ds[0]?ds[0].pp:0,wind=Math.round(cur.wind_speed_10m);
+ const ppMax=fullDs[0]?fullDs[0].pp:0,wind=Math.round(cur.wind_speed_10m);
  const badge=(ppMax>=60||WMO(cur.weather_code)==='storm')?'r':(ppMax>=30||wind>=35)?'y':'g';
  const mk=l=>{const L=T[l];let s=L.best+': ~'+(hours[bi]?hours[bi].h:'—')+' ('+(hours[bi]?hours[bi].pp:0)+'% · '+(hours[bi]?hours[bi].t:'—')+'°). ';
   s+=hours[wi]&&hours[wi].pp>15?(L.worst+': ~'+hours[wi].h+' ('+hours[wi].pp+'%). '):(L.dry.charAt(0).toUpperCase()+L.dry.slice(1)+'. ');
@@ -420,7 +426,22 @@ async function fetchOpenMeteo(loc,range){
    const hh=parseInt(ts.slice(11,13),10);if(hh<9||hh>22)continue;
    const s=grillHour({t:hl.temperature_2m[i],pp:Math.round(hl.precipitation_probability[i]||0),wind:hl.wind_speed_10m[i],cond:WMO(hl.weather_code[i]),rh:hl.relative_humidity_2m[i]});
    grillH.push({h:ts.slice(11,16),s:s});}}
- ds.forEach((x,i)=>{const v=pmean((i+1)*24,(i+2)*24);x.p=v!=null?Math.round(v):null;x.w=(dl.wind_speed_10m_max&&dl.wind_speed_10m_max[i+1]!=null)?Math.round(dl.wind_speed_10m_max[i+1]):null;});
+ fullDs.forEach((x,i)=>{const v=pmean((i+1)*24,(i+2)*24);x.p=v!=null?Math.round(v):null;x.w=(dl.wind_speed_10m_max&&dl.wind_speed_10m_max[i+1]!=null)?Math.round(dl.wind_speed_10m_max[i+1]):null;});
+ const ds=fullDs.slice(0,days);
+ const alerts=[];
+ {const end=Math.min(hl.time.length,nowIdx+30);
+  let stormFrom=null,stormTo=null,windMax=0,windAt=null,rainMax=0,rainAt=null;
+  for(let i=nowIdx;i<end;i++){
+   const code=hl.weather_code[i],ts=hl.time[i].slice(11,16);
+   if(code>=95){if(stormFrom===null)stormFrom=ts;stormTo=ts;}
+   const w=hl.wind_speed_10m[i];if(w!=null&&w>windMax){windMax=w;windAt=ts;}
+   const pp=hl.precipitation_probability[i];if(pp!=null&&pp>rainMax){rainMax=pp;rainAt=ts;}
+  }
+  if(stormFrom!==null)alerts.push({sev:2,type:'storm',from:stormFrom,to:stormTo});
+  if(windMax>=55)alerts.push({sev:1,type:'wind',val:Math.round(windMax),at:windAt});
+  if(rainMax>=80&&stormFrom===null)alerts.push({sev:1,type:'rain',val:Math.round(rainMax),at:rainAt});
+  const t0=fullDs[0];if(t0&&t0.hi!=null&&t0.lo!=null&&(t0.hi-t0.lo)>=14)alerts.push({sev:1,type:'swing',hi:t0.hi,lo:t0.lo});
+ }
  let sunObj=null;
  if(dl.sunrise&&dl.sunset&&dl.sunrise[1]&&dl.sunset[1]){
   const mins=(a,b)=>Math.round((new Date(b)-new Date(a))/60000);
@@ -437,7 +458,8 @@ async function fetchOpenMeteo(loc,range){
   presObj={cur:Math.round(pcur),t:ti2,d3:d3!=null?Math.round(d3*10)/10:null,d24:d24!=null?Math.round(d24*10)/10:null};
  }
  const uvObj={cur:(hl.uv_index&&hl.uv_index[nowIdx]!=null)?Math.round(hl.uv_index[nowIdx]*10)/10:null,max:(dl.uv_index_max&&dl.uv_index_max[1]!=null)?Math.round(dl.uv_index_max[1]*10)/10:null};
- return{loc:loc.name,station:loc.station,uv:uvObj,bio:{h:bioH,d:bioD},grillH:grillH,pres:presObj,sun:sunObj,
+ return{loc:loc.name,station:loc.station,uv:uvObj,bio:{h:bioH,d:bioD},grillH:grillH,alerts:alerts,pres:presObj,sun:sunObj,
+  daysFull:fullDs,
   now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
   hours:hours,days:ds,yest:yest,badge:badge,
   today:{en:'Today: '+(ds[0]?ds[0].lo+'–'+ds[0].hi+'° ':'')+(ICON[ds[0]?ds[0].cond:'sun']||''),hr:'Danas: '+(ds[0]?ds[0].lo+'–'+ds[0].hi+'° ':'')+(ICON[ds[0]?ds[0].cond:'sun']||'')},
@@ -835,10 +857,11 @@ function buildGrillSum(l){
 }
 /* Weekend outlook: rates this & next weekend (Sat/Sun in the forecast) for hiking/biking/running. */
 function buildWeekend(l){
- if(!D||!D.days||!D.days.length)return'';
+ const src=(D&&(D.daysFull||D.days))||[];
+ if(!src.length)return'';
  const hrv=l==='hr';
  const wks=[];let cur=null;
- D.days.forEach(x=>{const g=new Date(x.dt+'T12:00').getDay();
+ src.forEach(x=>{const g=new Date(x.dt+'T12:00').getDay();
   if(g===6||g===0){if(g===6||!cur){cur={days:[]};wks.push(cur);}cur.days.push(x);}});
  if(!wks.length)return hrv?'Nema vikend-dana u trenutnom rasponu prognoze.':'No weekend days in the current forecast range.';
  const tiers=hrv?['odlično','solidno','slabo']:['great','okay','poor'];
@@ -862,6 +885,20 @@ function buildWeekend(l){
   out+='</div>';
  }
  return out;
+}
+/* Severe-weather alert derived from Open-Meteo (storm / strong wind / heavy rain / big swing). */
+function buildAlerts(l){
+ const A=(D&&D.alerts)||[];if(!A.length)return null;
+ const hrv=l==='hr';
+ const ic={storm:'⛈️',wind:'💨',rain:'🌧️',swing:'🌡️'};
+ const parts=A.map(a=>{
+  if(a.type==='storm')return (hrv?'Grmljavinsko nevrijeme očekuje se oko ':'Thunderstorms expected around ')+a.from+((a.to&&a.to!==a.from)?('–'+a.to):'')+(hrv?' h.':'.');
+  if(a.type==='wind')return (hrv?'Jak vjetar do ':'Strong wind up to ')+a.val+' km/h'+(a.at?((hrv?' oko ':' around ')+a.at):'')+'.';
+  if(a.type==='rain')return (hrv?'Obilna kiša, vjerojatnost do ':'Heavy rain, up to ')+a.val+'%'+(a.at?((hrv?' oko ':' around ')+a.at):'')+'.';
+  if(a.type==='swing')return (hrv?'Velika promjena temperature ':'Large temperature swing ')+a.lo+'°→'+a.hi+'°.';
+  return '';
+ });
+ return{sev:Math.max.apply(null,A.map(a=>a.sev)),icon:ic[A[0].type]||'⚠️',html:parts.filter(Boolean).map(p=>'• '+esc(p)).join('<br>')};
 }
 function buildVersus(l){
  if(!cmp())return'';
@@ -1065,6 +1102,14 @@ function render(){
    cardsHtml+='<div class="card"><div class="lab">'+LBL.cBbq+'<span class="info" tabindex="0" role="button" aria-label="BBQ score criteria">i<span class="tip">'+LBL.bbqInfo+(MP?'<br><br><i>And remember \u2014 nobody expects the evening shower.</i>':'')+'</span></span>'+'</div><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:24px;">'+BBQI[bt]+'</span><span class="big">'+bq.v+'</span><span class="lab" style="font-size:11px;">/100</span></div><div class="ctx">'+esc(bbqName(bt))+(bq.why?(' \u00B7 '+(LBL.bbqWhy[bq.why]||'')):'')+'</div></div>';}
   document.getElementById('nowCards').innerHTML=cardsHtml;
  }
+ {const al=buildAlerts(lang);const ab=document.getElementById('alertBox');const ba=document.getElementById('btn-alert');
+  if(al){const red=al.sev>=2,col=red?C.bad:C.warn;
+   ab.classList.remove('hidden');ab.style.background=col+'1f';ab.style.border='1px solid '+col;
+   document.getElementById('alertIcon').textContent=al.icon;
+   const te=document.getElementById('alertTitle');te.textContent=red?(lang==='hr'?'UPOZORENJE NA NEVRIJEME':'SEVERE WEATHER WARNING'):(lang==='hr'?'VREMENSKI OPREZ':'WEATHER HEADS-UP');te.style.color=col;
+   document.getElementById('alertTxt').innerHTML=al.html;
+   if(ba){ba.classList.remove('hidden');ba.textContent=al.icon;ba.style.background=col+'22';ba.style.color=col;ba.style.border='1px solid '+col;ba.style.borderRadius='8px';ba.style.padding='3px 8px';ba.style.fontSize='14px';ba.style.cursor='pointer';ba.title=red?(lang==='hr'?'Upozorenje na nevrijeme':'Severe weather warning'):(lang==='hr'?'Vremenski oprez':'Weather heads-up');}
+  }else{ab.classList.add('hidden');if(ba)ba.classList.add('hidden');}}
  const hasHours=D.hours&&D.hours.length>0;
  document.getElementById('hrSec').classList.toggle('hidden',!hasHours);
  if(hasHours)drawHourly();
@@ -1339,8 +1384,9 @@ function drawGrill(){
   xlabels=D.grillH.map(x=>x.h);
   titleFor=i=>D.grillH[i].h;
  }else{
-  const n=(GRANGE==='h')?Math.min(days.length,7):Math.min(days.length,GRANGE);
-  const dd=days.slice(0,n);
+  const base=D.daysFull||days;
+  const n=(GRANGE==='h')?Math.min(base.length,7):Math.min(base.length,GRANGE);
+  const dd=base.slice(0,n);
   arr=bbqDayArr(D,dd);
   const vd=dd.length>16;
   xlabels=dd.map(x=>vd?String(new Date(x.dt+"T12:00").getDate()):dayLab(x.dt));

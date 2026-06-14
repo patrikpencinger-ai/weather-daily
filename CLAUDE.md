@@ -83,8 +83,13 @@ Roughly top-to-bottom:
 
 - `<head>` / CSS — theme variables, `.big` large-font rule, layout.
 - `<body>` markup — header controls (lang / theme / font / toggles), then `#dash` sections:
-  RIGHT NOW · NEXT 24 HOURS · SEA TEMPERATURE · OUTLOOK · GRILLING · BIOMETEO · MOON & TIDE ·
-  INTERESTING FACT · MAP (pick a point) · footer.
+  (severe-weather alert banner, when active) · RIGHT NOW · NEXT 24 HOURS · SEA TEMPERATURE ·
+  OUTLOOK · WEEKEND PLANS · GRILLING · BIOMETEO · MOON & TIDE · INTERESTING FACT ·
+  MAP (pick a point) · footer.
+  Severe-weather alerts (`buildAlerts`/`D.alerts`) are derived client-side from Open-Meteo
+  (storm code / strong wind / heavy rain / big swing) — official DHMZ/Meteoalarm feeds are
+  CORS-blocked from the browser, so they'd need a Worker proxy. WEEKEND PLANS rates this & next
+  weekend for hiking/biking/running using a forced 14-day lookahead (`D.daysFull`).
   The MAP section is click-to-forecast: tapping any point reverse-geocodes it (Nominatim) and
   loads that point's forecast via `onMapClick`/`pickPoint`. (The old fixed DHMZ-station list was
   removed in v2.29.)
