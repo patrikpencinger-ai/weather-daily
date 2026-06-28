@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.00</title>
+<title>Patrik's weather daily — v3.01</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -69,6 +69,7 @@ body{padding:20px;transition:background .2s}
     <button class="lbtn" id="btn-dk" onclick="applyTheme('dark')" aria-label="Dark mode"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
     <button class="lbtn" id="btn-fs" onclick="toggleFont()" aria-label="Large font"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="9" cy="10" r="4.5"/><path d="M12.2 13.2L16 17"/><path d="M7 10h4M9 8v4"/></svg></button>
     <button class="lbtn" id="btn-mp" onclick="toggleMP()" aria-label="Monty Python mode" title="Monty Python mode" style="font-weight:600;">MP</button>
+    <button class="lbtn" id="btn-vegan" onclick="toggleVegan()" aria-label="Vegan Inbound mode" title="Vegan Inbound mode (BBQ)">🌱</button>
     <button class="lbtn" id="btn-pr" onclick="togglePres()" aria-label="Air pressure overlay" title="Air pressure hPa"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><path d="M5 19a9 9 0 1 1 14 0"/><path d="M12 14l3.2-4.2"/><circle cx="12" cy="14" r="1.1" fill="currentColor"/></svg></button>
     <button class="lbtn" id="btn-cf" onclick="toggleConf()" aria-label="Forecast confidence" title="Forecast confidence %"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><path d="M3 17C6 11 9 19 12 13s6-2 9-8" stroke-dasharray="2.5 3"/></svg></button>
   </div>
@@ -207,7 +208,8 @@ body{padding:20px;transition:background .2s}
 <section id="view-bbq" class="hidden">
   <div class="viewhead" id="bbqHead" data-i="bbqHead">🔥 ROŠTILJ COMMAND CENTRE</div>
   <p class="viewtag" id="bbqTag"></p>
-  <div class="cards" id="bbqHero" style="margin:0 0 1.5rem;"></div>
+  <div class="cards" id="bbqHero" style="margin:0 0 1.25rem;"></div>
+  <div class="cards" id="bbqVerdict" style="margin:0 0 1.5rem;"></div>
   <div class="hd" data-i="bbqPrepH">PREP TIMELINE</div>
   <p class="lab" id="bbqtlSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
   <div class="cards" id="bbqPrep" style="margin:0 0 1.25rem;"></div>
@@ -220,6 +222,8 @@ body{padding:20px;transition:background .2s}
   <div id="bbqgrwrap" style="position:relative;width:100%;height:180px;margin:0 0 1.75rem;"><canvas id="bbqgrill" role="img" aria-label="Hourly grilling score 9am to 10pm with tier icons"></canvas></div>
   <div class="hd" data-i="bbqNonsense">THE NONSENSE NUMBERS</div>
   <div class="cards" id="bbqCards"></div>
+  <div class="hd" data-i="bbqCheckH" style="margin-top:1.5rem;">PIT CHECKLIST</div>
+  <div class="cards" id="bbqCheck"></div>
 </section>
 
 <section id="view-hike" class="hidden">
@@ -260,7 +264,7 @@ body{padding:20px;transition:background .2s}
   <div class="cards" id="swimFun"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.00 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.01 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -311,6 +315,7 @@ function togglePres(){PRES=!PRES;markBtns();if(D)render();}
 function toggleBbq(){BBQ=!BBQ;markBtns();if(D)render();}
 let MP=false;
 function toggleMP(){MP=!MP;markBtns();if(D)renderActive();}
+function toggleVegan(){VEGAN=!VEGAN;markBtns();if(D)renderActive();}
 const MPBIO=['Lovely — dead lovely','Merely a flesh wound','Nobody expects this front!'];
 const MPBADGE={g:'Always look on the bright side',y:"'Tis but a drizzle",r:'Run away! Run away!'};
 const MPP={aRun:'Silly running',aHike:'The Quest',aSwim:'Swimming (no newts)',runGo:'proceed at a silly pace ~',runCare:'a flesh-wound forecast — gently ~',hikeGood:'a quest-worthy day',hikeRain:'the sky may taunt you a second time',uvNote:'the sun is not the Messiah — wear protection',swimNice:'lovely plumage\u2026 er, water',swimCool:'bracing; complain accordingly',swimCold:'colder than a certain parrot',swimStorm:'Run away! (from thunder)'};
@@ -416,7 +421,7 @@ const T={
   zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",h7:"INTERESTING FACT",h8:"MAP — PICK A POINT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
   tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",
   bbqHead:"🔥 ROŠTILJ COMMAND CENTRE",bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
-  bbqPrepH:"PREP TIMELINE",bbqGrillH:"TODAY'S GRILL SCORE BY HOUR",bbqNonsense:"THE NONSENSE NUMBERS",
+  bbqPrepH:"PREP TIMELINE",bbqGrillH:"TODAY'S GRILL SCORE BY HOUR",bbqNonsense:"THE NONSENSE NUMBERS",bbqCheckH:"PIT CHECKLIST",
   bbqCritL:"Score = what you tick. Prime time is 12–18h (peak 14h); untick a factor to ignore it (grill at 9am if you must).",
   critTime:"Time of day",critTemp:"Temperature",critRain:"Rain",critWind:"Wind",critHumid:"Humidity",critStorm:"Storm",
   hikeHead:"🥾 Hiking",hikeTag:"Trails within ~20 km — read the light, dodge the rain, mind the altitude.",
@@ -442,7 +447,7 @@ const T={
   zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",h7:"ZANIMLJIVOST",h8:"KARTA \u2014 ODABERI TO\u010cKU",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
   tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",
   bbqHead:"\ud83d\udd25 RO\u0160TILJ ZAPOVJEDNI CENTAR",bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
-  bbqPrepH:"VREMENSKA CRTA PRIPREME",bbqGrillH:"DANA\u0160NJI RO\u0160TILJ INDEKS PO SATIMA",bbqNonsense:"BROJKE BEZ VEZE",
+  bbqPrepH:"VREMENSKA CRTA PRIPREME",bbqGrillH:"DANA\u0160NJI RO\u0160TILJ INDEKS PO SATIMA",bbqNonsense:"BROJKE BEZ VEZE",bbqCheckH:"LISTA ZA RO\u0160TILJ",
   bbqCritL:"Indeks = \u0161to ozna\u010di\u0161. Zlatno doba je 12\u201318 h (vrh 14 h); odzna\u010di faktor da ga zanemari\u0161 (ro\u0161tilj u 9 ujutro ako ba\u0161 mora\u0161).",
   critTime:"Doba dana",critTemp:"Temperatura",critRain:"Ki\u0161a",critWind:"Vjetar",critHumid:"Sparina",critStorm:"Nevrijeme",
   hikeHead:"\ud83e\udd7e Planinarenje",hikeTag:"Staze unutar ~20 km \u2014 uhvati svjetlo, izbjegni ki\u0161u, pazi na visinu.",
@@ -458,6 +463,8 @@ const T={
 };
 let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, swimCh=null, lastErrs=null;
 let BBQCRIT={time:true,temp:true,rain:true,wind:true,humid:true,storm:true}, bbqSeries=[];
+let VEGAN=false, bbqCheck={};
+try{const s=localStorage.getItem('wd_bbqcheck');if(s)bbqCheck=JSON.parse(s)||{};}catch(e){}
 let swimMapL=null, swimMapMarks=[];
 const poolCache={};
 function cmp(){return !!(selB&&D2);}
@@ -567,7 +574,7 @@ async function fetchOpenMeteo(loc,range){
  const uvObj={cur:(hl.uv_index&&hl.uv_index[nowIdx]!=null)?Math.round(hl.uv_index[nowIdx]*10)/10:null,max:(dl.uv_index_max&&dl.uv_index_max[1]!=null)?Math.round(dl.uv_index_max[1]*10)/10:null};
  return{loc:loc.name,station:loc.station,uv:uvObj,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,sun:sunObj,
   daysFull:fullDs,
-  now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
+  now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),wdeg:Math.round(((cur.wind_direction_10m%360)+360)%360),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
   hours:hours,days:ds,yest:yest,badge:badge,
   today:{en:'Today: '+(ds[0]?ds[0].lo+'–'+ds[0].hi+'° ':'')+(ICON[ds[0]?ds[0].cond:'sun']||''),hr:'Danas: '+(ds[0]?ds[0].lo+'–'+ds[0].hi+'° ':'')+(ICON[ds[0]?ds[0].cond:'sun']||'')},
   rec:{en:mk('en'),hr:mk('hr')},
@@ -1600,7 +1607,7 @@ function markBtns(){
  const states={'btn-en':lang==='en','btn-hr':lang==='hr','btn-lt':theme==='light','btn-dk':theme==='dark','btn-fs':fontbig,'btn-rf':false,'btn-cf':CONF,'btn-pr':PRES,'btn-mp':MP,'btn-bbq':BBQ,
   'btn-r3':RANGE===3,'btn-r7':RANGE===7,'btn-r14':RANGE===14,'btn-r30':RANGE===30,
   'btn-c0':CMODE===0,'btn-c1':CMODE===1,'btn-c2':CMODE===2,'btn-moon':MOON,'btn-tide':TIDE,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7,
-  'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7};
+  'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7,'btn-vegan':VEGAN};
  const paint=(b,on)=>{
   b.style.background=on?actBg:'transparent';b.style.color=on?actFg:inFg;b.style.border=bd;
   b.style.borderRadius='8px';b.style.padding='4px 10px';b.style.fontSize='12px';b.style.fontWeight='500';b.style.cursor='pointer';b.style.boxShadow='none';
@@ -1769,12 +1776,53 @@ function gaugeBar(pct,color){return '<div class="gauge"><span style="width:'+clm
 function gcard(label,pct,ctx){return '<div class="card"><div class="lab">'+label+'</div><div style="display:flex;align-items:baseline;gap:6px;"><span class="big" style="font-size:26px;">'+clmp(pct)+'</span><span class="lab" style="font-size:11px;">/100</span></div>'+gaugeBar(pct,colByPct(pct))+(ctx?'<div class="ctx">'+ctx+'</div>':'')+'</div>';}
 const GRTCOL=['#1D9E75','#3DA35D','#BA7517','#C2632B','#A32D2D'];
 const WDIROPP={N:'S',NE:'SW',E:'W',SE:'NW',S:'N',SW:'NE',W:'E',NW:'SE'};
+const BWI=[
+ {min:90,g:'A+',en:'Maximum Maillard',hr:'Maksimalni Maillard',ce:'Clear skies, perfect coals — the courtyard vibe is immaculate.',ch:'Vedro, savršen žar — atmosfera u dvorištu je besprijekorna.'},
+ {min:75,g:'B',en:'Solid Coals',hr:'Čvrsti žar',ce:'Minor atmospheric interference. Solidify the guest list and prep the kitchen.',ch:'Manje smetnje u zraku. Potvrdi popis gostiju i pripremi kuhinju.'},
+ {min:50,g:'C',en:'The Tarp Protocol',hr:'Protokol cerade',ce:'Risk of ash-in-the-eye or sudden showers. Adjust the shade sails, secure the apron.',ch:'Rizik od pepela u oku ili iznenadnog pljuska. Razapni cerade, učvrsti pregaču.'},
+ {min:0,g:'F',en:'Cast-Iron Backup',hr:'Lijevano-željezna rezerva',ce:'Condition Red. Evacuate to the indoor oven. Do not fight nature today.',ch:'Stanje crveno. Povlačenje na pećnicu. Danas se ne borimo s prirodom.'}
+];
+function bwiGrade(v){for(let i=0;i<BWI.length;i++){if(v>=BWI[i].min)return BWI[i];}return BWI[BWI.length-1];}
+function weekendVerdict(){
+ const days=(D&&(D.daysFull||D.days))||[];if(!days.length)return null;
+ const groups=[];let cur=null;
+ days.forEach(x=>{const g=new Date(x.dt+'T12:00').getDay();if(g===6||g===0){if(g===6||!cur){cur=[];groups.push(cur);}cur.push(x);}});
+ if(!groups.length)return null;
+ const bm={};if(D.bio&&D.bio.d)D.bio.d.forEach(b=>{bm[b.dt]=b.s;});
+ let best=null;groups[0].forEach(x=>{const s=bbqDay(x,bm[x.dt]);if(s!=null&&(!best||s>best.s))best={x:x,s:s};});
+ return best?{day:best.x.dt,score:best.s}:null;
+}
+function bbqPhase(l){
+ const hrv=l==='hr',d=new Date().getDay();
+ if(d===1||d===2)return hrv?'Prerano za vikend. Drži hvataljke u futroli.':'Too early to call the weekend. Keep your tongs holstered.';
+ if(d===3)return hrv?'Stabilno se sprema. Petak miriše na dan za suhi rub — počni marinirati očekivanja.':'High pressure building. Friday looks optimal for a dry-rub — start marinating expectations.';
+ if(d===4)return hrv?'Indeks raste. Vadi teže komade iz škrinje.':'The index is trending up. Pull the heavy cuts from the freezer.';
+ if(d===5)return hrv?'Zeleno svjetlo za sutra. Vjetar zanemariv — ugljen zove.':'Condition Green for tomorrow. Wind negligible — the charcoal is calling.';
+ return hrv?'Izvedbeni način. Prati sat po sat i namjesti dovod zraka.':'Live execution mode. Watch it hour by hour and adjust your airflow.';
+}
+function smokeSVG(wdeg){
+ const cx=70,cy=60,r=38,th=((wdeg+180)%360)*Math.PI/180;
+ const ex=cx+r*Math.sin(th), ey=cy-r*Math.cos(th);
+ const ux=cx-26*Math.sin(th), uy=cy+26*Math.cos(th);
+ const nx=cx+(r+13)*Math.sin(th), ny=cy-(r+13)*Math.cos(th);
+ const col=C.bbq, sky=C.sky, deg=((wdeg+180)%360);
+ return '<svg viewBox="0 0 140 120" width="140" height="120" aria-hidden="true" style="max-width:100%">'+
+  '<rect x="4" y="4" width="132" height="112" rx="12" fill="'+sky+'18" stroke="'+sky+'55"/>'+
+  '<text x="11" y="16" font-size="8" fill="'+txt+'">N↑</text>'+
+  '<line x1="'+cx+'" y1="'+cy+'" x2="'+ex.toFixed(1)+'" y2="'+ey.toFixed(1)+'" stroke="'+col+'" stroke-width="3" stroke-dasharray="3 3" stroke-linecap="round"/>'+
+  '<g transform="translate('+ex.toFixed(1)+','+ey.toFixed(1)+') rotate('+deg.toFixed(0)+')"><path d="M0,-7 L5,4 L-5,4 Z" fill="'+col+'"/></g>'+
+  '<text x="'+nx.toFixed(1)+'" y="'+(ny+5).toFixed(1)+'" text-anchor="middle" font-size="14">😤</text>'+
+  '<text x="'+ux.toFixed(1)+'" y="'+(uy+5).toFixed(1)+'" text-anchor="middle" font-size="14">🪑</text>'+
+  '<circle cx="'+cx+'" cy="'+cy+'" r="11" fill="'+col+'"/><text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="13">🔥</text>'+
+  '</svg>';
+}
+function toggleCheck(k){bbqCheck[k]=!bbqCheck[k];try{localStorage.setItem('wd_bbqcheck',JSON.stringify(bbqCheck));}catch(e){}if(active==='bbq')renderBbq();}
 
 function setBbqCrit(k){BBQCRIT[k]=!BBQCRIT[k];if(active==='bbq')renderBbq();}
 function renderBbq(){
  if(!D)return;
  const hrv=lang==='hr';
- document.getElementById('bbqTag').textContent=LBL.bbqTag;
+ document.getElementById('bbqTag').textContent=VEGAN?(hrv?'Biljni alarm aktiviran. Salata moli za dobar char, panceta neka pričeka.':'Plant-based panic engaged. The lettuce prays for a good char; the pork belly can wait.'):LBL.bbqTag;
  const raw=D.grillRaw||[];
  bbqSeries=raw.map(o=>{const r=grillCompound(o,BBQCRIT);return{h:o.hh,hi:o.h,s:r.v,parts:r.parts};});
  let peak=null;bbqSeries.forEach(x=>{if(!peak||x.s>peak.s)peak=x;});
@@ -1784,13 +1832,18 @@ function renderBbq(){
  const critLbl={time:hrv?'doba dana':'time of day',temp:hrv?'temperatura':'temperature',rain:hrv?'kiša':'rain',wind:hrv?'vjetar':'wind',humid:hrv?'sparina':'humidity',storm:hrv?'nevrijeme':'storm'};
  let culprit=null,cmax=0;const pp0=peak?peak.parts:{};for(const k in pp0){if(k==='storm'){culprit='storm';break;}if(pp0[k]>cmax){cmax=pp0[k];culprit=k;}}
  const culpritTxt=(culprit&&(culprit==='storm'||cmax>=8))?(' · '+(hrv?'koči':'limited by')+': '+critLbl[culprit]):'';
- const wind=(D.now&&D.now.wind)||0, t=(D.now&&D.now.t!=null)?D.now.t:18, pp=(D.now&&D.now.pp)||0, hum=(D.now&&D.now.hum)||0, wdir=(D.now&&D.now.wdir)||'', uv=(D.uv&&D.uv.cur!=null)?D.uv.cur:0;
+ const wind=(D.now&&D.now.wind)||0, t=(D.now&&D.now.t!=null)?D.now.t:18, pp=(D.now&&D.now.pp)||0, hum=(D.now&&D.now.hum)||0, wdir=(D.now&&D.now.wdir)||'', wdeg=(D.now&&D.now.wdeg!=null)?D.now.wdeg:0, uv=(D.uv&&D.uv.cur!=null)?D.uv.cur:0;
  const stormy=(D.alerts||[]).some(a=>a.type==='storm');
- document.getElementById('bbqHero').innerHTML='<div class="card" style="grid-column:1/-1;">'+
-  '<div class="lab">'+LBL.cBbq+'</div>'+
+ const grade=bwiGrade(v), glow=Math.round(v*0.28), glowA=v>=70?'77':(v>=45?'44':'22');
+ document.getElementById('bbqHero').innerHTML='<div class="card" style="grid-column:1/-1;box-shadow:0 0 '+glow+'px '+Math.round(glow/3)+'px '+C.hi+glowA+';">'+
+  '<div class="lab">'+LBL.cBbq+' · <b style="color:'+GRTCOL[tier]+'">'+grade.g+'</b> '+(hrv?grade.hr:grade.en)+'</div>'+
   '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="font-size:30px;">'+BBQI[tier]+'</span><span class="big" style="font-size:36px;">'+v+'</span><span class="lab" style="font-size:13px;">/100 · '+esc(bbqName(tier))+'</span></div>'+
   gaugeBar(v,GRTCOL[tier])+
+  '<div class="ctx">'+(hrv?grade.ch:grade.ce)+'</div>'+
   '<div class="ctx">'+(hrv?'Najbolji termin danas oko ':'Best slot today around ')+peakH+(peak?(' ('+peak.s+'/100)'):'')+culpritTxt+'</div></div>';
+ const wv=weekendVerdict(), ph=bbqPhase(lang);
+ if(wv){const wg=bwiGrade(wv.score),wt=bbqTier(wv.score);document.getElementById('bbqVerdict').innerHTML='<div class="card" style="grid-column:1/-1;"><div class="lab">'+(hrv?'PRESUDA ZA VIKEND':'WEEKEND VERDICT')+'</div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;"><span style="font-size:22px;">'+BBQI[wt]+'</span><span style="font-size:17px;font-weight:600;">'+dayLab(wv.day)+' · '+wv.score+'/100 · '+wg.g+'</span></div><div class="ctx">'+ph+'</div></div>';}
+ else{document.getElementById('bbqVerdict').innerHTML='<div class="card" style="grid-column:1/-1;"><div class="lab">'+(hrv?'IZGLEDI':'OUTLOOK')+'</div><div class="ctx" style="margin-top:3px;">'+ph+'</div></div>';}
  if(document.getElementById('bbqCritL'))document.getElementById('bbqCritL').textContent=LBL.bbqCritL;
  const critLabels={time:LBL.critTime,temp:LBL.critTemp,rain:LBL.critRain,wind:LBL.critWind,humid:LBL.critHumid,storm:LBL.critStorm};
  document.getElementById('bbqCrit').innerHTML=GRILLCRIT.map(k=>{const on=BBQCRIT[k];return '<button class="lbtn" onclick="setBbqCrit(\''+k+'\')" aria-pressed="'+on+'" style="border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;'+(on?('background:'+strong+';color:'+BG+';border-color:'+strong+';'):'opacity:0.5;')+'">'+(on?'✓ ':'')+critLabels[k]+'</button>';}).join('');
@@ -1820,11 +1873,22 @@ function renderBbq(){
   gcard('🌭 '+(hrv?'Ćevapi samopouzdanje':'Ćevapi Confidence'),cc,hrv?'Koliko su ćevapi sigurni da je danas njihov dan. Mirna večer 20–27° ih napuše.':"How sure your ćevapi are that today's their day. A calm 20–27° evening puffs them up."),
   gcard('🏘️ '+(hrv?'Susjedova zavist':'Neighbour Envy'),envy,hrv?'Šanse da susjedi „slučajno“ zapale svoj roštilj. Miris preko ograde je psihološki rat.':"Odds the neighbours 'just happen' to fire up too. Aroma over the fence is psychological warfare."),
   gcard('🌱 '+(hrv?'Zagar na tofuu':'Tofu Tan-line'),tan,hrv?'I biljna propaganda se lijepo peče — tofu, halloumi, portobello, prkosni klip. Roštilj čuva tajnu.':'Even the plant-based propaganda chars nicely — tofu, halloumi, portobello, a defiant corn cob. The grill keeps secrets.'),
-  '<div class="card"><div class="lab">💨 '+(hrv?'Vektor dima u oči':'Smoke-in-the-eyes')+'</div><div class="big-n" style="font-size:18px;">'+(wdir||'—')+' → '+toDir+'</div><div class="ctx">'+(hrv?('Dim ide prema '+toDir+' · faktor suza '+tears+'/100. Stani uz vjetar, junače. Roštilj ne pregovara.'):('Smoke heads '+toDir+' · tear factor '+tears+'/100. Stand upwind, hero. The grill does not negotiate.'))+'</div></div>',
+  '<div class="card"><div class="lab">💨 '+(hrv?'Karta dima':'Smoke map')+'</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px;">'+smokeSVG(wdeg)+'<div style="flex:1;min-width:90px;"><div style="font-weight:600;font-size:14px;">'+(wdir||'—')+' → '+toDir+'</div><div class="ctx">'+(hrv?('Dim ide prema '+toDir+'. Posjedni goste uz vjetar (🪑), 😤 susjeda niz vjetar. Faktor suza '+tears+'/100.'):('Smoke heads '+toDir+'. Seat guests upwind (🪑), the 😤 neighbour downwind. Tear factor '+tears+'/100.'))+'</div></div></div></div>',
   card('🧭 '+(hrv?'Hvataljke do vilice':'Tong-to-fork'),km+' km','',hrv?'Toliko si udaljen od Sarajeva, duhovne prijestolnice ćevapa. Meso ne putuje; vještina putuje.':'That far from Sarajevo, spiritual capital of ćevapi. The meat does not travel; the craft does.')
  ];
  if(MP)N.push(card('🎩 '+(hrv?'Ministarstvo blesavih roštilja':'Ministry of Silly Grills'),'','',(MPBBQ[tier]||'')+(hrv?' — Nema pokušaja, samo prepečenost.':' — There is no try, only char.')));
+ if(VEGAN){
+  const veg=[
+   card('🥩❌ '+(hrv?'Detektor propuštenog odreska':'Missed Steak detector'),'','',hrv?'Tražim propuštene odreske… ništa. Pokrećem spaljivanje lišća.':'Searching for missed steaks… none found. Commencing leaf-burning mode.'),
+   card('🧅 '+(hrv?'Tofu zaštitna zona':'Tofu Buffer Zone'),'','',hrv?'Drži tikvice 15 cm od panceta. Protokoli protiv kontaminacije aktivni.':'Keep zucchini a socially-distanced 15 cm from the pork belly. Cross-contamination protocols active.'),
+   card('🌽 '+(hrv?'Im-pasta sindrom':'Im-pasta syndrome'),'','',hrv?'Prokuhaj kukuruz prije. Neka ražnjići ne budu razočaranje.':'Pre-boil the corn — don’t let the skewers suffer im-pasta syndrome.')
+  ];
+  if(t>=28)veg.unshift(card('🥬 '+(hrv?'Salato, smiri se!':'Romaine calm!'),'','',hrv?'Ovo nije vježba! Tvoja salata samo što nije ugljen!':'This is not a drill! Your lettuce is about to become carbon!'));
+  for(let i=veg.length-1;i>=0;i--)N.unshift(veg[i]);
+ }
  document.getElementById('bbqCards').innerHTML=N.join('');
+ const items=[['charcoal',hrv?'Kupi ugljen':'Buy charcoal','🪵'],['thaw',hrv?'Odmrzni meso':'Thaw the meat','🧊'],['gas',hrv?'Provjeri plin':'Check propane','🔥'],['marinate',hrv?'Mariniraj/začini':'Marinate & season','🧂'],['beer',hrv?'Rashladi pivo':'Chill the beer','🍺'],['sides',hrv?'Pripremi priloge':'Prep the sides','🥗']];
+ document.getElementById('bbqCheck').innerHTML=items.map(it=>{const on=!!bbqCheck[it[0]];return '<div class="card" onclick="toggleCheck(\''+it[0]+'\')" style="cursor:pointer;display:flex;align-items:center;gap:10px;'+(on?'opacity:0.6;':'')+'"><span style="font-size:18px;">'+(on?'✅':'⬜')+'</span><div style="font-weight:500;font-size:13.5px;'+(on?'text-decoration:line-through;':'')+'">'+it[2]+' '+it[1]+'</div></div>';}).join('');
  document.getElementById('bbqgrSum').textContent=hrv?'Roštilj indeks po satu, 09–22 h. Vrhunac istaknut.':'Grill score by the hour, 9am–10pm. Peak bar highlighted.';
  drawBbqTimeline();drawBbqGrill();
 }
