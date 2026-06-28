@@ -6,7 +6,18 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~1,500 lines). Current version: **v2.30**.
+(HTML + CSS + vanilla JS, ~2,400 lines). Current version: **v3.00**.
+
+As of v3 it's a **four-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
+`#hike`/`#swim`) over a `VIEWS` registry. One shared data fetch (`D`) feeds all views;
+`showView(name)` toggles `#view-*` sections, `destroyAllCharts()`, then dispatches the active
+view's render via `setTimeout(0)` (NOT rAF — throttled in background tabs). The four global
+hooks (`applyTheme`/`setLang`/`toggleFont`/`applyResponsive`, plus `toggleMP`) call
+`renderActive()` so only the visible view re-renders. The Weather view is the OG dashboard
+(`render()`) wrapped unchanged. BBQ grill score is a toggleable compound (`grillCompound`/
+`BBQCRIT`, time/temp/rain/wind/humid/storm). Swimming auto-detects coastal (`D.sea`) vs inland
+(Overpass pools/spas within 50 km, lazy + cached). New per-view drawers follow the same
+destroy-guard + summary-above/legend-below conventions.
 
 There is no build step, no bundler, no package manager, and no backend. It is
 opened directly in a browser or served as a static file. Keep it that way.
