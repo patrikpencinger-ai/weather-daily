@@ -215,6 +215,8 @@ body{padding:20px;transition:background .2s}
   <div class="lab" id="bbqtlLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.75rem;font-size:12px;"></div>
   <div class="hd" data-i="bbqGrillH">TODAY'S GRILL SCORE BY HOUR</div>
   <p class="lab" id="bbqgrSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+  <div class="lab" id="bbqCritL" data-i="bbqCritL" style="font-size:11.5px;margin:0 0 6px;"></div>
+  <div class="rng" id="bbqCrit" style="margin:0 0 12px;"></div>
   <div id="bbqgrwrap" style="position:relative;width:100%;height:180px;margin:0 0 1.75rem;"><canvas id="bbqgrill" role="img" aria-label="Hourly grilling score 9am to 10pm with tier icons"></canvas></div>
   <div class="hd" data-i="bbqNonsense">THE NONSENSE NUMBERS</div>
   <div class="cards" id="bbqCards"></div>
@@ -223,7 +225,17 @@ body{padding:20px;transition:background .2s}
 <section id="view-hike" class="hidden">
   <div class="viewhead" data-i="hikeHead">🥾 Hiking</div>
   <p class="viewtag" data-i="hikeTag"></p>
-  <div id="hikeBody"></div>
+  <div class="cards" id="hikeHero" style="margin:0 0 1.5rem;"></div>
+  <div class="hd" data-i="hikeMetricsH">TODAY ON THE TRAIL</div>
+  <div class="cards" id="hikeCards" style="margin:0 0 1.75rem;"></div>
+  <div class="hd" data-i="hikeComfH">HOURLY COMFORT &amp; RAIN</div>
+  <p class="lab" id="hikeComfSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+  <div id="hikecwrap" style="position:relative;width:100%;height:200px;margin:0 0 6px;"><canvas id="hikecomf" role="img" aria-label="Hourly feels-like temperature and rain chance"></canvas></div>
+  <div class="lab" id="hikecLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.75rem;font-size:12px;"></div>
+  <div class="hd" data-i="hikeWeekH">7-DAY TRAIL SCORE</div>
+  <div id="hikewwrap" style="position:relative;width:100%;height:170px;margin:0 0 1.75rem;"><canvas id="hikeweek" role="img" aria-label="Seven day trail score"></canvas></div>
+  <div class="hd" data-i="hikeFunH">TRAIL NONSENSE</div>
+  <div class="cards" id="hikeFun"></div>
 </section>
 
 <section id="view-swim" class="hidden">
@@ -331,15 +343,25 @@ function bbqScore(d){
  return{v:v,why:ded.length?ded[0][0]:null};
 }
 /* Per-hour grilling score (0–100), same rules as bbqScore applied to a single hour. */
-function grillHour(o){
- if(!o||o.t==null)return null;
- let v=100;
- v-=0.9*(o.pp||0);
- if(o.t>26)v-=Math.min(40,4*(o.t-26));else if(o.t<18)v-=Math.min(40,4*(18-o.t));
- if(o.wind!=null&&o.wind>20)v-=Math.min(20,o.wind-20);
- if(o.rh!=null&&o.t!=null&&o.rh>=80&&o.t>=24)v-=8;
- if(o.cond==='storm')v=Math.min(v,15);
- return Math.max(1,Math.min(100,Math.round(v)));
+/* Time-of-day penalty for grilling: prime 12–18h, peak 14h, mornings/late evenings heavily penalised. */
+function timePenalty(h){
+ if(h>=12&&h<=18)return Math.abs(h-14)*2.5;        // 0 at 14h, up to 10 at the band edges
+ const d=h<12?(12-h):(h-18);                       // hours outside the prime band
+ return 14+d*12;                                   // 11h/19h:26, 9h:50, 22h:62 — keeps non-prime below prime
+}
+const GRILLCRIT=['time','temp','rain','wind','humid','storm'];
+const GRILLALL={time:true,temp:true,rain:true,wind:true,humid:true,storm:true};
+/* Compound grill score from one hour's data and a set of enabled criteria → {v, parts}. */
+function grillCompound(o,crit){
+ if(!o||o.t==null)return{v:1,parts:{}};
+ crit=crit||GRILLALL;let v=100;const parts={};
+ if(crit.time&&o.h!=null){const p=timePenalty(o.h);v-=p;parts.time=p;}
+ if(crit.temp){let p=0;if(o.t>26)p=Math.min(40,4*(o.t-26));else if(o.t<18)p=Math.min(40,4*(18-o.t));if(p){v-=p;parts.temp=p;}}
+ if(crit.rain){const p=0.9*(o.pp||0);if(p){v-=p;parts.rain=p;}}
+ if(crit.wind){const p=(o.wind!=null&&o.wind>20)?Math.min(20,o.wind-20):0;if(p){v-=p;parts.wind=p;}}
+ if(crit.humid){const p=(o.rh!=null&&o.rh>=80&&o.t>=24)?8:0;if(p){v-=p;parts.humid=p;}}
+ if(crit.storm&&o.cond==='storm'){v=Math.min(v,15);parts.storm=true;}
+ return{v:Math.max(1,Math.min(100,Math.round(v))),parts:parts};
 }
 /* Weekend activity suitability (0–100) for hiking/biking/running on one day. */
 function actScore(x,act){
@@ -379,7 +401,11 @@ const T={
   tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",
   bbqHead:"🔥 ROŠTILJ COMMAND CENTRE",bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
   bbqPrepH:"PREP TIMELINE",bbqGrillH:"TODAY'S GRILL SCORE BY HOUR",bbqNonsense:"THE NONSENSE NUMBERS",
-  hikeHead:"🥾 Hiking",hikeTag:"Trails within ~20 km — read the light, dodge the rain, mind the altitude.",hikeSoon:"The hiking dashboard lands in the next update — trail score, daylight & rain windows, ridge wind, fog and a Blister Index.",
+  bbqCritL:"Score = what you tick. Prime time is 12–18h (peak 14h); untick a factor to ignore it (grill at 9am if you must).",
+  critTime:"Time of day",critTemp:"Temperature",critRain:"Rain",critWind:"Wind",critHumid:"Humidity",critStorm:"Storm",
+  hikeHead:"🥾 Hiking",hikeTag:"Trails within ~20 km — read the light, dodge the rain, mind the altitude.",
+  hikeMetricsH:"TODAY ON THE TRAIL",hikeComfH:"HOURLY COMFORT & RAIN",hikeWeekH:"7-DAY TRAIL SCORE",hikeFunH:"TRAIL NONSENSE",
+  hikeSoon:"The hiking dashboard lands in the next update — trail score, daylight & rain windows, ridge wind, fog and a Blister Index.",
   swimHead:"🏊 Swimming",swimTag:"Sea, pool or puddle — we'll tell you if it's worth getting wet.",swimSoon:"The swimming dashboard lands in the next update — sea temp & waves on the coast, nearest pools & spas inland.",
   cBbq:"BBQ score",bbqInfo:"<b>The premise.</b> Every day starts at a perfect 100 \u2014 much like every grill master's confidence.<br><br><b>Rain, the arch-enemy.</b> Each percent of evening shower risk burns 0.9 points, because soggy \u010devapi help nobody. A forecast thunderstorm slams the score to 15 \u2014 lightning is the only thing allowed to flame-grill you.<br><br><b>Temperature.</b> Judged for prime tong hours (17\u201321 h): the sweet spot is 18\u201326\u00B0, every degree outside costs 4 points.<br><br><b>Wind &amp; air.</b> Above 20 km/h the wind steals a point per km/h \u2014 smoke in your eyes, napkins next door. Sultry evenings (humidity over 80% at 24\u00B0+) cost 8 points and one shirt. A grumpy biometeo docks 6 points per level \u2014 guests with pressure headaches eat suspiciously little.<br><br><b>The verdict \u2014 which icon is which.</b><br>\uD83D\uDD25\uD83E\uDD69 90\u2013100 \u00B7 grill god<br>\uD83C\uDF56 70\u201389 \u00B7 prime grilling<br>\uD83C\uDF2D 50\u201369 \u00B7 decent grilling<br>\uD83C\uDF62 30\u201349 \u00B7 for the brave<br>\uD83E\uDDEF 1\u201329 \u00B7 extinguisher weather<br><br>The biggest culprit is named on the card. Advice, not destiny \u2014 true masters grill in anything.",bioInfo:"<b>What it measures.</b> How hard today's weather leans on the weather-sensitive \u2014 a load score built from the same data the charts show.<br><br><b>Pressure.</b> A 24-hour swing over 4 hPa adds a point; over 8 hPa adds two. Fronts announce themselves in your sinuses first.<br><br><b>Heat &amp; cold.</b> Feels-like of 27\u00B0+ adds one, 30\u00B0+ two; \u22125\u00B0 or below adds one. Sultry air (humidity \u226585% when warm) adds another.<br><br><b>Wind &amp; storms.</b> Wind of 40+ km/h adds one; a thunderstorm adds two. A day swinging more than 14\u00B0 between low and high adds one more.<br><br><b>The smileys.</b> 0\u20131 \u2192 \uD83D\uDE42 favorable; 2\u20133 \u2192 \uD83D\uDE10 moderately unfavorable; 4+ \u2192 \u2639\uFE0F unfavorable. Triggers are listed on the card \u2014 so you know whether to blame the front, the heat, or simply Monday.",bbqTiers:['Grill god conditions','Prime grilling','Decent grilling','For the brave','Extinguisher weather'],bbqWhy:{rain:'rain risk',hot:'too hot',cold:'too cold',wind:'windy',bio:'biometeo',hum:'sultry',storm:'thunderstorm'},mapNote:"Tap anywhere on the map to load the forecast for that point \u00B7 map \u00A9 OpenStreetMap",cBio:"Biometeo",cPres:"Pressure",presTrend:['Rising','Steady','Falling'],lgPr:"Pressure hPa",bioLevels:['Favorable','Moderately unfavorable','Unfavorable'],bioR:{rPress:'pressure swing',rHeat:'heat',rCold:'cold',rHum:'sultry',rWind:'wind',rStorm:'storm',rSwing:'temp swing'},aRun:'Running',aHike:'Hiking',aSwim:'Swimming',runGo:'good — best ~',runCare:'easy does it (heat/biometeo) — if so ~',hikeGood:'good day',hikeRain:'rain risk — plan windows',uvNote:'high UV midday, protect',swimNice:'pleasant',swimCool:'fresh — short swims',swimCold:'cold — wetsuit',swimStorm:'skip during storm risk',moonNames:['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent'],
   normFoot:"normal: ERA5 "+NORM_LBL+" ±"+WIN+"d",
@@ -401,7 +427,11 @@ const T={
   tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",
   bbqHead:"\ud83d\udd25 RO\u0160TILJ ZAPOVJEDNI CENTAR",bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
   bbqPrepH:"VREMENSKA CRTA PRIPREME",bbqGrillH:"DANA\u0160NJI RO\u0160TILJ INDEKS PO SATIMA",bbqNonsense:"BROJKE BEZ VEZE",
-  hikeHead:"\ud83e\udd7e Planinarenje",hikeTag:"Staze unutar ~20 km \u2014 uhvati svjetlo, izbjegni ki\u0161u, pazi na visinu.",hikeSoon:"Planinarska plo\u010da sti\u017ee u sljede\u0107em a\u017euriranju \u2014 trail indeks, prozori svjetla i ki\u0161e, vjetar na grebenu, magla i indeks \u017euljeva.",
+  bbqCritL:"Indeks = \u0161to ozna\u010di\u0161. Zlatno doba je 12\u201318 h (vrh 14 h); odzna\u010di faktor da ga zanemari\u0161 (ro\u0161tilj u 9 ujutro ako ba\u0161 mora\u0161).",
+  critTime:"Doba dana",critTemp:"Temperatura",critRain:"Ki\u0161a",critWind:"Vjetar",critHumid:"Sparina",critStorm:"Nevrijeme",
+  hikeHead:"\ud83e\udd7e Planinarenje",hikeTag:"Staze unutar ~20 km \u2014 uhvati svjetlo, izbjegni ki\u0161u, pazi na visinu.",
+  hikeMetricsH:"DANAS NA STAZI",hikeComfH:"UGODA I KI\u0160A PO SATU",hikeWeekH:"TRAIL INDEKS \u2014 7 DANA",hikeFunH:"STAZA BEZ VEZE",
+  hikeSoon:"Planinarska plo\u010da sti\u017ee u sljede\u0107em a\u017euriranju \u2014 trail indeks, prozori svjetla i ki\u0161e, vjetar na grebenu, magla i indeks \u017euljeva.",
   swimHead:"\ud83c\udfca Kupanje",swimTag:"More, bazen ili lokva \u2014 javimo je li se isplati smo\u010diti.",swimSoon:"Plo\u010da za kupanje sti\u017ee u sljede\u0107em a\u017euriranju \u2014 temperatura mora i valovi na obali, najbli\u017ei bazeni i toplice u unutra\u0161njosti.",
   cBbq:"Ro\u0161tilj indeks",bbqInfo:"<b>Premisa.</b> Svaki dan po\u010dinje sa savr\u0161enih 100 \u2014 ba\u0161 kao samopouzdanje svakog majstora ro\u0161tilja.<br><br><b>Ki\u0161a, glavni neprijatelj.</b> Svaki posto ve\u010dernjeg rizika spaljuje 0,9 bodova, jer raskva\u0161eni \u0107evapi nikome ne poma\u017eu. Najavljena grmljavina ru\u0161i indeks na 15 \u2014 jedino munji dopu\u0161tamo flambiranje.<br><br><b>Temperatura.</b> Ocjenjuje se za zlatno doba hvataljki (17\u201321 h): idealno je 18\u201326\u00B0, svaki stupanj izvan toga ko\u0161ta 4 boda.<br><br><b>Vjetar i zrak.</b> Preko 20 km/h vjetar krade bod po km/h \u2014 dim u o\u010di, salvete u susjedovo dvori\u0161te. Sparne ve\u010deri (vlaga preko 80% uz 24\u00B0+) nose 8 bodova i jednu majicu. Mrzovoljan biometeo skida 6 bodova po razini \u2014 gosti s glavoboljom sumnjivo malo jedu.<br><br><b>Presuda \u2014 koja ikona je koji rezultat.</b><br>\uD83D\uDD25\uD83E\uDD69 90\u2013100 \u00B7 bo\u017eanski ro\u0161tilj<br>\uD83C\uDF56 70\u201389 \u00B7 odli\u010dno<br>\uD83C\uDF2D 50\u201369 \u00B7 sasvim solidno<br>\uD83C\uDF62 30\u201349 \u00B7 za hrabre<br>\uD83E\uDDEF 1\u201329 \u00B7 vrijeme za aparat<br><br>Najve\u0107eg krivca pi\u0161emo na kartici. Savjet, a ne sudbina \u2014 pravi majstori ro\u0161tiljaju po svemu.",bioInfo:"<b>\u0160to mjeri.</b> Koliko dana\u0161nje vrijeme pritisak stavlja na meteoropate \u2014 indeks optere\u0107enja iz istih podataka koje vidite na grafovima.<br><br><b>Tlak.</b> Promjena ve\u0107a od 4 hPa u 24 h donosi bod; preko 8 hPa dva. Fronte se najprije najave u sinusima.<br><br><b>Vru\u0107ina i hladno\u0107a.</b> Osje\u0107aj od 27\u00B0+ donosi bod, 30\u00B0+ dva; \u22125\u00B0 ili ni\u017ee jo\u0161 jedan. Sparina (vlaga \u226585% uz toplo) dodaje bod.<br><br><b>Vjetar i nevrijeme.</b> Vjetar od 40+ km/h donosi bod; grmljavina dva. Dan koji se nji\u0161e vi\u0161e od 14\u00B0 izme\u0111u minimuma i maksimuma jo\u0161 jedan.<br><br><b>Smajli\u0107i.</b> 0\u20131 \u2192 \uD83D\uDE42 povoljno; 2\u20133 \u2192 \uD83D\uDE10 umjereno nepovoljno; 4+ \u2192 \u2639\uFE0F nepovoljno. Okida\u010di su navedeni na kartici \u2014 da znate krivite li frontu, vru\u0107inu ili jednostavno ponedjeljak.",bbqTiers:['Bo\u017eanski ro\u0161tilj','Odli\u010dno za ro\u0161tilj','Sasvim solidno','Za hrabre','Vrijeme za aparat'],bbqWhy:{rain:'rizik ki\u0161e',hot:'prevru\u0107e',cold:'prehladno',wind:'vjetrovito',bio:'biometeo',hum:'sparina',storm:'grmljavina'},mapNote:"Dodirnite bilo gdje na karti za prognozu te to\u010dke \u00B7 karta \u00A9 OpenStreetMap",cBio:"Biometeo",cPres:"Tlak zraka",presTrend:['Raste','Stabilno','Pada'],lgPr:"Tlak hPa",bioLevels:['Povoljno','Umjereno nepovoljno','Nepovoljno'],bioR:{rPress:'promjena tlaka',rHeat:'vrućina',rCold:'hladnoća',rHum:'sparina',rWind:'vjetar',rStorm:'nevrijeme',rSwing:'kolebanje temp.'},aRun:'Trčanje',aHike:'Planinarenje',aSwim:'Plivanje',runGo:'dobro — najbolje ~',runCare:'polako (vrućina/biometeo) — ako ideš ~',hikeGood:'dobar dan',hikeRain:'rizik kiše — planiraj prozore',uvNote:'jak UV oko podneva, zaštita',swimNice:'ugodno',swimCool:'svježe — kraće plivanje',swimCold:'hladno — neopren',swimStorm:'preskoči za rizika nevremena',moonNames:['Mlađak','Rastući srp','Prva četvrt','Rastući mjesec','Puni mjesec','Opadajući mjesec','Zadnja četvrt','Opadajući srp'],
   normFoot:"normala: ERA5 "+NORM_LBL+" ±"+WIN+"d",
@@ -410,7 +440,8 @@ const T={
   aiOnly:"dostupno samo unutar Claudea",
   dows:['Ned','Pon','Uto','Sri','Čet','Pet','Sub']}
 };
-let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, lastErrs=null;
+let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, lastErrs=null;
+let BBQCRIT={time:true,temp:true,rain:true,wind:true,humid:true,storm:true}, bbqSeries=[];
 function cmp(){return !!(selB&&D2);}
 function locA(){return titleCase(document.getElementById('locIn').value)||DEFAULT_LOC.name;}
 
@@ -478,12 +509,12 @@ async function fetchOpenMeteo(loc,range){
   const hi2=dl.temperature_2m_max[dd],lo2=dl.temperature_2m_min[dd];
   const sc=scoreBio({dp:dp,fl:hi2,rh:hl.relative_humidity_2m[dd*24+13],wind:dl.wind_speed_10m_max?dl.wind_speed_10m_max[dd]:null,cond:WMO(dl.weather_code[dd]),swing:(hi2!=null&&lo2!=null)?(hi2-lo2):null});
   bioD.push({dt:dl.time[dd],s:sc.s,r:sc.r});}
- const grillH=[];
+ const grillRaw=[];
  {const todayStr=(dl.time[1]||hl.time[0]||'').slice(0,10);
   for(let i=0;i<hl.time.length;i++){const ts=hl.time[i];if(ts.slice(0,10)!==todayStr)continue;
    const hh=parseInt(ts.slice(11,13),10);if(hh<9||hh>22)continue;
-   const s=grillHour({t:hl.temperature_2m[i],pp:Math.round(hl.precipitation_probability[i]||0),wind:hl.wind_speed_10m[i],cond:WMO(hl.weather_code[i]),rh:hl.relative_humidity_2m[i]});
-   grillH.push({h:ts.slice(11,16),s:s});}}
+   grillRaw.push({h:hh,hh:ts.slice(11,16),t:hl.temperature_2m[i],fl:hl.apparent_temperature[i],pp:Math.round(hl.precipitation_probability[i]||0),wind:hl.wind_speed_10m[i],rh:hl.relative_humidity_2m[i],cond:WMO(hl.weather_code[i])});}}
+ const grillH=grillRaw.map(o=>({h:o.hh,s:grillCompound(o,GRILLALL).v}));
  fullDs.forEach((x,i)=>{const v=pmean((i+1)*24,(i+2)*24);x.p=v!=null?Math.round(v):null;x.w=(dl.wind_speed_10m_max&&dl.wind_speed_10m_max[i+1]!=null)?Math.round(dl.wind_speed_10m_max[i+1]):null;});
  const ds=fullDs.slice(0,days);
  const alerts=[];
@@ -516,7 +547,7 @@ async function fetchOpenMeteo(loc,range){
   presObj={cur:Math.round(pcur),t:ti2,d3:d3!=null?Math.round(d3*10)/10:null,d24:d24!=null?Math.round(d24*10)/10:null};
  }
  const uvObj={cur:(hl.uv_index&&hl.uv_index[nowIdx]!=null)?Math.round(hl.uv_index[nowIdx]*10)/10:null,max:(dl.uv_index_max&&dl.uv_index_max[1]!=null)?Math.round(dl.uv_index_max[1]*10)/10:null};
- return{loc:loc.name,station:loc.station,uv:uvObj,bio:{h:bioH,d:bioD},grillH:grillH,alerts:alerts,pres:presObj,sun:sunObj,
+ return{loc:loc.name,station:loc.station,uv:uvObj,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,sun:sunObj,
   daysFull:fullDs,
   now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
   hours:hours,days:ds,yest:yest,badge:badge,
@@ -1719,23 +1750,30 @@ function gcard(label,pct,ctx){return '<div class="card"><div class="lab">'+label
 const GRTCOL=['#1D9E75','#3DA35D','#BA7517','#C2632B','#A32D2D'];
 const WDIROPP={N:'S',NE:'SW',E:'W',SE:'NW',S:'N',SW:'NE',W:'E',NW:'SE'};
 
+function setBbqCrit(k){BBQCRIT[k]=!BBQCRIT[k];if(active==='bbq')renderBbq();}
 function renderBbq(){
  if(!D)return;
  const hrv=lang==='hr';
  document.getElementById('bbqTag').textContent=LBL.bbqTag;
- const gh=D.grillH||[];
- let peak=null;gh.forEach(x=>{if(x.s!=null&&(!peak||x.s>peak.s))peak=x;});
- const g=peak?parseInt(peak.h,10)*60:18*60, peakH=mins2hm(g);
+ const raw=D.grillRaw||[];
+ bbqSeries=raw.map(o=>{const r=grillCompound(o,BBQCRIT);return{h:o.hh,hi:o.h,s:r.v,parts:r.parts};});
+ let peak=null;bbqSeries.forEach(x=>{if(!peak||x.s>peak.s)peak=x;});
+ const g=peak?peak.hi*60:18*60, peakH=mins2hm(g), v=peak?peak.s:0, tier=bbqTier(v);
  let wfrom=peakH,wto=peakH;
- if(peak){const idx=gh.indexOf(peak);let i=idx;while(i>0&&gh[i-1].s>=peak.s-10)i--;let j=idx;while(j<gh.length-1&&gh[j+1].s>=peak.s-10)j++;wfrom=gh[i].h;wto=gh[j].h;}
- const bq=bbqScore(D), v=bq?bq.v:0, tier=bbqTier(v);
+ if(peak){const idx=bbqSeries.indexOf(peak);let i=idx;while(i>0&&bbqSeries[i-1].s>=peak.s-10)i--;let j=idx;while(j<bbqSeries.length-1&&bbqSeries[j+1].s>=peak.s-10)j++;wfrom=bbqSeries[i].h;wto=bbqSeries[j].h;}
+ const critLbl={time:hrv?'doba dana':'time of day',temp:hrv?'temperatura':'temperature',rain:hrv?'kiša':'rain',wind:hrv?'vjetar':'wind',humid:hrv?'sparina':'humidity',storm:hrv?'nevrijeme':'storm'};
+ let culprit=null,cmax=0;const pp0=peak?peak.parts:{};for(const k in pp0){if(k==='storm'){culprit='storm';break;}if(pp0[k]>cmax){cmax=pp0[k];culprit=k;}}
+ const culpritTxt=(culprit&&(culprit==='storm'||cmax>=8))?(' · '+(hrv?'koči':'limited by')+': '+critLbl[culprit]):'';
  const wind=(D.now&&D.now.wind)||0, t=(D.now&&D.now.t!=null)?D.now.t:18, pp=(D.now&&D.now.pp)||0, hum=(D.now&&D.now.hum)||0, wdir=(D.now&&D.now.wdir)||'', uv=(D.uv&&D.uv.cur!=null)?D.uv.cur:0;
  const stormy=(D.alerts||[]).some(a=>a.type==='storm');
  document.getElementById('bbqHero').innerHTML='<div class="card" style="grid-column:1/-1;">'+
   '<div class="lab">'+LBL.cBbq+'</div>'+
   '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="font-size:30px;">'+BBQI[tier]+'</span><span class="big" style="font-size:36px;">'+v+'</span><span class="lab" style="font-size:13px;">/100 · '+esc(bbqName(tier))+'</span></div>'+
   gaugeBar(v,GRTCOL[tier])+
-  '<div class="ctx">'+(hrv?'Vrhunac danas oko ':'Peak window today around ')+peakH+(peak?(' ('+peak.s+'/100)'):'')+(bq&&bq.why?(' · '+(hrv?'krivac':'culprit')+': '+(LBL.bbqWhy[bq.why]||'')):'')+'</div></div>';
+  '<div class="ctx">'+(hrv?'Najbolji termin danas oko ':'Best slot today around ')+peakH+(peak?(' ('+peak.s+'/100)'):'')+culpritTxt+'</div></div>';
+ if(document.getElementById('bbqCritL'))document.getElementById('bbqCritL').textContent=LBL.bbqCritL;
+ const critLabels={time:LBL.critTime,temp:LBL.critTemp,rain:LBL.critRain,wind:LBL.critWind,humid:LBL.critHumid,storm:LBL.critStorm};
+ document.getElementById('bbqCrit').innerHTML=GRILLCRIT.map(k=>{const on=BBQCRIT[k];return '<button class="lbtn" onclick="setBbqCrit(\''+k+'\')" aria-pressed="'+on+'" style="border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;'+(on?('background:'+strong+';color:'+BG+';border-color:'+strong+';'):'opacity:0.5;')+'">'+(on?'✓ ':'')+critLabels[k]+'</button>';}).join('');
  document.getElementById('bbqtlSum').textContent=hrv?('Sve unatrag od savršenog žara u '+peakH+'. Odmrzni → začini → na sobnu → potpali → peci → odmori.'):('Everything back-timed from the perfect coal at '+peakH+'. Thaw → spice → room-temp → light → grill → rest.');
  const light=g-35, room=g-45, steakA=g-24*60, cubeA=g-8*60, sausA=g-4*60;
  const coolMin=Math.round(35+Math.max(0,t-20)*2);
@@ -1773,8 +1811,8 @@ function renderBbq(){
 
 function drawBbqTimeline(){
  if(bbqTlCh){bbqTlCh.destroy();bbqTlCh=null;}
- const gh=D.grillH||[];let peak=null;gh.forEach(x=>{if(x.s!=null&&(!peak||x.s>peak.s))peak=x;});
- const g=peak?parseInt(peak.h,10)*60:18*60, hrv=lang==='hr', M=layout==='mobile';
+ const ser=bbqSeries||[];let peak=null;ser.forEach(x=>{if(!peak||x.s>peak.s)peak=x;});
+ const g=peak?peak.hi*60:18*60, hrv=lang==='hr', M=layout==='mobile';
  const ph=[
   {en:'🧊 Thaw',hr:'🧊 Odmrzni',s:g-8*60,e:g-4*60,c:C.sky},
   {en:'🧂 Spice',hr:'🧂 Začini',s:g-120,e:g-40,c:C.warn},
@@ -1795,9 +1833,9 @@ function drawBbqTimeline(){
 
 function drawBbqGrill(){
  if(bbqGrillCh){bbqGrillCh.destroy();bbqGrillCh=null;}
- const gh=D.grillH||[];const arr=gh.map(x=>x.s), labels=gh.map(x=>x.h);
+ const ser=bbqSeries||[];const arr=ser.map(x=>x.s), labels=ser.map(x=>x.h);
  if(!arr.length)return;
- const peakV=Math.max.apply(null,arr.filter(v=>v!=null).concat([0]));
+ const peakV=Math.max.apply(null,arr.concat([0]));
  const tcol=[C.ok,'#3DA35D',C.warn,'#C2632B',C.bad];
  const cols=arr.map(v=>v==null?'rgba(150,150,150,0.35)':(v===peakV?C.sun:tcol[bbqTier(v)]));
  const M=layout==='mobile';
@@ -1810,7 +1848,95 @@ function drawBbqGrill(){
  });
 }
 
-function renderHike(){const el=document.getElementById('hikeBody');if(el)el.innerHTML='<p class="lab" style="line-height:1.7;font-size:13px;">'+esc(LBL.hikeSoon)+'</p>';}
+function magnusDew(t,rh){if(rh<=0)rh=1;const a=17.27,b=237.7;const g=(a*t)/(b+t)+Math.log(rh/100);return (b*g)/(a-g);}
+const HIKESKY={sun:100,partcloud:85,cloud:65,fog:30,wind:60,rain:20,storm:0,snow:25};
+function renderHike(){
+ if(!D)return;
+ const hrv=lang==='hr';
+ const n=D.now||{}, fl=(n.fl!=null)?n.fl:(n.t!=null?n.t:15), wind=n.wind||0, cond=n.cond||'cloud', hum=n.hum||0, t=(n.t!=null)?n.t:15, wdir=n.wdir||'';
+ const raw=D.grillRaw||[];
+ const dayPp=raw.length?raw.map(o=>o.pp||0):[(n.pp||0)];
+ const maxPp=Math.max.apply(null,dayPp.concat([0]));
+ const meanPp=dayPp.reduce((a,b)=>a+b,0)/(dayPp.length||1);
+ const sComfort=clmp(100-Math.min(100,Math.abs(fl-14)*4));
+ const sDry=clmp(100-maxPp);
+ const sWind=clmp(100-Math.min(100,Math.max(0,wind-10)*3));
+ const sSky=HIKESKY[cond]!=null?HIKESKY[cond]:60;
+ const trail=clmp((sComfort+sDry+sWind+sSky)/4);
+ const tband=trail>=80?(hrv?'Vrhunski dan za stazu':'Prime trail day'):trail>=60?(hrv?'Veži cipele':'Lace up'):trail>=40?(hrv?'Izvedivo':'Doable'):(hrv?'Možda ipak kafić':'Maybe a café');
+ const tcolH=trail>=66?C.ok:trail>=40?C.warn:C.bad;
+ document.getElementById('hikeHero').innerHTML='<div class="card" style="grid-column:1/-1;">'+
+  '<div class="lab">'+(hrv?'Trail indeks':'Trail score')+'</div>'+
+  '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span class="big" style="font-size:36px;">'+trail+'</span><span class="lab" style="font-size:13px;">/100 · '+tband+'</span></div>'+
+  gaugeBar(trail,tcolH)+
+  '<div class="ctx">'+(hrv?'Ugoda':'Comfort')+' '+sComfort+' · '+(hrv?'suho':'dry')+' '+sDry+' · '+(hrv?'vjetar':'wind')+' '+sWind+' · '+(hrv?'nebo':'sky')+' '+sSky+'</div></div>';
+ const sun=D.sun||{};
+ let bi=0,bj=0,ci=0;
+ if(raw.length){for(let i=0;i<raw.length;i++){if((raw[i].pp||0)<=20){if(i===0||(raw[i-1].pp||0)>20)ci=i;if(i-ci>bj-bi){bi=ci;bj=i;}}}}
+ let bestWin='—',bestPp=maxPp;
+ if(raw.length){if((raw[bi].pp||0)<=20){bestWin=raw[bi].hh+'–'+raw[bj].hh;bestPp=Math.max.apply(null,raw.slice(bi,bj+1).map(o=>o.pp||0));}else{let lo=0;raw.forEach((o,i)=>{if((o.pp||0)<(raw[lo].pp||0))lo=i;});bestWin=raw[lo].hh;bestPp=raw[lo].pp||0;}}
+ const dp=Math.round(magnusDew(t,hum));
+ const dpBand=dp<10?(hrv?'suho, ugodno':'dry, comfortable'):dp<16?(hrv?'malo vlažno':'a touch humid'):dp<20?(hrv?'ljepljivo':'sticky'):(hrv?'znojara':'sweat-fest');
+ const gust=Math.round(wind*1.6);
+ const cards=[
+  card('🌅 '+(hrv?'Dnevno svjetlo':'Daylight'),(sun.rise||'—')+'–'+(sun.set||'—'),(sun.len?(Math.floor(sun.len/60)+'h '+(sun.len%60)+'m'):''),hrv?('Pola svjetla = vrijeme za okret. '+(sun.dmin!=null?((sun.dmin>=0?'+':'')+sun.dmin+' min vs jučer.'):'')):('Half your daylight = turn-around time. '+(sun.dmin!=null?((sun.dmin>=0?'+':'')+sun.dmin+' min vs yesterday.'):''))),
+  card('🌦️ '+(hrv?'Najsuši prozor':'Driest window'),bestWin,(hrv?'vrh kiše ':'peak rain ')+Math.round(bestPp)+'%',hrv?'Izložene grebene gurni ovamo.':'Put the exposed ridges here.'),
+  card('🌡️ '+(hrv?'Osjet':'Feels like'),fl+'°',(hrv?'vlaga ':'humidity ')+hum+'%',hrv?'Idealno za uzbrdicu je 8–18°.':'Sweet spot for climbing is 8–18°.'),
+  card('🏔️ '+(hrv?'Na +1000 m':'At +1000 m'),Math.round(t-6.5)+'°','',hrv?('U dolini '+t+'° → gore hladnije (~6,5°/1000 m).'):('Valley '+t+'° → cooler up high (~6.5°/1000 m).')),
+  card('💨 '+(hrv?'Vjetar / greben':'Wind / ridge'),wind+' km/h '+wdir,'~'+gust+' km/h '+(hrv?'gore':'up high'),hrv?'Grebeni dodaju 50–80%.':'Ridges add 50–80% over the valley.'),
+  card('💧 '+(hrv?'Rosište':'Dew point'),dp+'°','',hrv?('Zrak je '+dpBand+'. Zato se penjanje čini znojnim.'):('Air is '+dpBand+'. This is why the climb feels sweaty.'))
+ ];
+ if(D.uv&&D.uv.max!=null){const lv=LBL.uvLevels[uvLvl(D.uv.max)];cards.splice(3,0,card('☀️ '+(hrv?'UV zaštita':'UV window'),'UV '+D.uv.max,lv,(D.uv.max>=6?(hrv?'Kapa + SPF ~10–16 h. Goli vrhovi peku brzo.':'Hat + SPF ~10:00–16:00. Bare summits fry fast.'):(hrv?'Umjeren UV — opusti se.':'Moderate UV — relax.'))));}
+ document.getElementById('hikeCards').innerHTML=cards.join('');
+ const len=sun.len||720;
+ const blister=clmp((hum/100)*40+(maxPp>30?25:0)+(fl>24?20:0)+(fl<3?15:0));
+ const wrong=clmp((cond==='fog'?40:0)+(cond==='cloud'?8:0)+(len<600?15:5)+(maxPp>40?10:0)+5);
+ const bear=clmp((len>840?15:8)+(cond==='fog'?10:0)+(meanPp<20?10:5)+7);
+ const cloudArt={sun:hrv?'☀️ prazno platno':'☀️ a blank canvas',partcloud:hrv?'⛅ zmajevi i ovce':'⛅ dragons & sheep',cloud:hrv?'☁️ jedan veliki poplun':'☁️ one big duvet',fog:hrv?'🌫️ sve je sad oblak':'🌫️ everything is a cloud now',rain:hrv?'🌧️ sumorno sive':'🌧️ moody greys',storm:hrv?'⛈️ dramatične':'⛈️ dramatic',snow:hrv?'❄️ bijelo platno':'❄️ a white canvas',wind:hrv?'💨 raščupane':'💨 windswept wisps'};
+ const fun=[
+  gcard('🦶 '+(hrv?'Indeks žuljeva':'Blister Index'),blister,hrv?(blister>=60?'Ponesi druge čarape.':'Pete bi trebale preživjeti.'):(blister>=60?'Pack the second pair of socks.':'Your heels should survive.')),
+  gcard('🧭 '+(hrv?'Vjerojatnost krivog skretanja':'Wrong-turn probability'),wrong,hrv?(wrong>=40?'Skini offline kartu. Stvarno.':'Oznake bi te trebale držati na putu.'):(wrong>=40?'Download the offline map. Actually.':'Markers should keep you honest.')),
+  gcard('🐻 '+(hrv?'Izgledi za čavrljanje s medvjedom':'Bear small-talk odds'),bear,hrv?'Galami, nosi žrtvene grickalice, budi pristojan.':'Make noise, carry sacrificial snacks, keep it polite.'),
+  card('🎨 '+(hrv?'Inspiracija oblaka':'Cloud-shape inspiration'),'','',(hrv?'Nebo kaže: ':'Sky says: ')+(cloudArt[cond]||cloudArt.cloud)+(hrv?'. Lezi na vrhu i raspravljaj na što liči.':'. Lie back at the summit and argue about what it looks like.'))
+ ];
+ document.getElementById('hikeFun').innerHTML=fun.join('');
+ document.getElementById('hikeComfSum').textContent=hrv?'Osjet temperature (linija) i šansa kiše (stupci) kroz dan.':'Feels-like (line) and rain chance (bars) through the day.';
+ drawHikeComfort();drawHikeWeek();
+}
+function drawHikeComfort(){
+ if(hikeCh){hikeCh.destroy();hikeCh=null;}
+ const raw=D.grillRaw||[];if(!raw.length)return;
+ const hrv=lang==='hr', M=layout==='mobile';
+ const labels=raw.map(o=>o.hh), fl=raw.map(o=>Math.round(o.fl!=null?o.fl:o.t)), pp=raw.map(o=>o.pp||0);
+ hikeCh=new Chart(document.getElementById('hikecomf'),{
+  data:{labels:labels,datasets:[
+   {type:'bar',label:'pp',data:pp,backgroundColor:C.sky+'B3',borderRadius:3,yAxisID:'y1',order:10},
+   {type:'line',label:'fl',data:fl,borderColor:C.hi,backgroundColor:C.hi,borderWidth:3,pointRadius:3,pointBorderColor:ptb,pointBorderWidth:1,tension:0.35,yAxisID:'y',order:1}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label==='pp'?(c.parsed.y+'% '+(hrv?'kiše':'rain')):(c.parsed.y+'° '+(hrv?'osjet':'feels-like'))}}},
+   scales:{x:{grid:{display:false},ticks:{autoSkip:true,maxTicksLimit:M?7:14,color:txt,font:{size:M?8:9}}},
+    y:{position:'left',grace:'20%',grid:{color:grid},ticks:{color:txt,callback:v=>Math.round(v)+'°'}},
+    y1:{position:'right',min:0,max:100,grid:{drawOnChartArea:false},ticks:{color:txt,stepSize:25,callback:v=>v+'%'}}}},
+  plugins:[bgPlug]
+ });
+ const leg=document.getElementById('hikecLeg');
+ if(leg)leg.innerHTML=legSwatch('<span style="width:14px;height:0;border-top:3px solid '+C.hi+';"></span>',hrv?'Osjet °C':'Feels-like °C')+legSwatch('<span style="width:10px;height:10px;border-radius:2px;background:'+C.sky+';"></span>',hrv?'Šansa kiše %':'Rain chance %');
+}
+function drawHikeWeek(){
+ if(hikeWeekCh){hikeWeekCh.destroy();hikeWeekCh=null;}
+ const days=(D.daysFull||D.days||[]).slice(0,7);if(!days.length)return;
+ const arr=days.map(x=>actScore(x,'hike').v), labels=days.map(x=>dayLab(x.dt));
+ const cols=arr.map(v=>v>=66?C.ok:v>=40?C.warn:C.bad);
+ const M=layout==='mobile';
+ hikeWeekCh=new Chart(document.getElementById('hikeweek'),{type:'bar',
+  data:{labels:labels,datasets:[{data:arr,backgroundColor:cols,borderRadius:4,barPercentage:0.62,categoryPercentage:0.9}]},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>dayLab(days[c[0].dataIndex].dt),label:c=>(lang==='hr'?'Trail indeks: ':'Trail score: ')+c.parsed.y+'/100'}}},
+   scales:{x:{grid:{display:false},ticks:{color:txt,font:{size:M?9:11}}},y:{display:false,min:0,max:118}}},
+  plugins:[bgPlug,{id:'hwl',afterDatasetsDraw(ch){const ctx=ch.ctx;ctx.save();ctx.textAlign='center';ctx.font=(M?'600 9px ':'600 11px ')+'sans-serif';ctx.fillStyle=strong;ch.getDatasetMeta(0).data.forEach((bar,i)=>{ctx.fillText(arr[i],bar.x,bar.y-4);});ctx.restore();}}]
+ });
+}
 function renderSwim(){const el=document.getElementById('swimBody');if(el)el.innerHTML='<p class="lab" style="line-height:1.7;font-size:13px;">'+esc(LBL.swimSoon)+'</p>';}
 
 /* ---------- view router ---------- */
@@ -1818,12 +1944,13 @@ const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#sw
 const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},swim:{el:'view-swim',render:renderSwim}};
 let active='weather';
 function route(){return ROUTES[(location.hash||'').split('?')[0]]||'weather';}
-function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,bioCh,grillCh,bbqTlCh,bbqGrillCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=null;}
+function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=null;}
 function updateTabs(){
  document.querySelectorAll('#tabs .tab').forEach(a=>{const on=a.dataset.view===active;a.classList.toggle('on',on);a.setAttribute('aria-selected',on?'true':'false');});
  if(D){try{const el=id=>document.getElementById(id);
   if(el('pk-weather'))el('pk-weather').textContent=(D.now&&D.now.t!=null)?D.now.t+'°':'';
   const bq=bbqScore(D);if(el('pk-bbq'))el('pk-bbq').textContent=bq?BBQI[bbqTier(bq.v)]:'';
+  if(el('pk-hike'))el('pk-hike').textContent='🥾';
   if(el('pk-swim'))el('pk-swim').textContent=D.sea?(D.sea.cur+'°'):'🏊';
  }catch(e){}}
  const cap=active.charAt(0).toUpperCase()+active.slice(1);
