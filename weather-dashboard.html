@@ -1834,7 +1834,7 @@ function showView(name){
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
  destroyAllCharts();updateTabs();
  if(!D)return;
- requestAnimationFrame(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}updateTabs();});
+ setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}updateTabs();},0);
 }
 function renderActive(){if(!D)return;try{VIEWS[active].render();}catch(e){console.log('renderActive',e);}updateTabs();}
 addEventListener('hashchange',()=>showView(route()));
