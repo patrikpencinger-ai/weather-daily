@@ -6,7 +6,8 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~2,400 lines). Current version: **v3.00**.
+(HTML + CSS + vanilla JS, ~2,250 lines). Current version: **v3.02** (also in the
+`APPV` JS constant, used for the dynamic `document.title`).
 
 As of v3 it's a **four-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
 `#hike`/`#swim`) over a `VIEWS` registry. One shared data fetch (`D`) feeds all views;
@@ -52,7 +53,9 @@ timeout so a failed load shows the error rather than hanging forever.
 - **Open-Meteo Archive** — `archive-api.open-meteo.com` (1991–2020 climatology / anomalies).
 - **AI feed (optional secondary)** — a Claude + web-search "interesting fact" / outlook feed.
   The dashboard degrades gracefully when this is unavailable.
-- **DHMZ stations** — nearest Croatian met stations shown on a map.
+- **Nominatim** (`nominatim.openstreetmap.org`) — reverse geocoding for map clicks / GPS.
+- **Overpass** (`overpass-api.de`) — nearby pools & spas for the inland Swimming view
+  (lazy, cached in `poolCache`; errors are surfaced, not cached).
 
 All requests go through `tfetch(url, ms)`, a `fetch` wrapper with a timeout.
 
@@ -68,10 +71,13 @@ Pin exact versions from **cdnjs**. Do not add npm dependencies or a build pipeli
 
 These are the non-negotiable house rules for any change:
 
-1. **Bilingual everywhere (EN / HR).** Every user-facing string lives in the `T`
-   translation object (`T.en` / `T.hr`), keyed and looked up via `LBL`. Never hardcode
-   a visible string in markup or JS — add both `en` and `hr` entries. `setLang('en'|'hr')`
-   switches language; static markup strings use `data-i="key"`.
+1. **Bilingual everywhere (EN / HR).** Two accepted patterns: (a) shared/static strings
+   live in the `T` translation object (`T.en` / `T.hr`), looked up via `LBL`; static markup
+   uses `data-i="key"`; (b) **view-local strings** (v3 pages: BBQ/Hiking/Swim cards, phases,
+   grades) may be inline `hrv?'…hr…':'…en…'` ternaries inside their render function, since
+   those re-run on `setLang`. Either way, EVERY user-visible string must exist in both
+   languages — never EN-only. Exception: Monty-Python (`MP`) easter-egg lines are
+   intentionally English in both languages.
 2. **Light & dark themes.** Colors come from CSS variables and the `calc()` palette
    (`BG`, `txt`, `strong`, `grid`, …). `applyTheme('light'|'dark')` toggles; charts must
    re-read theme colors on redraw. Never hardcode a raw color that breaks in either theme.
@@ -107,7 +113,10 @@ Roughly top-to-bottom:
 - `<script>` — organized by `/* ---------- ... ---------- */` banners:
   state/helpers · `T` translations · data sources (forecast / marine / air / climatology / AI) ·
   orchestration (`loadData`, `fetchFor`, …) · recents/selection · rendering (`render`, `card`, …) ·
-  chart drawers (`drawHourly`, `drawSea`, `drawWeek`, `drawBio`, `drawMT`) · map (`loadLeaflet`).
+  chart drawers (`drawHourly`, `drawSea`, `drawWeek`, `drawBio`, `drawGrill`, `drawMT`,
+  `drawBbqTimeline`, `drawBbqGrill`, `drawHikeComfort`, `drawHikeWeek`, `drawSwimChart`) ·
+  maps (`loadLeaflet` weather map, `drawSwimMap` inland pools) · view router
+  (`ROUTES`/`VIEWS`/`showView`/`renderActive`).
 
 Notable globals: `lang`, `theme`, `fontbig`, `RANGE`, comparison state (location A vs B),
 and feature toggles (`CONF`, `MOON`, `TIDE`, `PRES`, `BBQ`, `MP`). `MP` is a "Monty Python"
