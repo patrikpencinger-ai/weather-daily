@@ -6,11 +6,11 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~2,250 lines). Current version: **v3.02** (also in the
-`APPV` JS constant, used for the dynamic `document.title`).
+(HTML + CSS + vanilla JS, ~2,350 lines). Current version: **v3.03** (also in the
+`APPV` JS constant, used for the dynamic `document.title` — bump all three together).
 
-As of v3 it's a **four-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
-`#hike`/`#swim`) over a `VIEWS` registry. One shared data fetch (`D`) feeds all views;
+As of v3 it's a **six-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
+`#hike`/`#swim`/`#map`/`#radar`) over a `VIEWS` registry. One shared data fetch (`D`) feeds all views;
 `showView(name)` toggles `#view-*` sections, `destroyAllCharts()`, then dispatches the active
 view's render via `setTimeout(0)` (NOT rAF — throttled in background tabs). The four global
 hooks (`applyTheme`/`setLang`/`toggleFont`/`applyResponsive`, plus `toggleMP`) call
@@ -56,6 +56,9 @@ timeout so a failed load shows the error rather than hanging forever.
 - **Nominatim** (`nominatim.openstreetmap.org`) — reverse geocoding for map clicks / GPS.
 - **Overpass** (`overpass-api.de`) — nearby pools & spas for the inland Swimming view
   (lazy, cached in `poolCache`; errors are surfaced, not cached).
+- **RainViewer** (`api.rainviewer.com` + `tilecache.rainviewer.com`) — rain-radar tile
+  frames for the Radar view: past ~2 h plus nowcast frames when the public API provides
+  them (lazy; frame list cached ~5 min; requires "© RainViewer" attribution).
 
 All requests go through `tfetch(url, ms)`, a `fetch` wrapper with a timeout.
 
@@ -100,9 +103,10 @@ Roughly top-to-bottom:
 
 - `<head>` / CSS — theme variables, `.big` large-font rule, layout.
 - `<body>` markup — header controls (lang / theme / font / toggles), then `#dash` sections:
-  (severe-weather alert banner, when active) · RIGHT NOW · NEXT 24 HOURS · SEA TEMPERATURE ·
-  OUTLOOK · WEEKEND PLANS · GRILLING · BIOMETEO · MOON & TIDE · INTERESTING FACT ·
-  MAP (pick a point) · footer.
+  Weather view: (severe-weather alert banner, when active) · RIGHT NOW · NEXT 24 HOURS ·
+  SEA TEMPERATURE · OUTLOOK · WEEKEND PLANS · GRILLING · BIOMETEO · MOON & TIDE ·
+  INTERESTING FACT. The MAP (pick a point) and RADAR (RainViewer animation with
+  play/slider controls) are their own views/tabs; shared footer sits outside the sections.
   Severe-weather alerts (`buildAlerts`/`D.alerts`) are derived client-side from Open-Meteo
   (storm code / strong wind / heavy rain / big swing) — official DHMZ/Meteoalarm feeds are
   CORS-blocked from the browser, so they'd need a Worker proxy. WEEKEND PLANS rates this & next

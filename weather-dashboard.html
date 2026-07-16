@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.02</title>
+<title>Patrik's weather daily — v3.03</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -25,6 +25,10 @@ body{padding:20px;transition:background .2s}
 #wrap.mobile .ttl{font-size:16px}
 .hd{font-size:16px;font-weight:500;letter-spacing:0.08em;margin:0 0 0.75rem}
 .dark .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.92) saturate(0.7);}
+.dark .radarlayer .leaflet-tile{filter:none!important;}
+#radarBox{position:relative;width:100%;height:340px;border-radius:10px;overflow:hidden;border:0.5px solid var(--bd);}
+#radarCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px;}
+#radarSlider{flex:1;min-width:140px;accent-color:#2caaf0;}
 #mapBox{position:relative;width:100%;height:300px;border-radius:10px;overflow:hidden;border:0.5px solid var(--bd);}
 #mapSec.mapfull{position:fixed;inset:0;z-index:1000;background:var(--bg);margin:0;padding:10px;}
 #mapSec.mapfull #mapBox{height:calc(100% - 46px);border-radius:8px;}
@@ -96,6 +100,8 @@ body{padding:20px;transition:background .2s}
   <a class="tab" role="tab" href="#bbq" data-view="bbq"><span class="tablabel" data-i="tabBbq">BBQ</span><span class="pk" id="pk-bbq"></span></a>
   <a class="tab" role="tab" href="#hike" data-view="hike"><span class="tablabel" data-i="tabHike">Hiking</span><span class="pk" id="pk-hike"></span></a>
   <a class="tab" role="tab" href="#swim" data-view="swim"><span class="tablabel" data-i="tabSwim">Swim</span><span class="pk" id="pk-swim"></span></a>
+  <a class="tab" role="tab" href="#map" data-view="map"><span class="tablabel" data-i="tabMap">Map</span><span class="pk" id="pk-map"></span></a>
+  <a class="tab" role="tab" href="#radar" data-view="radar"><span class="tablabel" data-i="tabRadar">Radar</span><span class="pk" id="pk-radar"></span></a>
 </nav>
 <section id="view-weather">
 <div id="alertBox" class="hidden" style="border-radius:12px;padding:0.85rem 1.1rem;margin:0 0 1.25rem;display:flex;gap:10px;align-items:flex-start;">
@@ -198,13 +204,6 @@ body{padding:20px;transition:background .2s}
   <div class="lab" style="letter-spacing:0.08em;font-weight:500;" data-i="h7">INTERESTING FACT</div>
   <p class="lab" id="factTxt" style="margin:6px 0 0;line-height:1.6;color:var(--tp);"></p>
 </div>
-<div id="mapSec" class="hidden" style="margin:0 0 0.5rem;">
-  <div class="hd" style="display:flex;align-items:center;gap:10px;"><span data-i="h8">MAP — PICK A POINT</span>
-    <button class="lbtn" id="btn-mx" onclick="mapMax()" aria-label="Maximize map" title="Maximize / restore map" style="margin-left:auto;">⛶</button>
-  </div>
-  <p class="lab" id="mapNote" style="margin:-2px 0 8px;font-size:12px;"></p>
-  <div id="mapBox"></div>
-</div>
 </section>
 
 <section id="view-bbq" class="hidden">
@@ -267,7 +266,31 @@ body{padding:20px;transition:background .2s}
   <div class="cards" id="swimFun"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.02 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<section id="view-map" class="hidden">
+<div id="mapSec" class="hidden" style="margin:0 0 0.5rem;">
+  <div class="hd" style="display:flex;align-items:center;gap:10px;"><span data-i="h8">MAP — PICK A POINT</span>
+    <button class="lbtn" id="btn-mx" onclick="mapMax()" aria-label="Maximize map" title="Maximize / restore map" style="margin-left:auto;">⛶</button>
+  </div>
+  <p class="lab" id="mapNote" style="margin:-2px 0 8px;font-size:12px;"></p>
+  <div id="mapBox"></div>
+</div>
+</section>
+
+<section id="view-radar" class="hidden">
+  <div class="viewhead" data-i="radarHead">🌧️ Rain radar</div>
+  <p class="viewtag" data-i="radarTag"></p>
+  <div id="radarCtl">
+    <button class="lbtn" id="radarPrev" onclick="radarStep(-1)" aria-label="Previous radar frame">⏮</button>
+    <button class="lbtn" id="radarPlay" onclick="radarPlay()" aria-label="Play/pause radar animation">▶️</button>
+    <button class="lbtn" id="radarNext" onclick="radarStep(1)" aria-label="Next radar frame">⏭</button>
+    <input type="range" id="radarSlider" min="0" max="0" value="0" oninput="radarSeek(this.value)" aria-label="Radar time slider">
+    <span id="radarTime" style="font-size:13px;font-weight:600;min-width:86px;"></span>
+  </div>
+  <div id="radarBox" role="img" aria-label="Animated precipitation radar map"></div>
+  <p class="lab" id="radarNote" style="margin:8px 0 0;font-size:11.5px;line-height:1.5;"></p>
+</section>
+
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.03 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -278,7 +301,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.02';
+const APPV='3.03';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -423,7 +446,8 @@ const T={
   best:"Best window",worst:"Wettest risk",dry:"dry all day",
   vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
   zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",h7:"INTERESTING FACT",h8:"MAP — PICK A POINT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
-  tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",tShort:"Patrik's weather",
+  tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",tabMap:"Map",tabRadar:"Radar",tShort:"Patrik's weather",
+  radarHead:"🌧️ Rain radar",radarTag:"Where the rain is and where it's headed — past ~2 hours, plus short-term forecast frames when available.",
   bbqHead:"🔥 ROŠTILJ COMMAND CENTRE",bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
   bbqPrepH:"PREP TIMELINE",bbqGrillH:"TODAY'S GRILL SCORE BY HOUR",bbqNonsense:"THE NONSENSE NUMBERS",bbqCheckH:"PIT CHECKLIST",
   bbqCritL:"Score = what you tick. Prime time is 12–18h (peak 14h); untick a factor to ignore it (grill at 9am if you must).",
@@ -448,7 +472,8 @@ const T={
   best:"Najbolji prozor",worst:"Najveći rizik kiše",dry:"suho cijeli dan",
   vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
   zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",h7:"ZANIMLJIVOST",h8:"KARTA \u2014 ODABERI TO\u010cKU",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
-  tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",tShort:"Patrikova prognoza",
+  tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",tabMap:"Karta",tabRadar:"Radar",tShort:"Patrikova prognoza",
+  radarHead:"\ud83c\udf27\ufe0f Radar ki\u0161e",radarTag:"Gdje ki\u0161a jest i kamo ide \u2014 zadnja ~2 sata, plus kratkoro\u010dne prognosti\u010dke sli\u010dice kad su dostupne.",
   bbqHead:"\ud83d\udd25 RO\u0160TILJ ZAPOVJEDNI CENTAR",bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
   bbqPrepH:"VREMENSKA CRTA PRIPREME",bbqGrillH:"DANA\u0160NJI RO\u0160TILJ INDEKS PO SATIMA",bbqNonsense:"BROJKE BEZ VEZE",bbqCheckH:"LISTA ZA RO\u0160TILJ",
   bbqCritL:"Indeks = \u0161to ozna\u010di\u0161. Zlatno doba je 12\u201318 h (vrh 14 h); odzna\u010di faktor da ga zanemari\u0161 (ro\u0161tilj u 9 ujutro ako ba\u0161 mora\u0161).",
@@ -1265,7 +1290,6 @@ function render(){
  const fct=buildFact(D,lang);
  document.getElementById('factSec').classList.toggle('hidden',!fct);
  if(fct)document.getElementById('factTxt').textContent=fct;
- try{updateMap();}catch(e){console.log('map skipped:',e);}
  if(isC){
   document.getElementById('todayLbl').textContent=esc(D.loc||locA())+' vs '+esc(D2.loc||selB);
   document.getElementById('badge').style.display='none';
@@ -1599,7 +1623,7 @@ function applyResponsive(){
  document.getElementById('mtwrap').style.height=want==='mobile'?'160px':'190px';
  document.getElementById('biowrap').style.height=want==='mobile'?'150px':'170px';
  document.getElementById('grwrap').style.height=want==='mobile'?'160px':'180px';
- const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],hikecwrap:['170px','200px'],hikewwrap:['150px','170px'],swimcwrap:['160px','190px']};
+ const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],hikecwrap:['170px','200px'],hikewwrap:['150px','170px'],swimcwrap:['160px','190px'],radarBox:['260px','340px']};
  for(const id in vw){const e=document.getElementById(id);if(e)e.style.height=want==='mobile'?vw[id][0]:vw[id][1];}
  if(D)renderActive();
  markBtns();
@@ -1657,7 +1681,7 @@ function initMapIfNeeded(){
 function updateMap(){
  const sec=document.getElementById('mapSec');
  if(typeof L==='undefined'){
-  if(LEAF_STATE==='idle')setTimeout(loadLeaflet,400);
+  if(LEAF_STATE==='idle')loadLeaflet();
   if(LEAF_STATE==='failed')sec.classList.add('hidden');
   return;
  }
@@ -1683,7 +1707,9 @@ function pickPoint(lat,lon,name){
  document.getElementById('mapSec').classList.remove('mapfull');
  selB=null;D2=null;
  document.getElementById('locIn').value=name;
- renderRecents();loadData();
+ renderRecents();
+ location.hash='#weather';
+ loadData();
  document.getElementById('wrap').scrollIntoView({behavior:'smooth'});
 }
 async function onMapClick(e){
@@ -2203,9 +2229,91 @@ function drawSwimMap(loc,list,att){
  }catch(e){console.log('swim map failed',e);}
 }
 
+/* ---------- Map view ---------- */
+function renderMapView(){
+ try{updateMap();}catch(e){console.log('map view:',e);}
+}
+
+/* ---------- Radar view (RainViewer: past ~2h + nowcast when available) ---------- */
+let radarMapL=null,radarFrames=[],radarIdx=0,radarLayers={},radarTimer=null,radarFetched=0,radarView=null,radarHost='https://tilecache.rainviewer.com',radarLocMark=null;
+function stopRadarAnim(){if(radarTimer){clearInterval(radarTimer);radarTimer=null;}updateRadarPlayBtn();}
+function updateRadarPlayBtn(){const b=document.getElementById('radarPlay');if(b)b.textContent=radarTimer?'⏸':'▶️';}
+function renderRadar(){
+ const hrv=lang==='hr';
+ const note=document.getElementById('radarNote');
+ if(note)note.textContent=hrv?'Plavo = slaba kiša, žuto/crveno = jaka, ljubičasto = tuča-kandidat · sličice svakih ~10 min · radar © RainViewer, karta © OpenStreetMap':'Blue = light rain, yellow/red = heavy, purple = hail candidate · frames every ~10 min · radar © RainViewer, map © OpenStreetMap';
+ drawRadarMap();
+}
+function drawRadarMap(att){
+ if(typeof L==='undefined'){
+  if(LEAF_STATE==='idle')loadLeaflet();
+  if(LEAF_STATE==='failed')return;
+  att=att||0;if(att>20)return;
+  setTimeout(()=>{if(active==='radar')drawRadarMap(att+1);},700);return;
+ }
+ try{
+  if(!radarMapL){radarMapL=L.map('radarBox',{scrollWheelZoom:true});L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© OpenStreetMap · © RainViewer'}).addTo(radarMapL);}
+  setTimeout(()=>{try{radarMapL.invalidateSize();}catch(e){}},120);
+  const c=CUR_LOC||DEFAULT_LOC;
+  const moved=!radarView||havKm(radarView.lat,radarView.lon,c.lat,c.lon)>1;
+  if(moved){radarMapL.setView([c.lat,c.lon],7);radarView={lat:c.lat,lon:c.lon};}
+  if(radarLocMark){try{radarMapL.removeLayer(radarLocMark);}catch(e){}}
+  radarLocMark=L.circleMarker([c.lat,c.lon],{radius:6,color:'#D85A30',fillColor:'#D85A30',fillOpacity:0.9}).addTo(radarMapL);
+  loadRadarFrames();
+ }catch(e){console.log('radar map failed',e);}
+}
+function loadRadarFrames(){
+ const now=new Date().getTime();
+ if(radarFrames.length&&(now-radarFetched)<5*60*1000){buildRadarUI();showRadarFrame(radarIdx);return;}
+ tfetch('https://api.rainviewer.com/public/weather-maps.json',10000).then(r=>r.json()).then(j=>{
+  const past=(j.radar&&j.radar.past)||[],cast=(j.radar&&j.radar.nowcast)||[];
+  if(!past.length&&!cast.length)throw new Error('no frames');
+  radarHost=j.host||'https://tilecache.rainviewer.com';
+  radarFrames=past.map(f=>({t:f.time,p:f.path,fc:false})).concat(cast.map(f=>({t:f.time,p:f.path,fc:true})));
+  radarFetched=now;
+  for(const t in radarLayers){try{radarMapL.removeLayer(radarLayers[t]);}catch(e){}}
+  radarLayers={};
+  radarIdx=Math.max(0,past.length-1);
+  buildRadarUI();showRadarFrame(radarIdx);
+ }).catch(e=>{
+  const el=document.getElementById('radarTime');
+  if(el)el.textContent=lang==='hr'?'radar nedostupan':'radar unavailable';
+  console.log('rainviewer failed:',e);
+ });
+}
+function buildRadarUI(){
+ const sl=document.getElementById('radarSlider');
+ if(sl){sl.max=Math.max(0,radarFrames.length-1);sl.value=radarIdx;}
+ updateRadarPlayBtn();
+}
+function radarLayerFor(i){
+ const f=radarFrames[i];if(!f||!radarMapL)return null;
+ if(!radarLayers[f.t]){radarLayers[f.t]=L.tileLayer(radarHost+f.p+'/256/{z}/{x}/{y}/4/1_1.png',{opacity:0,maxZoom:12,className:'radarlayer',zIndex:5});radarLayers[f.t].addTo(radarMapL);}
+ return radarLayers[f.t];
+}
+function showRadarFrame(i){
+ if(!radarFrames.length)return;
+ radarIdx=((i%radarFrames.length)+radarFrames.length)%radarFrames.length;
+ for(const t in radarLayers)radarLayers[t].setOpacity(0);
+ const cur=radarLayerFor(radarIdx);if(cur)cur.setOpacity(0.75);
+ radarLayerFor((radarIdx+1)%radarFrames.length); /* preload next frame */
+ const f=radarFrames[radarIdx],d=new Date(f.t*1000),hrv=lang==='hr';
+ const el=document.getElementById('radarTime');
+ if(el){el.textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+(f.fc?(hrv?' · prognoza':' · forecast'):'');el.style.color=f.fc?C.warn:'';}
+ const sl=document.getElementById('radarSlider');if(sl)sl.value=radarIdx;
+}
+function radarSeek(v){stopRadarAnim();showRadarFrame(parseInt(v,10)||0);}
+function radarStep(d){stopRadarAnim();showRadarFrame(radarIdx+d);}
+function radarPlay(){
+ if(radarTimer){stopRadarAnim();return;}
+ if(!radarFrames.length)return;
+ radarTimer=setInterval(()=>{if(active!=='radar'){stopRadarAnim();return;}showRadarFrame(radarIdx+1);},600);
+ updateRadarPlayBtn();
+}
+
 /* ---------- view router ---------- */
-const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#swim':'swim'};
-const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},swim:{el:'view-swim',render:renderSwim}};
+const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#swim':'swim','#map':'map','#radar':'radar'};
+const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},swim:{el:'view-swim',render:renderSwim},map:{el:'view-map',render:renderMapView},radar:{el:'view-radar',render:renderRadar}};
 let active='weather';
 function route(){return ROUTES[(location.hash||'').split('?')[0]]||'weather';}
 function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh,swimCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=swimCh=null;}
@@ -2216,6 +2324,8 @@ function updateTabs(){
   const bq=bbqScore(D);if(el('pk-bbq'))el('pk-bbq').textContent=bq?BBQI[bbqTier(bq.v)]:'';
   if(el('pk-hike'))el('pk-hike').textContent='🥾';
   if(el('pk-swim'))el('pk-swim').textContent=D.sea?(D.sea.cur+'°'):'🏊';
+  if(el('pk-map'))el('pk-map').textContent='📍';
+  if(el('pk-radar'))el('pk-radar').textContent=(D.hours||[]).some(h=>(h.pp||0)>=40)?'🌧️':'';
  }catch(e){}}
  const cap=active.charAt(0).toUpperCase()+active.slice(1);
  document.title=(LBL.tShort||"Patrik's weather")+' v'+APPV+' · '+(LBL['tab'+cap]||'');
@@ -2223,7 +2333,7 @@ function updateTabs(){
 function showView(name){
  if(!VIEWS[name])name='weather';active=name;
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
- destroyAllCharts();updateTabs();
+ destroyAllCharts();stopRadarAnim();updateTabs();
  if(!D)return;
  setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}updateTabs();},0);
 }
