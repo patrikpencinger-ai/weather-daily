@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.03</title>
+<title>Patrik's weather daily — v3.04</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -287,10 +287,14 @@ body{padding:20px;transition:background .2s}
     <span id="radarTime" style="font-size:13px;font-weight:600;min-width:86px;"></span>
   </div>
   <div id="radarBox" role="img" aria-label="Animated precipitation radar map"></div>
+  <div id="rainStripSec" style="margin:14px 0 0;">
+    <div class="lab" id="rainStripH" style="letter-spacing:0.06em;font-weight:600;font-size:11.5px;margin:0 0 6px;"></div>
+    <div id="rainStrip" role="img" aria-label="Rain expected in the next two hours in 15-minute steps" style="display:flex;gap:4px;align-items:flex-end;"></div>
+  </div>
   <p class="lab" id="radarNote" style="margin:8px 0 0;font-size:11.5px;line-height:1.5;"></p>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.03 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.04 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -301,7 +305,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.03';
+const APPV='3.04';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -525,6 +529,7 @@ async function fetchOpenMeteo(loc,range){
   '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,pressure_msl'+
   '&hourly=temperature_2m,precipitation_probability,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,pressure_msl'+
   '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,precipitation_sum,uv_index_max,wind_speed_10m_max,sunrise,sunset'+
+  '&minutely_15=precipitation&forecast_minutely_15=16'+
   '&forecast_days='+fetchDays+'&past_days=1&timezone=auto';
  const r=await tfetch(url,10000);
  if(!r.ok)throw new Error('Open-Meteo '+r.status);
@@ -599,7 +604,17 @@ async function fetchOpenMeteo(loc,range){
   presObj={cur:Math.round(pcur),t:ti2,d3:d3!=null?Math.round(d3*10)/10:null,d24:d24!=null?Math.round(d24*10)/10:null};
  }
  const uvObj={cur:(hl.uv_index&&hl.uv_index[nowIdx]!=null)?Math.round(hl.uv_index[nowIdx]*10)/10:null,max:(dl.uv_index_max&&dl.uv_index_max[1]!=null)?Math.round(dl.uv_index_max[1]*10)/10:null};
- return{loc:loc.name,station:loc.station,uv:uvObj,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,sun:sunObj,
+ let rain15=null;
+ if(j.minutely_15&&j.minutely_15.time&&j.minutely_15.precipitation){
+  const mt=j.minutely_15.time,mp=j.minutely_15.precipitation,nowT=new Date().getTime(),arr=[];
+  for(let i=0;i<mt.length;i++){
+   if(new Date(mt[i]).getTime()+15*60000<=nowT)continue; /* slot fully in the past */
+   arr.push({h:mt[i].slice(11,16),v:(mp[i]!=null&&isFinite(mp[i]))?Math.round(mp[i]*100)/100:null});
+   if(arr.length>=8)break; /* 2 hours */
+  }
+  if(arr.length)rain15=arr;
+ }
+ return{loc:loc.name,station:loc.station,uv:uvObj,rain15:rain15,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,sun:sunObj,
   daysFull:fullDs,
   now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),wdeg:Math.round(((cur.wind_direction_10m%360)+360)%360),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
   hours:hours,days:ds,yest:yest,badge:badge,
@@ -2242,6 +2257,24 @@ function renderRadar(){
  const hrv=lang==='hr';
  const note=document.getElementById('radarNote');
  if(note)note.textContent=hrv?'Plavo = slaba kiša, žuto/crveno = jaka, ljubičasto = tuča-kandidat · sličice svakih ~10 min · radar © RainViewer, karta © OpenStreetMap':'Blue = light rain, yellow/red = heavy, purple = hail candidate · frames every ~10 min · radar © RainViewer, map © OpenStreetMap';
+ const rs=document.getElementById('rainStrip'),rh=document.getElementById('rainStripH');
+ const R=(D&&D.rain15)||[];
+ if(rs&&rh){
+  if(!R.length){
+   rh.textContent=hrv?'KIŠA U SLJEDEĆA 2 SATA — minutni podaci nedostupni (zahtijeva izravni izvor)':'RAIN NEXT 2 HOURS — minute data unavailable (needs the direct feed)';
+   rs.innerHTML='';
+  }else{
+   const tot=R.reduce((a,x)=>a+(x.v||0),0);
+   rh.textContent=(hrv?'KIŠA U SLJEDEĆA 2 H · ':'RAIN NEXT 2 H · ')+esc((D&&D.loc)||'')+' · '+(tot<0.05?(hrv?'suho 🎉':'dry 🎉'):((hrv?'ukupno ~':'total ~')+(Math.round(tot*10)/10)+' mm'));
+   const mx=Math.max.apply(null,R.map(x=>x.v||0).concat([0.6]));
+   rs.innerHTML=R.map(x=>{
+    const v=x.v||0;
+    const hpx=6+Math.round(34*Math.min(1,v/mx));
+    const col=v<=0.02?'var(--bd)':(v<0.2?'#7cc4f5':(v<0.8?'#2caaf0':(v<2?'#0E7490':'#5b2d91')));
+    return '<div style="flex:1;text-align:center;min-width:0;"><div class="lab" style="font-size:9px;margin-bottom:2px;height:12px;">'+(v>0.02?(Math.round(v*10)/10):'')+'</div><div style="height:40px;display:flex;align-items:flex-end;"><div style="width:100%;height:'+hpx+'px;border-radius:3px 3px 0 0;background:'+col+';"></div></div><div class="lab" style="font-size:9.5px;margin-top:3px;">'+x.h+'</div></div>';
+   }).join('');
+  }
+ }
  drawRadarMap();
 }
 function drawRadarMap(att){

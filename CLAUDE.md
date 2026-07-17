@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~2,350 lines). Current version: **v3.03** (also in the
+(HTML + CSS + vanilla JS, ~2,400 lines). Current version: **v3.04** (also in the
 `APPV` JS constant, used for the dynamic `document.title` — bump all three together).
 
 As of v3 it's a **six-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
@@ -46,7 +46,8 @@ timeout so a failed load shows the error rather than hanging forever.
 
 ## Data sources (all keyless, all client-side)
 
-- **Open-Meteo forecast** — `api.open-meteo.com` (hourly + daily) and
+- **Open-Meteo forecast** — `api.open-meteo.com` (hourly + daily + `minutely_15`
+  precipitation for the Radar view's next-2h rain strip, `D.rain15`) and
   `geocoding-api.open-meteo.com` for city → lat/lon.
 - **Open-Meteo Marine** — `marine-api.open-meteo.com` (sea surface temperature, tides).
 - **Open-Meteo Air Quality** — `air-quality-api.open-meteo.com` (pollen).
