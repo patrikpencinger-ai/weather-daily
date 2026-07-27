@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Guidance for working in this repository.
 
@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~2,600 lines). Current version: **v3.05** (also in the
+(HTML + CSS + vanilla JS, ~2,400 lines). Current version: **v3.04** (also in the
 `APPV` JS constant, used for the dynamic `document.title` — bump all three together).
 
 As of v3 it's a **six-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
@@ -50,15 +50,9 @@ timeout so a failed load shows the error rather than hanging forever.
   precipitation for the Radar view's next-2h rain strip, `D.rain15`) and
   `geocoding-api.open-meteo.com` for city → lat/lon.
 - **Open-Meteo Marine** — `marine-api.open-meteo.com` (sea surface temperature, tides).
-- **Open-Meteo Air Quality** — `air-quality-api.open-meteo.com` (pollen + `european_aqi`
-  with a past day and 3-day hourly forecast → RIGHT NOW AQI card + AIR QUALITY chart).
-- **Blitzortung.org** — live lightning strikes over websocket (`ws1/ws7/ws8.blitzortung.org`,
-  LZW-decoded JSON) as a ⚡ toggle layer on the Radar map. Live-only (accumulates while the
-  view is open), suspended when leaving the tab, attribution required, non-commercial use.
-- **CARTO Positron** (`basemaps.cartocdn.com`) — light base map for the Radar view only
-  (better radar contrast); attribution "© OpenStreetMap © CARTO".
+- **Open-Meteo Air Quality** — `air-quality-api.open-meteo.com` (pollen).
 - **Open-Meteo Archive** — `archive-api.open-meteo.com` (1991–2020 climatology / anomalies).
-- **AI feed (optional secondary)** — a Claude + web-search "interesting fact" / outlook feed.
+- **AI feed (optional secondary)** — a Codex + web-search "interesting fact" / outlook feed.
   The dashboard degrades gracefully when this is unavailable.
 - **Nominatim** (`nominatim.openstreetmap.org`) — reverse geocoding for map clicks / GPS.
 - **Overpass** (`overpass-api.de`) — nearby pools & spas for the inland Swimming view

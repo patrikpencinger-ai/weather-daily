@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.04</title>
+<title>Patrik's weather daily — v3.05</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -27,6 +27,9 @@ body{padding:20px;transition:background .2s}
 .dark .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.92) saturate(0.7);}
 .dark .radarlayer .leaflet-tile{filter:none!important;}
 #radarBox{position:relative;width:100%;height:340px;border-radius:10px;overflow:hidden;border:0.5px solid var(--bd);}
+#view-radar.mapfull{position:fixed;inset:0;z-index:1000;background:var(--bg);margin:0;padding:10px;box-sizing:border-box;}
+#view-radar.mapfull #radarBox{height:calc(100% - 56px);}
+#view-radar.mapfull .viewhead,#view-radar.mapfull .viewtag,#view-radar.mapfull #rainStripSec,#view-radar.mapfull #radarNote{display:none;}
 #radarCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px;}
 #radarSlider{flex:1;min-width:140px;accent-color:#2caaf0;}
 #mapBox{position:relative;width:100%;height:300px;border-radius:10px;overflow:hidden;border:0.5px solid var(--bd);}
@@ -112,6 +115,11 @@ body{padding:20px;transition:background .2s}
 <div class="lab" id="stationLine" style="margin:-6px 0 10px;font-size:12px;"></div>
 <div class="cards" id="nowCards"></div>
 
+<div id="todaySec" class="hidden" style="margin:0 0 2rem;">
+<div class="hd" data-i="h2b">TODAY HOUR BY HOUR</div>
+<div class="card" id="todayStrip" style="padding:0.9rem 1rem;"></div>
+</div>
+
 <div style="background:var(--bg);border:0.5px solid var(--bd);border-radius:12px;padding:1rem 1.25rem;margin:0 0 2rem;">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px" aria-hidden="true"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"/><circle cx="12" cy="12" r="4"/></svg>
@@ -190,6 +198,15 @@ body{padding:20px;transition:background .2s}
   <canvas id="bio" role="img" aria-label="Biometeorological load forecast as colored bars: green favorable, amber moderately unfavorable, red unfavorable"></canvas>
 </div>
 <div class="lab" id="bioLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
+</div>
+
+<div id="aqiSec" class="hidden">
+<div class="hd" data-i="hAqi">AIR QUALITY</div>
+<p class="lab" id="aqiSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+<div id="aqiwrap" style="position:relative;width:100%;height:170px;margin:0 0 6px;">
+  <canvas id="aqi" role="img" aria-label="European air-quality index for the next 48 hours as colored bars"></canvas>
+</div>
+<div class="lab" id="aqiLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
 </div>
 
 <div id="mtSec" class="hidden">
@@ -285,6 +302,8 @@ body{padding:20px;transition:background .2s}
     <button class="lbtn" id="radarNext" onclick="radarStep(1)" aria-label="Next radar frame">⏭</button>
     <input type="range" id="radarSlider" min="0" max="0" value="0" oninput="radarSeek(this.value)" aria-label="Radar time slider">
     <span id="radarTime" style="font-size:13px;font-weight:600;min-width:86px;"></span>
+    <button class="lbtn" id="radarBolt" onclick="lightningToggle()" aria-pressed="false" aria-label="Toggle live lightning strikes" title="Live lightning (Blitzortung.org)" style="opacity:0.5;">⚡</button>
+    <button class="lbtn" id="radarMaxB" onclick="radarMax()" aria-label="Fullscreen radar" title="Fullscreen / restore" style="margin-left:auto;">⛶</button>
   </div>
   <div id="radarBox" role="img" aria-label="Animated precipitation radar map"></div>
   <div id="rainStripSec" style="margin:14px 0 0;">
@@ -294,7 +313,7 @@ body{padding:20px;transition:background .2s}
   <p class="lab" id="radarNote" style="margin:8px 0 0;font-size:11.5px;line-height:1.5;"></p>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.04 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.05 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -305,7 +324,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.04';
+const APPV='3.05';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -452,6 +471,7 @@ const T={
   zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",h7:"INTERESTING FACT",h8:"MAP — PICK A POINT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
   tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",tabMap:"Map",tabRadar:"Radar",tShort:"Patrik's weather",
   radarHead:"🌧️ Rain radar",radarTag:"Where the rain is and where it's headed — past ~2 hours, plus short-term forecast frames when available.",
+  h2b:"TODAY HOUR BY HOUR",hAqi:"AIR QUALITY",
   bbqHead:"🔥 ROŠTILJ COMMAND CENTRE",bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
   bbqPrepH:"PREP TIMELINE",bbqGrillH:"TODAY'S GRILL SCORE BY HOUR",bbqNonsense:"THE NONSENSE NUMBERS",bbqCheckH:"PIT CHECKLIST",
   bbqCritL:"Score = what you tick. Prime time is 12–18h (peak 14h); untick a factor to ignore it (grill at 9am if you must).",
@@ -478,6 +498,7 @@ const T={
   zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",h7:"ZANIMLJIVOST",h8:"KARTA \u2014 ODABERI TO\u010cKU",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
   tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",tabMap:"Karta",tabRadar:"Radar",tShort:"Patrikova prognoza",
   radarHead:"\ud83c\udf27\ufe0f Radar ki\u0161e",radarTag:"Gdje ki\u0161a jest i kamo ide \u2014 zadnja ~2 sata, plus kratkoro\u010dne prognosti\u010dke sli\u010dice kad su dostupne.",
+  h2b:"DANAS PO SATIMA",hAqi:"KVALITETA ZRAKA",
   bbqHead:"\ud83d\udd25 RO\u0160TILJ ZAPOVJEDNI CENTAR",bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
   bbqPrepH:"VREMENSKA CRTA PRIPREME",bbqGrillH:"DANA\u0160NJI RO\u0160TILJ INDEKS PO SATIMA",bbqNonsense:"BROJKE BEZ VEZE",bbqCheckH:"LISTA ZA RO\u0160TILJ",
   bbqCritL:"Indeks = \u0161to ozna\u010di\u0161. Zlatno doba je 12\u201318 h (vrh 14 h); odzna\u010di faktor da ga zanemari\u0161 (ro\u0161tilj u 9 ujutro ako ba\u0161 mora\u0161).",
@@ -492,7 +513,7 @@ const T={
   aiOnly:"dostupno samo unutar Claudea",
   dows:['Ned','Pon','Uto','Sri','Čet','Pet','Sub']}
 };
-let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, swimCh=null, lastErrs=null;
+let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, swimCh=null, aqiCh=null, lastErrs=null;
 let BBQCRIT={time:true,temp:true,rain:true,wind:true,humid:true,storm:true}, bbqSeries=[], bbqPeak=null;
 let VEGAN=false, bbqCheck={};
 try{const s=localStorage.getItem('wd_bbqcheck');if(s)bbqCheck=JSON.parse(s)||{};}catch(e){}
@@ -614,7 +635,18 @@ async function fetchOpenMeteo(loc,range){
   }
   if(arr.length)rain15=arr;
  }
- return{loc:loc.name,station:loc.station,uv:uvObj,rain15:rain15,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,sun:sunObj,
+ let today3=null,todayMeta=null;
+ if(hl.time.length>24){
+  const t3=[];
+  for(let k2=0;k2<=8;k2++){const i2=24+k2*3;if(i2>=hl.time.length)break;
+   t3.push({h:hl.time[i2].slice(11,16),t:Math.round(hl.temperature_2m[i2]),cond:WMO(hl.weather_code[i2])});}
+  if(t3.length>=4){
+   today3=t3;
+   todayMeta={hi:fullDs[0]?fullDs[0].hi:null,lo:fullDs[0]?fullDs[0].lo:null,pp:fullDs[0]?fullDs[0].pp:null,
+    mm:(dl.precipitation_sum&&dl.precipitation_sum[1]!=null)?Math.round(dl.precipitation_sum[1]*10)/10:null};
+  }
+ }
+ return{loc:loc.name,station:loc.station,uv:uvObj,rain15:rain15,today3:today3,todayMeta:todayMeta,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,sun:sunObj,
   daysFull:fullDs,
   now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),wdeg:Math.round(((cur.wind_direction_10m%360)+360)%360),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
   hours:hours,days:ds,yest:yest,badge:badge,
@@ -661,16 +693,28 @@ function ensureAir(loc){
  const k=loc.lat.toFixed(3)+','+loc.lon.toFixed(3);
  if(airCache[k])return airCache[k];
  airCache[k]=(async()=>{
-  const r=await tfetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&forecast_days=1&timezone=auto',10000);
+  const r=await tfetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen,european_aqi,pm2_5&current=european_aqi&forecast_days=3&past_days=1&timezone=auto',10000);
   if(!r.ok)return null;
   const j=await r.json();const h=j.hourly;if(!h||!h.time)return null;
   let idx=h.time.findIndex(t=>new Date(t)>=new Date());if(idx<0)idx=h.time.length-1;
   const keys=['alder','birch','grass','mugwort','olive','ragweed'];
   const list=[];
   keys.forEach(kk=>{const arr=h[kk+'_pollen'];const v=arr?arr[idx]:null;if(v!=null&&isFinite(v))list.push({k:kk,v:v});});
-  if(!list.length)return null;
-  let dom=list[0];list.forEach(x=>{if(x.v>dom.v)dom=x;});
-  return{list:list,dom:dom};
+  let dom=null;if(list.length){dom=list[0];list.forEach(x=>{if(x.v>dom.v)dom=x;});}
+  let aqi=null;
+  const ea=h.european_aqi;
+  if(ea&&ea[idx]!=null&&isFinite(ea[idx])){
+   const cur=(j.current&&j.current.european_aqi!=null)?Math.round(j.current.european_aqi):Math.round(ea[idx]);
+   const yv=(idx>=24&&ea[idx-24]!=null&&isFinite(ea[idx-24]))?Math.round(ea[idx-24]):null;
+   const ser=[];
+   for(let i2=idx;i2<Math.min(ea.length,idx+49);i2+=3){
+    if(ea[i2]==null||!isFinite(ea[i2]))continue;
+    ser.push({h:((i2-idx)>=24?'+1d ':'')+h.time[i2].slice(11,16),v:Math.round(ea[i2])});
+   }
+   aqi={now:cur,yest:yv,pm25:(h.pm2_5&&h.pm2_5[idx]!=null&&isFinite(h.pm2_5[idx]))?Math.round(h.pm2_5[idx]*10)/10:null,series:ser};
+  }
+  if(!list.length&&!aqi)return null;
+  return{list:list,dom:dom,aqi:aqi};
  })().catch(()=>null);
  return airCache[k];
 }
@@ -1252,6 +1296,7 @@ function render(){
   if(D.sea)cardsHtml+=card(LBL.cS,D.sea.cur+"°","🌊","");
   if(D.uv&&D.uv.cur!=null)cardsHtml+=card(LBL.cUV,D.uv.cur,LBL.uvLevels[uvLvl(D.uv.cur)],(D.uv.max!=null?('max '+D.uv.max+' · '+LBL.uvLevels[uvLvl(D.uv.max)]):''));
   if(D.air&&D.air.dom)cardsHtml+=card(LBL.cPol,Math.round(D.air.dom.v),(LBL.polNames[D.air.dom.k]||D.air.dom.k)+' · '+LBL.polLevels[polLvl(D.air.dom.v)],'/m³');
+  cardsHtml+=aqiCardHtml();
   const ti=todayIso();
   cardsHtml+=card(LBL.cMoon,moonIcon(ti),moonName(ti)+' · '+Math.round(moonIllum(ti))+'%','');
   if(D.bio&&D.bio.d&&D.bio.d.length){const b0=D.bio.d[0],bl=bioLvl(b0.s);
@@ -1269,6 +1314,9 @@ function render(){
    document.getElementById('alertTxt').innerHTML=al.html;
    if(ba){ba.classList.remove('hidden');ba.textContent=al.icon;ba.style.background=col+'22';ba.style.color=col;ba.style.border='1px solid '+col;ba.style.borderRadius='8px';ba.style.padding='3px 8px';ba.style.fontSize='14px';ba.style.cursor='pointer';ba.title=red?(lang==='hr'?'Upozorenje na nevrijeme':'Severe weather warning'):(lang==='hr'?'Vremenski oprez':'Weather heads-up');}
   }else{ab.classList.add('hidden');if(ba)ba.classList.add('hidden');}}
+ const tShow=!isC&&D.today3&&D.today3.length;
+ document.getElementById('todaySec').classList.toggle('hidden',!tShow);
+ if(tShow)renderTodayStrip();
  const hasHours=D.hours&&D.hours.length>0;
  document.getElementById('hrSec').classList.toggle('hidden',!hasHours);
  if(hasHours)drawHourly();
@@ -1279,6 +1327,10 @@ function render(){
  const bioShow=!isC&&D.bio&&D.bio.h&&D.bio.h.length;
  document.getElementById('bioSec').classList.toggle('hidden',!bioShow);
  if(bioShow)drawBio();
+ const aqiShow=!isC&&D.air&&D.air.aqi&&D.air.aqi.series&&D.air.aqi.series.length;
+ document.getElementById('aqiSec').classList.toggle('hidden',!aqiShow);
+ if(aqiShow){document.getElementById('aqiSum').textContent=buildAqiSum(lang);drawAqi();}
+ else if(aqiCh){aqiCh.destroy();aqiCh=null;}
  const grillShow=!isC&&D.days&&D.days.length>0;
  document.getElementById('grSec').classList.toggle('hidden',!grillShow);
  if(grillShow)drawGrill();else if(grillCh){grillCh.destroy();grillCh=null;}
@@ -1638,7 +1690,7 @@ function applyResponsive(){
  document.getElementById('mtwrap').style.height=want==='mobile'?'160px':'190px';
  document.getElementById('biowrap').style.height=want==='mobile'?'150px':'170px';
  document.getElementById('grwrap').style.height=want==='mobile'?'160px':'180px';
- const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],hikecwrap:['170px','200px'],hikewwrap:['150px','170px'],swimcwrap:['160px','190px'],radarBox:['260px','340px']};
+ const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],hikecwrap:['170px','200px'],hikewwrap:['150px','170px'],swimcwrap:['160px','190px'],radarBox:['260px','340px'],aqiwrap:['150px','170px']};
  for(const id in vw){const e=document.getElementById(id);if(e)e.style.height=want==='mobile'?vw[id][0]:vw[id][1];}
  if(D)renderActive();
  markBtns();
@@ -2244,6 +2296,173 @@ function drawSwimMap(loc,list,att){
  }catch(e){console.log('swim map failed',e);}
 }
 
+/* ---------- TODAY strip + AQI (v3.05) ---------- */
+function renderTodayStrip(){
+ var el=document.getElementById('todayStrip');
+ if(!el)return;
+ if(!D||!D.today3||!D.today3.length){el.innerHTML='';return;}
+ var meta=D.todayMeta||{};
+ var now=D.now||{};
+ var hi=meta.hi,lo=meta.lo,pp=meta.pp,mm=meta.mm;
+ var hiS=(hi==null?'--':Math.round(hi)+'°');
+ var loS=(lo==null?'--':Math.round(lo)+'°');
+ var ppS=(pp==null?'--':Math.round(pp)+'%');
+ var mmS=(mm==null?'--':mm.toFixed(1)+' mm');
+ var flTxt=(now.fl==null?'':(lang==='hr'?('Osjet '+Math.round(now.fl)+'°'):('Feels like '+Math.round(now.fl)+'°')));
+ var precipLbl=(lang==='hr'?'Padaline':'Precip');
+ var nowD=new Date();
+ var nmin=nowD.getHours()*60+nowD.getMinutes();
+ var pct=Math.max(0,Math.min(100,(nmin/1440)*100));
+ var stripLbl=(lang==='hr'?'Danas po satima':'Today hour by hour');
+ var pointsHtml='';
+ for(var i=0;i<D.today3.length;i++){
+  var p=D.today3[i];
+  var isPast=(p.h!=='24:00')&&((i*3*60+180)<=nmin);
+  var ic=ICON[p.cond]||'';
+  var tS=(p.t==null?'--':Math.round(p.t)+'°');
+  pointsHtml+='<div style="flex:1 0 auto;min-width:32px;text-align:center;opacity:'+(isPast?'0.45':'1')+';">'+
+   '<div style="font-size:20px;line-height:1;">'+ic+'</div>'+
+   '<div style="font-size:11px;font-weight:600;color:var(--tp);margin-top:3px;">'+tS+'</div>'+
+   '</div>';
+ }
+ var ticks=['00','06','12','18','24'];
+ var ticksHtml='';
+ for(var j2=0;j2<ticks.length;j2++){ticksHtml+='<div style="font-size:9.5px;color:var(--ts);">'+ticks[j2]+'</div>';}
+ el.innerHTML=
+  '<div role="group" aria-label="'+esc(stripLbl)+'" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">'+
+   '<div style="min-width:110px;">'+
+    '<div style="font-size:26px;font-weight:700;color:var(--tp);">'+hiS+'<span style="color:var(--ts);font-weight:400;"> / '+loS+'</span></div>'+
+    (flTxt?('<div style="font-size:12px;color:var(--ts);margin-top:3px;">'+esc(flTxt)+'</div>'):'')+
+    '<div style="font-size:12px;color:var(--ts);margin-top:5px;" title="'+esc(precipLbl)+'">💧 '+ppS+' · '+mmS+'</div>'+
+   '</div>'+
+   '<div style="flex:1;min-width:220px;">'+
+    '<div style="overflow-x:auto;"><div style="display:flex;gap:2px;min-width:280px;">'+pointsHtml+'</div></div>'+
+    '<div style="margin-top:8px;">'+
+     '<div style="position:relative;height:3px;background:var(--bd);border-radius:999px;">'+
+      '<div style="position:absolute;top:50%;left:calc('+pct.toFixed(2)+'% - 4px);transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:#7cb342;border:2px solid var(--bg);"></div>'+
+     '</div>'+
+     '<div style="display:flex;justify-content:space-between;margin-top:4px;">'+ticksHtml+'</div>'+
+    '</div>'+
+   '</div>'+
+  '</div>';
+}
+
+const AQICOL=['#1D9E75','#7CB342','#BA7517','#C2632B','#A32D2D','#6b2fa8'];
+function aqiBand(v){if(v<20)return 0;if(v<40)return 1;if(v<60)return 2;if(v<80)return 3;if(v<100)return 4;return 5;}
+function aqiName(i){
+ var en=['Good','Fair','Moderate','Poor','Very poor','Extremely poor'];
+ var hr=['Dobro','Prihvatljivo','Umjereno','Loše','Vrlo loše','Ekstremno'];
+ return (lang==='hr'?hr:en)[i];
+}
+function aqiCardHtml(){
+ if(!D.air||!D.air.aqi)return '';
+ var a=D.air.aqi,hrv=lang==='hr',b=aqiBand(a.now),parts=[];
+ if(a.yest!=null){var d=a.now-a.yest;parts.push((d>=0?'+':'')+d+(hrv?' vs jučer':' vs yesterday'));}
+ if(a.pm25!=null)parts.push('PM2.5 '+a.pm25+' µg/m³');
+ parts.push(b<=1?(hrv?'odlično za van':'great for outdoor plans'):
+  b===2?(hrv?'osjetljivi neka polako':'sensitive groups take it easy'):
+  (hrv?'ograniči napore vani':'limit strenuous outdoor time'));
+ return '<div class="card"><div class="lab">AQI</div>'+
+  '<div style="display:flex;align-items:baseline;gap:8px;">'+
+  '<span style="font-size:24px;font-weight:500;color:'+AQICOL[b]+'">'+a.now+'</span>'+
+  '<span style="color:'+AQICOL[b]+';font-weight:500;">'+esc(aqiName(b))+'</span>'+
+  '</div><div class="ctx">'+esc(parts.join(' · '))+'</div></div>';
+}
+function buildAqiSum(l){
+ if(!D.air||!D.air.aqi)return '';
+ var hrv=l==='hr',a=D.air.aqi,b=aqiBand(a.now);
+ var s=hrv?('Trenutno AQI '+a.now+' ('+aqiName(b)+')'):('AQI currently '+a.now+' ('+aqiName(b)+')');
+ if(a.yest!=null){var d=a.now-a.yest;s+=hrv?(', '+(d>=0?'+':'')+d+' u odnosu na jučer'):(', '+(d>=0?'+':'')+d+' vs yesterday');}
+ if(a.series&&a.series.length){
+  var mx=a.series[0],i;
+  for(i=1;i<a.series.length;i++){if(a.series[i].v>mx.v)mx=a.series[i];}
+  var pb=aqiBand(mx.v);
+  s+=hrv?('; vrhunac ~'+mx.v+' ('+aqiName(pb)+') oko '+mx.h):('; peak ~'+mx.v+' ('+aqiName(pb)+') around '+mx.h);
+ }
+ return s+'.';
+}
+function drawAqi(){
+ if(aqiCh){aqiCh.destroy();aqiCh=null;}
+ if(!D.air||!D.air.aqi||!D.air.aqi.series||!D.air.aqi.series.length)return;
+ var el=document.getElementById('aqi');if(!el)return;
+ var s=D.air.aqi.series,mob=layout==='mobile',maxV=0,i;
+ for(i=0;i<s.length;i++){if(s[i].v>maxV)maxV=s[i].v;}
+ aqiCh=new Chart(el,{type:'bar',
+  data:{labels:s.map(function(p){return p.h;}),datasets:[{data:s.map(function(p){return p.v;}),backgroundColor:s.map(function(p){return AQICOL[aqiBand(p.v)];}),borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:14}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){var v=c.parsed.y;return v+' · '+aqiName(aqiBand(v));}}}},
+   scales:{y:{display:false,min:0,max:Math.max(80,maxV+15)},
+    x:{grid:{display:false},ticks:{color:txt,autoSkip:true,maxTicksLimit:mob?6:10,font:{size:mob?8:9}}}}},
+  plugins:[bgPlug,{id:'aqiVal',afterDatasetsDraw:function(c){
+   var x2=c.ctx,meta=c.getDatasetMeta(0);
+   x2.save();x2.font='600 '+(mob?8:9)+'px sans-serif';x2.fillStyle=strong;x2.textAlign='center';
+   meta.data.forEach(function(bar,idx){if(idx%2===0)x2.fillText(String(s[idx].v),bar.x,bar.y-4);});
+   x2.restore();}}]
+ });
+ var ranges=['0-20','20-40','40-60','60-80','80-100','100+'];
+ var leg=document.getElementById('aqiLeg');
+ if(leg)leg.innerHTML=AQICOL.map(function(col,idx){
+  return '<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:'+col+'"></span><span>'+esc(aqiName(idx))+' '+ranges[idx]+'</span></span>';
+ }).join('');
+}
+
+/* ---------- Lightning layer (Blitzortung.org live strikes, radar view) ---------- */
+let boWs=null,boOn=false,boPaused=false,boStrikes=[],boAger=null,boHostIdx=0;
+const BOHOSTS=['ws1.blitzortung.org','ws7.blitzortung.org','ws8.blitzortung.org'];
+function boDecode(b){var e={},d=b.split(''),c=d[0],f=c,g=[c],o=256,a,q;for(var i=1;i<d.length;i++){a=d[i].charCodeAt(0);q=256>a?d[i]:(e[a]?e[a]:(f+c));g.push(q);c=q.charAt(0);e[o]=f+c;o++;f=q;}return g.join('');}
+function boCol(age){return age<5*60000?'#ffe14d':(age<15*60000?'#E0A53C':(age<30*60000?'#C2632B':'#8a8a8a'));}
+function lightningToggle(){
+ boOn=!boOn;
+ const b=document.getElementById('radarBolt');
+ if(b){b.style.opacity=boOn?'1':'0.5';b.setAttribute('aria-pressed',boOn?'true':'false');}
+ if(boOn){boConnect();if(!boAger)boAger=setInterval(boAge,60000);}
+ else{boDisconnect();}
+}
+function boConnect(){
+ if(boWs||!boOn||boPaused)return;
+ try{
+  const ws=new WebSocket('wss://'+BOHOSTS[boHostIdx%BOHOSTS.length]+'/');boWs=ws;
+  ws.onopen=()=>{try{ws.send(JSON.stringify({a:111}));}catch(e){}};
+  ws.onmessage=ev=>{try{
+   const j=JSON.parse(boDecode(String(ev.data)));
+   if(j&&j.lat!=null&&j.lon!=null&&radarMapL){
+    let bb=null;try{bb=radarMapL.getBounds().pad(1.0);}catch(e){}
+    if(bb&&bb.contains([j.lat,j.lon])){
+     const mk=L.circleMarker([j.lat,j.lon],{radius:3,color:'#6b5400',weight:1,fillColor:'#ffe14d',fillOpacity:0.9}).addTo(radarMapL);
+     boStrikes.push({t:new Date().getTime(),m:mk});
+     if(boStrikes.length>1500){const old=boStrikes.shift();try{radarMapL.removeLayer(old.m);}catch(e){}}
+    }
+   }
+  }catch(e){}};
+  ws.onclose=()=>{boWs=null;if(boOn&&!boPaused){boHostIdx++;setTimeout(boConnect,2000);}};
+  ws.onerror=()=>{try{ws.close();}catch(e){}};
+ }catch(e){boWs=null;}
+}
+function boDisconnect(){
+ if(boWs){try{boWs.close();}catch(e){}boWs=null;}
+ if(boAger){clearInterval(boAger);boAger=null;}
+ boStrikes.forEach(s=>{try{radarMapL.removeLayer(s.m);}catch(e){}});boStrikes=[];
+}
+function boAge(){
+ const now=new Date().getTime();
+ boStrikes=boStrikes.filter(s=>{
+  const a=now-s.t;
+  if(a>60*60000){try{radarMapL.removeLayer(s.m);}catch(e){}return false;}
+  try{s.m.setStyle({color:boCol(a)==='#8a8a8a'?'#666':'#6b5400',fillColor:boCol(a),fillOpacity:Math.max(0.25,0.9-(a/3600000)*0.7)});}catch(e){}
+  return true;
+ });
+}
+function boPause(onRadar){
+ boPaused=!onRadar;
+ if(boPaused){if(boWs){try{boWs.close();}catch(e){}boWs=null;}if(boAger){clearInterval(boAger);boAger=null;}}
+ else if(boOn){boConnect();if(!boAger)boAger=setInterval(boAge,60000);}
+}
+function radarMax(){
+ const s=document.getElementById('view-radar');if(!s)return;
+ s.classList.toggle('mapfull');
+ setTimeout(()=>{try{if(radarMapL)radarMapL.invalidateSize();}catch(e){}},80);
+}
+
 /* ---------- Map view ---------- */
 function renderMapView(){
  try{updateMap();}catch(e){console.log('map view:',e);}
@@ -2256,7 +2475,7 @@ function updateRadarPlayBtn(){const b=document.getElementById('radarPlay');if(b)
 function renderRadar(){
  const hrv=lang==='hr';
  const note=document.getElementById('radarNote');
- if(note)note.textContent=hrv?'Plavo = slaba kiša, žuto/crveno = jaka, ljubičasto = tuča-kandidat · sličice svakih ~10 min · radar © RainViewer, karta © OpenStreetMap':'Blue = light rain, yellow/red = heavy, purple = hail candidate · frames every ~10 min · radar © RainViewer, map © OpenStreetMap';
+ if(note)note.textContent=hrv?'Plavo = slaba kiša, žuto/crveno = jaka, ljubičasto = tuča-kandidat · sličice svakih ~10 min · ⚡ uključuje munje uživo (skupljaju se dok je kartica otvorena; boja blijedi sa starošću) · radar © RainViewer · munje © Blitzortung.org · karta © OpenStreetMap © CARTO':'Blue = light rain, yellow/red = heavy, purple = hail candidate · frames every ~10 min · ⚡ toggles live lightning (accumulates while this tab is open; colour fades with age) · radar © RainViewer · lightning © Blitzortung.org · map © OpenStreetMap © CARTO';
  const rs=document.getElementById('rainStrip'),rh=document.getElementById('rainStripH');
  const R=(D&&D.rain15)||[];
  if(rs&&rh){
@@ -2285,7 +2504,7 @@ function drawRadarMap(att){
   setTimeout(()=>{if(active==='radar')drawRadarMap(att+1);},700);return;
  }
  try{
-  if(!radarMapL){radarMapL=L.map('radarBox',{scrollWheelZoom:true});L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© OpenStreetMap · © RainViewer'}).addTo(radarMapL);}
+  if(!radarMapL){radarMapL=L.map('radarBox',{scrollWheelZoom:true});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:12,attribution:'© OpenStreetMap © CARTO · © RainViewer · ⚡ Blitzortung.org'}).addTo(radarMapL);}
   setTimeout(()=>{try{radarMapL.invalidateSize();}catch(e){}},120);
   const c=CUR_LOC||DEFAULT_LOC;
   const moved=!radarView||havKm(radarView.lat,radarView.lon,c.lat,c.lon)>1;
@@ -2349,7 +2568,7 @@ const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#sw
 const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},swim:{el:'view-swim',render:renderSwim},map:{el:'view-map',render:renderMapView},radar:{el:'view-radar',render:renderRadar}};
 let active='weather';
 function route(){return ROUTES[(location.hash||'').split('?')[0]]||'weather';}
-function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh,swimCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=swimCh=null;}
+function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh,swimCh,aqiCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=swimCh=aqiCh=null;}
 function updateTabs(){
  document.querySelectorAll('#tabs .tab').forEach(a=>{const on=a.dataset.view===active;a.classList.toggle('on',on);a.setAttribute('aria-selected',on?'true':'false');});
  if(D){try{const el=id=>document.getElementById(id);
@@ -2366,7 +2585,7 @@ function updateTabs(){
 function showView(name){
  if(!VIEWS[name])name='weather';active=name;
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
- destroyAllCharts();stopRadarAnim();updateTabs();
+ destroyAllCharts();stopRadarAnim();boPause(name==='radar');updateTabs();
  if(!D)return;
  setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}updateTabs();},0);
 }
