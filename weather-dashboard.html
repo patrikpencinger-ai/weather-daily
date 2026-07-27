@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.05</title>
+<title>Patrik's weather daily — v3.06</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -59,6 +59,12 @@ body{padding:20px;transition:background .2s}
 .viewhead{font-size:19px;font-weight:600;letter-spacing:0.02em;margin:0 0 3px}
 .viewtag{font-size:12.5px;color:var(--ts);margin:0 0 18px;line-height:1.5}
 .gauge{height:7px;border-radius:999px;background:var(--bd);overflow:hidden;margin:5px 0 0}
+.logrow{display:flex;gap:12px;padding:10px 0;border-top:0.5px solid var(--bd)}
+.logrow:first-child{border-top:none}
+.logv{flex:0 0 auto;font-weight:600;font-size:13px;color:var(--tp);min-width:44px}
+.logd{flex:0 0 auto;font-size:10.5px;color:var(--ts);min-width:70px;padding-top:1px}
+.logi{flex:1;font-size:12.5px;line-height:1.55;color:var(--ts)}
+.logi b{color:var(--tp);font-weight:500}
 .gauge>span{display:block;height:100%;border-radius:999px}
 .rsep{width:1px;height:18px;background:var(--bd);margin:0 4px}
 @media(max-width:520px){.cards{grid-template-columns:1fr 1fr}}
@@ -105,6 +111,7 @@ body{padding:20px;transition:background .2s}
   <a class="tab" role="tab" href="#swim" data-view="swim"><span class="tablabel" data-i="tabSwim">Swim</span><span class="pk" id="pk-swim"></span></a>
   <a class="tab" role="tab" href="#map" data-view="map"><span class="tablabel" data-i="tabMap">Map</span><span class="pk" id="pk-map"></span></a>
   <a class="tab" role="tab" href="#radar" data-view="radar"><span class="tablabel" data-i="tabRadar">Radar</span><span class="pk" id="pk-radar"></span></a>
+  <a class="tab" role="tab" href="#info" data-view="info"><span class="tablabel" data-i="tabInfo">Info</span></a>
 </nav>
 <section id="view-weather">
 <div id="alertBox" class="hidden" style="border-radius:12px;padding:0.85rem 1.1rem;margin:0 0 1.25rem;display:flex;gap:10px;align-items:flex-start;">
@@ -313,7 +320,15 @@ body{padding:20px;transition:background .2s}
   <p class="lab" id="radarNote" style="margin:8px 0 0;font-size:11.5px;line-height:1.5;"></p>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.05 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<section id="view-info" class="hidden">
+  <div class="viewhead" data-i="infoHead">ℹ️ About &amp; changelog</div>
+  <p class="viewtag" id="infoTag"></p>
+  <div id="infoAbout" class="card" style="margin:0 0 1.5rem;"></div>
+  <div class="hd" data-i="infoChangeH">VERSION HISTORY</div>
+  <div id="infoLog"></div>
+</section>
+
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.06 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -324,7 +339,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.05';
+const APPV='3.06';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -469,7 +484,9 @@ const T={
   best:"Best window",worst:"Wettest risk",dry:"dry all day",
   vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
   zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",h7:"INTERESTING FACT",h8:"MAP — PICK A POINT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
-  tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",tabMap:"Map",tabRadar:"Radar",tShort:"Patrik's weather",
+  tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",tabMap:"Map",tabRadar:"Radar",tabInfo:"Info",tShort:"Patrik's weather",
+  infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",
+  infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b>/<b>CARTO</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
   radarHead:"🌧️ Rain radar",radarTag:"Where the rain is and where it's headed — past ~2 hours, plus short-term forecast frames when available.",
   h2b:"TODAY HOUR BY HOUR",hAqi:"AIR QUALITY",
   bbqHead:"🔥 ROŠTILJ COMMAND CENTRE",bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
@@ -496,7 +513,9 @@ const T={
   best:"Najbolji prozor",worst:"Najveći rizik kiše",dry:"suho cijeli dan",
   vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
   zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",h7:"ZANIMLJIVOST",h8:"KARTA \u2014 ODABERI TO\u010cKU",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
-  tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",tabMap:"Karta",tabRadar:"Radar",tShort:"Patrikova prognoza",
+  tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",tabMap:"Karta",tabRadar:"Radar",tabInfo:"Info",tShort:"Patrikova prognoza",
+  infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",
+  infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b>/<b>CARTO</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
   radarHead:"\ud83c\udf27\ufe0f Radar ki\u0161e",radarTag:"Gdje ki\u0161a jest i kamo ide \u2014 zadnja ~2 sata, plus kratkoro\u010dne prognosti\u010dke sli\u010dice kad su dostupne.",
   h2b:"DANAS PO SATIMA",hAqi:"KVALITETA ZRAKA",
   bbqHead:"\ud83d\udd25 RO\u0160TILJ ZAPOVJEDNI CENTAR",bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
@@ -2563,9 +2582,33 @@ function radarPlay(){
  updateRadarPlayBtn();
 }
 
+/* ---------- Info / changelog ---------- */
+const CHANGELOG=[
+ {v:'3.06',d:'2026-07-27',en:'New <b>Info</b> tab: what this dashboard is, its data sources, and this version history.',hr:'Nova kartica Info: što je ova ploča, izvori podataka i ova povijest verzija.'},
+ {v:'3.05',d:'2026-07-27',en:'Radar: light CARTO basemap for contrast, fullscreen toggle, live <b>lightning layer</b> (Blitzortung.org, age-fading strikes). New <b>AQI</b> card + 48h air-quality chart (European AQI, vs yesterday, PM2.5). New <b>today hour-by-hour</b> strip on the Weather tab.',hr:'Radar: svjetla CARTO podloga radi kontrasta, cjelozaslonski prikaz, munje uživo (Blitzortung.org, boja blijedi sa starošću). Nova AQI kartica + 48-satni graf kvalitete zraka (europski AQI, usporedba s jučer, PM2.5). Nova traka “danas po satima” na kartici Vrijeme.'},
+ {v:'3.04',d:'2026-07-17',en:'Next-2h <b>minutely rain strip</b> under the radar (15-min precipitation resolution).',hr:'Traka kiše za sljedeća 2 sata ispod radara (rezolucija 15 min).'},
+ {v:'3.03',d:'2026-07-16',en:'The <b>Map</b> got its own tab; new <b>Radar</b> tab (RainViewer, past ~2h + short-term forecast frames, play/pause/scrub).',hr:'Karta je dobila vlastitu karticu; nova kartica Radar (RainViewer, zadnja ~2 sata + kratkoročna prognoza, reprodukcija/pauza/klizač).'},
+ {v:'3.02',d:'2026-07-02',en:'Big audit pass — 24 bugs and inconsistencies fixed across all views (scoring, rendering, i18n, accessibility).',hr:'Velika revizija — ispravljeno 24 greške i nedosljednosti kroz sve kartice (bodovanje, prikaz, prijevodi, pristupačnost).'},
+ {v:'3.01',d:'2026-06-28',en:'BBQ page grew a proper <b>BWI scoring model</b>: letter grades, weekend verdict, vegan mode, smoke map, glow effect, prep checklist.',hr:'Roštilj kartica dobila je pravi BWI model bodovanja: slovne ocjene, vikend verdikt, vegan način, kartu dima, efekt sjaja, popis pripreme.'},
+ {v:'3.00',d:'2026-06-28',en:'Big one: the dashboard became a <b>four-tab app</b> — Weather, BBQ, Hiking and Swimming, each with its own charts and scoring.',hr:'Veliki korak: ploča je postala aplikacija s četiri kartice — Vrijeme, Roštilj, Planinarenje i Kupanje, svaka s vlastitim grafovima i bodovanjem.'},
+ {v:'2.32',d:'2026-06-14',en:'Severe-weather alert banner; the weekend outlook now looks a full 14 days ahead.',hr:'Traka upozorenja na opasno vrijeme; vikend prognoza sada gleda punih 14 dana unaprijed.'},
+ {v:'2.31',d:'2026-06-14',en:'Bigger current-temperature display, a weekend-activities block, and an hourly “today” grilling forecast.',hr:'Veći prikaz trenutne temperature, blok vikend-aktivnosti i satna prognoza roštilja za danas.'},
+ {v:'2.30',d:'2026-06-12',en:'Fixed a load hang on iOS and clarified the offline/file:// error message.',hr:'Ispravljeno zamrzavanje učitavanja na iOS-u i pojašnjena poruka greške za offline/file:// način.'},
+ {v:'2.29',d:'2026-06-12',en:'Added a grilling section with recommendations, click-to-forecast map, and better tooltips.',hr:'Dodan odjeljak za roštilj s preporukama, karta na klik za prognozu i bolji opisi (tooltip).'},
+ {v:'2.28 and earlier',d:'',en:'The original single-page forecast dashboard: current conditions, 24-hour and multi-day outlook, sea temperature, biometeo and moon/tide charts.',hr:'Izvorna jednostranična prognoza: trenutni uvjeti, 24-satni i višednevni izgled, temperatura mora, biometeo i grafovi mjeseca/plime.'}
+];
+function renderInfo(){
+ const hrv=lang==='hr';
+ document.getElementById('infoTag').textContent=LBL.infoTag;
+ document.getElementById('infoAbout').innerHTML=LBL.infoAbout;
+ document.getElementById('infoLog').innerHTML=CHANGELOG.map(c=>
+  '<div class="logrow"><div class="logv">v'+esc(c.v)+'</div><div class="logd">'+esc(c.d||'')+'</div><div class="logi">'+(hrv?c.hr:c.en)+'</div></div>'
+ ).join('');
+}
+
 /* ---------- view router ---------- */
-const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#swim':'swim','#map':'map','#radar':'radar'};
-const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},swim:{el:'view-swim',render:renderSwim},map:{el:'view-map',render:renderMapView},radar:{el:'view-radar',render:renderRadar}};
+const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#swim':'swim','#map':'map','#radar':'radar','#info':'info'};
+const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},swim:{el:'view-swim',render:renderSwim},map:{el:'view-map',render:renderMapView},radar:{el:'view-radar',render:renderRadar},info:{el:'view-info',render:renderInfo}};
 let active='weather';
 function route(){return ROUTES[(location.hash||'').split('?')[0]]||'weather';}
 function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh,swimCh,aqiCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=swimCh=aqiCh=null;}
