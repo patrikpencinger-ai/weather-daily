@@ -4,3 +4,4 @@
 .assetsignore
 wrangler.toml
 CLAUDE.md
+AGENTS.md
