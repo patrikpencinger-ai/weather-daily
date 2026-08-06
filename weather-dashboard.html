@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.06</title>
+<title>Patrik's weather daily — v3.07</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -124,6 +124,12 @@ body{padding:20px;transition:background .2s}
 
 <div id="todaySec" class="hidden" style="margin:0 0 2rem;">
 <div class="hd" data-i="h2b">TODAY HOUR BY HOUR</div>
+<div class="rng" id="todayCtl" style="margin:0 0 10px;align-items:center;">
+  <button class="lbtn" id="btn-t24d" data-i="t24Day" onclick="setTStrip('day')">Today 00–24</button>
+  <button class="lbtn" id="btn-t24n" data-i="t24Next" onclick="setTStrip('next')">Next 24 h</button>
+  <input type="range" id="t24Slider" class="hidden" min="0" max="48" step="3" value="0" oninput="setTOff(this.value)" style="flex:1;min-width:120px;accent-color:#2caaf0;" aria-label="Shift the 24-hour window up to three days ahead">
+  <span id="t24Lbl" class="lab hidden" style="font-size:11.5px;font-weight:600;"></span>
+</div>
 <div class="card" id="todayStrip" style="padding:0.9rem 1rem;"></div>
 </div>
 
@@ -328,7 +334,7 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.06 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.07 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -339,7 +345,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.06';
+const APPV='3.07';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -488,7 +494,7 @@ const T={
   infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",
   infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b>/<b>CARTO</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
   radarHead:"🌧️ Rain radar",radarTag:"Where the rain is and where it's headed — past ~2 hours, plus short-term forecast frames when available.",
-  h2b:"TODAY HOUR BY HOUR",hAqi:"AIR QUALITY",
+  h2b:"TODAY HOUR BY HOUR",hAqi:"AIR QUALITY",t24Day:"Today 00–24",t24Next:"Next 24 h",
   bbqHead:"🔥 ROŠTILJ COMMAND CENTRE",bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
   bbqPrepH:"PREP TIMELINE",bbqGrillH:"TODAY'S GRILL SCORE BY HOUR",bbqNonsense:"THE NONSENSE NUMBERS",bbqCheckH:"PIT CHECKLIST",
   bbqCritL:"Score = what you tick. Prime time is 12–18h (peak 14h); untick a factor to ignore it (grill at 9am if you must).",
@@ -517,7 +523,7 @@ const T={
   infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",
   infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b>/<b>CARTO</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
   radarHead:"\ud83c\udf27\ufe0f Radar ki\u0161e",radarTag:"Gdje ki\u0161a jest i kamo ide \u2014 zadnja ~2 sata, plus kratkoro\u010dne prognosti\u010dke sli\u010dice kad su dostupne.",
-  h2b:"DANAS PO SATIMA",hAqi:"KVALITETA ZRAKA",
+  h2b:"DANAS PO SATIMA",hAqi:"KVALITETA ZRAKA",t24Day:"Danas 00–24",t24Next:"Sljedeća 24 h",
   bbqHead:"\ud83d\udd25 RO\u0160TILJ ZAPOVJEDNI CENTAR",bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
   bbqPrepH:"VREMENSKA CRTA PRIPREME",bbqGrillH:"DANA\u0160NJI RO\u0160TILJ INDEKS PO SATIMA",bbqNonsense:"BROJKE BEZ VEZE",bbqCheckH:"LISTA ZA RO\u0160TILJ",
   bbqCritL:"Indeks = \u0161to ozna\u010di\u0161. Zlatno doba je 12\u201318 h (vrh 14 h); odzna\u010di faktor da ga zanemari\u0161 (ro\u0161tilj u 9 ujutro ako ba\u0161 mora\u0161).",
@@ -534,6 +540,7 @@ const T={
 };
 let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, swimCh=null, aqiCh=null, lastErrs=null;
 let BBQCRIT={time:true,temp:true,rain:true,wind:true,humid:true,storm:true}, bbqSeries=[], bbqPeak=null;
+let TSTRIP='day', TOFF=0;
 let VEGAN=false, bbqCheck={};
 try{const s=localStorage.getItem('wd_bbqcheck');if(s)bbqCheck=JSON.parse(s)||{};}catch(e){}
 let swimMapL=null, swimMapMarks=[], swimMapView=null;
@@ -665,7 +672,14 @@ async function fetchOpenMeteo(loc,range){
     mm:(dl.precipitation_sum&&dl.precipitation_sum[1]!=null)?Math.round(dl.precipitation_sum[1]*10)/10:null};
   }
  }
- return{loc:loc.name,station:loc.station,uv:uvObj,rain15:rain15,today3:today3,todayMeta:todayMeta,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,sun:sunObj,
+ let h3ext=null;
+ if(hl.time.length>24){
+  const ex=[];
+  for(let k3=0;k3<=96;k3+=3){const i3=24+k3;if(i3>=hl.time.length)break;
+   ex.push({a:k3,dt:hl.time[i3].slice(0,10),h:hl.time[i3].slice(11,16),t:Math.round(hl.temperature_2m[i3]),cond:WMO(hl.weather_code[i3]),pp:(hl.precipitation_probability&&hl.precipitation_probability[i3]!=null)?Math.round(hl.precipitation_probability[i3]):null});}
+  if(ex.length>=9)h3ext=ex;
+ }
+ return{loc:loc.name,station:loc.station,uv:uvObj,rain15:rain15,today3:today3,todayMeta:todayMeta,h3ext:h3ext,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,sun:sunObj,
   daysFull:fullDs,
   now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),wdeg:Math.round(((cur.wind_direction_10m%360)+360)%360),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
   hours:hours,days:ds,yest:yest,badge:badge,
@@ -1722,7 +1736,8 @@ function markBtns(){
  const states={'btn-en':lang==='en','btn-hr':lang==='hr','btn-lt':theme==='light','btn-dk':theme==='dark','btn-fs':fontbig,'btn-rf':false,'btn-cf':CONF,'btn-pr':PRES,'btn-mp':MP,'btn-bbq':BBQ,
   'btn-r3':RANGE===3,'btn-r7':RANGE===7,'btn-r14':RANGE===14,'btn-r30':RANGE===30,
   'btn-c0':CMODE===0,'btn-c1':CMODE===1,'btn-c2':CMODE===2,'btn-moon':MOON,'btn-tide':TIDE,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7,
-  'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7,'btn-vegan':VEGAN};
+  'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7,'btn-vegan':VEGAN,
+  'btn-t24d':TSTRIP==='day','btn-t24n':TSTRIP==='next'};
  const paint=(b,on)=>{
   b.style.background=on?actBg:'transparent';b.style.color=on?actFg:inFg;b.style.border=bd;
   b.style.borderRadius='8px';b.style.padding='4px 10px';b.style.fontSize='12px';b.style.fontWeight='500';b.style.cursor='pointer';b.style.boxShadow='none';
@@ -2316,9 +2331,66 @@ function drawSwimMap(loc,list,att){
 }
 
 /* ---------- TODAY strip + AQI (v3.05) ---------- */
+function setTStrip(m){TSTRIP=(m==='next')?'next':'day';if(TSTRIP==='day')TOFF=0;markBtns();renderTodayStrip();}
+function setTOff(v){TOFF=parseInt(v,10)||0;renderTodayStrip();}
+function syncT24Ctl(){
+ var s=document.getElementById('t24Slider'),l=document.getElementById('t24Lbl');
+ var nx=TSTRIP==='next'&&D&&D.h3ext&&D.h3ext.length;
+ if(s)s.classList.toggle('hidden',!nx);
+ if(l)l.classList.toggle('hidden',!nx);
+}
+function renderStripWindow(el){
+ var hrv=lang==='hr';
+ var ext=D.h3ext;
+ var nowD=new Date();
+ var nmin=nowD.getHours()*60+nowD.getMinutes();
+ var base=Math.floor(nowD.getHours()/3)*3;
+ var lastA=ext[ext.length-1].a;
+ var maxStart=Math.max(0,lastA-24);
+ var maxOff=Math.max(0,maxStart-base);
+ if(TOFF>maxOff)TOFF=maxOff;
+ var sl=document.getElementById('t24Slider');
+ if(sl){sl.max=maxOff;sl.value=TOFF;}
+ var start=Math.min(base+TOFF,maxStart);
+ var pts=ext.filter(function(p){return p.a>=start&&p.a<=start+24;});
+ if(pts.length<2){el.innerHTML='';return;}
+ var s0=pts[0],s1=pts[pts.length-1];
+ var lb=document.getElementById('t24Lbl');
+ if(lb)lb.textContent=dayLab(s0.dt)+' '+s0.h+' → '+dayLab(s1.dt)+' '+s1.h;
+ var hiW=null,loW=null,ppW=0;
+ pts.forEach(function(p){if(p.t!=null){if(hiW==null||p.t>hiW)hiW=p.t;if(loW==null||p.t<loW)loW=p.t;}if(p.pp!=null&&p.pp>ppW)ppW=p.pp;});
+ var containsNow=(TOFF===0);
+ var flTxt=(containsNow&&D.now&&D.now.fl!=null)?(hrv?('Osjet '+Math.round(D.now.fl)+'°'):('Feels like '+Math.round(D.now.fl)+'°')):'';
+ var points='';
+ for(var i=0;i<pts.length;i++){
+  var p=pts[i];
+  var dayChg=(i>0&&p.dt!==pts[i-1].dt);
+  points+='<div style="flex:1 0 auto;min-width:32px;text-align:center;">'+
+   '<div style="font-size:20px;line-height:1;">'+(ICON[p.cond]||'')+'</div>'+
+   '<div style="font-size:11px;font-weight:600;color:var(--tp);margin-top:3px;">'+(p.t==null?'--':p.t+'°')+'</div>'+
+   '<div style="font-size:8.5px;color:var(--ts);margin-top:2px;line-height:1.3;">'+p.h.slice(0,2)+'h'+(dayChg?('<br><b>'+esc(dayLab(p.dt).split(' ')[0])+'</b>'):'')+'</div>'+
+   '</div>';
+ }
+ var frac=(nmin-start*60)/1440;
+ var dot=(containsNow&&frac>=0&&frac<=1)?'<div style="margin-top:6px;"><div style="position:relative;height:3px;background:var(--bd);border-radius:999px;"><div style="position:absolute;top:50%;left:calc('+(frac*100).toFixed(2)+'% - 4px);transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:#7cb342;border:2px solid var(--bg);"></div></div></div>':'';
+ var grpLbl=hrv?'Sljedeća 24 sata':'Next 24 hours';
+ el.innerHTML=
+  '<div role="group" aria-label="'+esc(grpLbl)+'" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">'+
+   '<div style="min-width:110px;">'+
+    '<div style="font-size:26px;font-weight:700;color:var(--tp);">'+(hiW==null?'--':hiW+'°')+'<span style="color:var(--ts);font-weight:400;"> / '+(loW==null?'--':loW+'°')+'</span></div>'+
+    (flTxt?('<div style="font-size:12px;color:var(--ts);margin-top:3px;">'+esc(flTxt)+'</div>'):'')+
+    '<div style="font-size:12px;color:var(--ts);margin-top:5px;">💧 '+Math.round(ppW)+'%</div>'+
+   '</div>'+
+   '<div style="flex:1;min-width:220px;">'+
+    '<div style="overflow-x:auto;"><div style="display:flex;gap:2px;min-width:280px;">'+points+'</div></div>'+dot+
+   '</div>'+
+  '</div>';
+}
 function renderTodayStrip(){
  var el=document.getElementById('todayStrip');
  if(!el)return;
+ syncT24Ctl();
+ if(TSTRIP==='next'&&D&&D.h3ext&&D.h3ext.length){renderStripWindow(el);return;}
  if(!D||!D.today3||!D.today3.length){el.innerHTML='';return;}
  var meta=D.todayMeta||{};
  var now=D.now||{};
@@ -2584,6 +2656,7 @@ function radarPlay(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.07',d:'2026-07-28',en:'Hour strip got a <b>Today / Next 24 h</b> toggle plus a slider that slides the 24-hour window up to three days ahead (day changes labelled).',hr:'Satna traka dobila je prekidač <b>Danas / Sljedeća 24 h</b> i klizač koji pomiče 24-satni prozor do tri dana unaprijed (promjene dana označene).'},
  {v:'3.06',d:'2026-07-27',en:'New <b>Info</b> tab: what this dashboard is, its data sources, and this version history.',hr:'Nova kartica Info: što je ova ploča, izvori podataka i ova povijest verzija.'},
  {v:'3.05',d:'2026-07-27',en:'Radar: light CARTO basemap for contrast, fullscreen toggle, live <b>lightning layer</b> (Blitzortung.org, age-fading strikes). New <b>AQI</b> card + 48h air-quality chart (European AQI, vs yesterday, PM2.5). New <b>today hour-by-hour</b> strip on the Weather tab.',hr:'Radar: svjetla CARTO podloga radi kontrasta, cjelozaslonski prikaz, munje uživo (Blitzortung.org, boja blijedi sa starošću). Nova AQI kartica + 48-satni graf kvalitete zraka (europski AQI, usporedba s jučer, PM2.5). Nova traka “danas po satima” na kartici Vrijeme.'},
  {v:'3.04',d:'2026-07-17',en:'Next-2h <b>minutely rain strip</b> under the radar (15-min precipitation resolution).',hr:'Traka kiše za sljedeća 2 sata ispod radara (rezolucija 15 min).'},

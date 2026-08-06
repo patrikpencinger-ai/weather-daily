@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~2,650 lines). Current version: **v3.06** (also in the
+(HTML + CSS + vanilla JS, ~2,750 lines). Current version: **v3.07** (also in the
 `APPV` JS constant, used for the dynamic `document.title` — bump all three together).
 
 As of v3 it's a **seven-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
