@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.09</title>
+<title>Patrik's weather daily — v3.10</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -39,6 +39,7 @@ body{padding:20px;transition:background .2s}
 #radarCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 4px;}
 #radarSlider{flex:1;min-width:120px;accent-color:#2caaf0;}
 .gridlbl{background:none;border:none;}
+@keyframes boPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
 .mly{border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:12.5px;cursor:pointer;background:var(--bg);color:var(--ts);}
 .mly.on{background:var(--tp);color:var(--bg);border-color:var(--tp);}
 .stpop b{font-size:13px}.stpop button{margin-top:6px;background:#2caaf0;color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
@@ -332,7 +333,7 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.09 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.10 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -343,7 +344,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.09';
+const APPV='3.10';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -2483,7 +2484,13 @@ function drawAqi(){
 let boWs=null,boOn=false,boPaused=false,boStrikes=[],boAger=null,boHostIdx=0;
 const BOHOSTS=['ws1.blitzortung.org','ws7.blitzortung.org','ws8.blitzortung.org'];
 function boDecode(b){var e={},d=b.split(''),c=d[0],f=c,g=[c],o=256,a,q;for(var i=1;i<d.length;i++){a=d[i].charCodeAt(0);q=256>a?d[i]:(e[a]?e[a]:(f+c));g.push(q);c=q.charAt(0);e[o]=f+c;o++;f=q;}return g.join('');}
-function boCol(age){return age<5*60000?'#ffe14d':(age<15*60000?'#E0A53C':(age<30*60000?'#C2632B':'#8a8a8a'));}
+function boIcon(age){
+ const s=age<5*60000?26:(age<15*60000?20:(age<30*60000?16:13));
+ const op=age<5*60000?1:(age<15*60000?0.85:(age<30*60000?0.6:0.35));
+ const glow=age<15*60000?'filter:drop-shadow(0 0 5px #ffe14d) drop-shadow(0 0 11px #ff9d00);':'';
+ const anim=age<3*60000?'animation:boPulse 1.1s ease-in-out 4;':'';
+ return L.divIcon({className:'gridlbl',html:'<div style="font-size:'+s+'px;line-height:1;opacity:'+op+';'+glow+anim+'transform-origin:center;">⚡</div>',iconSize:null,iconAnchor:[s/2,s/2]});
+}
 function lightningToggle(){
  boOn=!boOn;
  const b=document.getElementById('radarBolt');
@@ -2501,9 +2508,9 @@ function boConnect(){
    if(j&&j.lat!=null&&j.lon!=null&&radarMapL){
     let bb=null;try{bb=radarMapL.getBounds().pad(1.0);}catch(e){}
     if(bb&&bb.contains([j.lat,j.lon])){
-     const mk=L.circleMarker([j.lat,j.lon],{radius:3,color:'#6b5400',weight:1,fillColor:'#ffe14d',fillOpacity:0.9}).addTo(radarMapL);
+     const mk=L.marker([j.lat,j.lon],{icon:boIcon(0),interactive:false,keyboard:false}).addTo(radarMapL);
      boStrikes.push({t:new Date().getTime(),m:mk});
-     if(boStrikes.length>1500){const old=boStrikes.shift();try{radarMapL.removeLayer(old.m);}catch(e){}}
+     if(boStrikes.length>600){const old=boStrikes.shift();try{radarMapL.removeLayer(old.m);}catch(e){}}
     }
    }
   }catch(e){}};
@@ -2521,7 +2528,7 @@ function boAge(){
  boStrikes=boStrikes.filter(s=>{
   const a=now-s.t;
   if(a>60*60000){try{radarMapL.removeLayer(s.m);}catch(e){}return false;}
-  try{s.m.setStyle({color:boCol(a)==='#8a8a8a'?'#666':'#6b5400',fillColor:boCol(a),fillOpacity:Math.max(0.25,0.9-(a/3600000)*0.7)});}catch(e){}
+  try{s.m.setIcon(boIcon(a));}catch(e){}
   return true;
  });
 }
@@ -2675,13 +2682,15 @@ function gridRefresh(){
  var south=b.getSouth(),north=b.getNorth(),west=b.getWest(),east=b.getEast();
  var insetLat=(north-south)*0.08,insetLon=(east-west)*0.08;
  var s2=south+insetLat,n2=north-insetLat,w2=west+insetLon,e2=east-insetLon;
- var COLS=5,ROWS=4,lats=[],lons=[];
+ var COLS=7,ROWS=5,lats=[],lons=[];
+ var stepLon=COLS>1?(e2-w2)/(COLS-1):0;
  for(var row=0;row<ROWS;row++){
   var latF=ROWS>1?row/(ROWS-1):0.5;
   var lat=s2+(n2-s2)*latF;
+  var off=(row%2)?stepLon*0.5:0; /* stagger alternate rows — honeycomb, not chessboard */
   for(var col=0;col<COLS;col++){
-   var lonF=COLS>1?col/(COLS-1):0.5;
-   var lon=w2+(e2-w2)*lonF;
+   if(off&&col===COLS-1)continue; /* staggered rows drop the last point to stay in view */
+   var lon=w2+stepLon*col+off;
    lats.push(lat.toFixed(4));lons.push(lon.toFixed(4));
   }
  }
@@ -2707,10 +2716,14 @@ function gridRefresh(){
   gridDraw(Array.isArray(data)?data:[data]);
  });
 }
+function tColScale(t){return t<0?'#4f7bd9':(t<8?'#2caaf0':(t<16?'#3DA35D':(t<24?'#E0A53C':(t<30?'#D85A30':(t<35?'#A32D2D':'#7a1fa2')))));}
 function gridDraw(list){
  if(!radarMapL||!list)return;
  if(!gridLG){gridLG=L.layerGroup().addTo(radarMapL);}
  gridLG.clearLayers();
+ /* blob radius ≈ 0.62 × horizontal point spacing, so neighbouring blobs blend into a soft field */
+ var blobR=26;
+ try{blobR=Math.max(26,Math.round(radarMapL.getSize().x/7*0.62));}catch(e){}
  for(var i=0;i<list.length;i++){
   var item=list[i];
   if(!item)continue;
@@ -2718,26 +2731,34 @@ function gridDraw(list){
   if(lat==null||lon==null)continue;
   var cur=item.current;
   if(!cur)continue;
+  var sum=0;
+  if(item.daily&&item.daily.precipitation_sum){
+   sum=(item.daily.precipitation_sum[0]||0)+(item.daily.precipitation_sum[1]||0);
+  }
+  /* semi-transparent graphic overlays (drawn first, under the labels) */
+  if(MLAYERS.temp&&cur.temperature_2m!=null){
+   L.circleMarker([lat,lon],{radius:blobR,stroke:false,fillColor:tColScale(cur.temperature_2m),fillOpacity:0.22,interactive:false}).addTo(gridLG);
+  }
+  if(MLAYERS.rain&&sum>=0.2){
+   L.circleMarker([lat,lon],{radius:Math.round(blobR*0.8),stroke:false,fillColor:(sum>=10?'#0E7490':'#2caaf0'),fillOpacity:Math.min(0.45,0.15+sum/40),interactive:false}).addTo(gridLG);
+  }
   if(MLAYERS.clouds&&cur.cloud_cover!=null){
-   L.circleMarker([lat,lon],{radius:16,stroke:false,fillColor:'#9aa0a6',fillOpacity:Math.min(0.6,cur.cloud_cover/100*0.6),interactive:false}).addTo(gridLG);
+   L.circleMarker([lat,lon],{radius:Math.round(blobR*0.7),stroke:false,fillColor:'#9aa0a6',fillOpacity:Math.min(0.55,cur.cloud_cover/100*0.55),interactive:false}).addTo(gridLG);
   }
   var html='';
   if(MLAYERS.temp&&cur.temperature_2m!=null){
    var t=cur.temperature_2m;
-   var tCol=t<=0?'#7cc4f5':(t<=15?'#2caaf0':(t<=25?'#E0A53C':'#D85A30'));
-   html+='<div style="font-weight:700;font-size:12px;color:'+tCol+';">'+Math.round(t)+'°</div>';
+   html+='<div style="font-weight:700;font-size:12px;color:'+tColScale(t)+';">'+Math.round(t)+'°</div>';
   }
   if(MLAYERS.wind&&cur.wind_speed_10m!=null){
    var dir=cur.wind_direction_10m||0,spd=cur.wind_speed_10m;
-   html+='<div style="font-size:11px;color:#455a75;"><span style="display:inline-block;transform:rotate('+(dir+90)+'deg);">➤</span> '+Math.round(spd)+'</div>';
+   var asz=11+Math.min(6,Math.round(spd/8)); /* stronger wind → bigger arrow */
+   html+='<div style="font-size:11px;color:#607a9b;"><span style="display:inline-block;font-size:'+asz+'px;transform:rotate('+(dir+90)+'deg);">➤</span> '+Math.round(spd)+'</div>';
   }
-  if(MLAYERS.rain&&item.daily&&item.daily.precipitation_sum){
-   var d0=item.daily.precipitation_sum[0],d1=item.daily.precipitation_sum[1];
-   var sum=(d0||0)+(d1||0);
-   if(sum>=0.2)html+='<div style="font-size:10.5px;color:#0E7490;font-weight:600;">💧'+(Math.round(sum*10)/10)+'</div>';
-   else html+='<div style="font-size:10.5px;color:#9aa0a6;">·</div>';
+  if(MLAYERS.rain&&sum>=0.2){
+   html+='<div style="font-size:10.5px;color:#0E7490;font-weight:600;">💧'+(Math.round(sum*10)/10)+'</div>';
   }
-  if(MLAYERS.clouds&&cur.cloud_cover!=null){
+  if(MLAYERS.clouds&&cur.cloud_cover!=null&&cur.cloud_cover>=15){
    html+='<div style="font-size:9.5px;color:#7a7f87;">☁'+Math.round(cur.cloud_cover)+'%</div>';
   }
   if(html){
@@ -2756,6 +2777,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.10',d:'2026-08-20',en:'Map layers polished: denser honeycomb data grid, semi-transparent <b>colour overlays</b> for temperature and rainfall, wind arrows scale with speed, and lightning strikes are now big glowing pulsing ⚡ markers.',hr:'Dorađeni slojevi karte: gušća saćasta mreža točaka, poluprozirni <b>obojeni slojevi</b> za temperaturu i kišu, strelice vjetra rastu s brzinom, a munje su sada veliki svjetleći pulsirajući ⚡ markeri.'},
  {v:'3.09',d:'2026-08-20',en:'Map is now <b>truly full-screen</b>: edge-to-edge with floating layer pills and a floating timeline panel. Fixed radar tiles showing “zoom not supported” beyond zoom 7.',hr:'Karta je sada <b>stvarno cjelozaslonska</b>: od ruba do ruba s plutajućim slojevima i plutajućom vremenskom crtom. Ispravljene radarske pločice („zoom not supported”) iznad razine 7.'},
  {v:'3.08',d:'2026-08-20',en:'One <b>full-screen weather map</b> replaces the Map and Radar tabs: toggleable layers (radar, live lightning, temperature, wind, 48h rainfall, cloud cover as an Open-Meteo point grid), its own light/dark basemap switch, zoom to street level, radar timeline, next-2h rain strip and click-to-forecast. New 🗺️ launcher card and a <b>Tomorrow</b> card (range, icon, vs today / normal / last year) on the main dashboard.',hr:'Jedna <b>cjelozaslonska vremenska karta</b> zamjenjuje kartice Karta i Radar: uključivi slojevi (radar, munje uživo, temperatura, vjetar, kiša 48h, naoblaka kao Open-Meteo mreža točaka), vlastiti svijetli/tamni prekidač podloge, zum do razine ulice, radar vremenska crta, traka kiše za 2h i prognoza na klik. Nova 🗺️ kartica-prečac i kartica <b>Sutra</b> (raspon, ikona, vs danas / normala / lani) na glavnoj ploči.'},
  {v:'3.07',d:'2026-07-28',en:'Hour strip got a <b>Today / Next 24 h</b> toggle plus a slider that slides the 24-hour window up to three days ahead (day changes labelled).',hr:'Satna traka dobila je prekidač <b>Danas / Sljedeća 24 h</b> i klizač koji pomiče 24-satni prozor do tri dana unaprijed (promjene dana označene).'},
