@@ -39,6 +39,7 @@ body{padding:20px;transition:background .2s}
 #radarCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 4px;}
 #radarSlider{flex:1;min-width:120px;accent-color:#2caaf0;}
 .gridlbl{background:none;border:none;}
+.blobT,.blobR,.blobC{filter:blur(16px);}
 @keyframes boPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
 .mly{border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:12.5px;cursor:pointer;background:var(--bg);color:var(--ts);}
 .mly.on{background:var(--tp);color:var(--bg);border-color:var(--tp);}
@@ -2737,13 +2738,13 @@ function gridDraw(list){
   }
   /* semi-transparent graphic overlays (drawn first, under the labels) */
   if(MLAYERS.temp&&cur.temperature_2m!=null){
-   L.circleMarker([lat,lon],{radius:blobR,stroke:false,fillColor:tColScale(cur.temperature_2m),fillOpacity:0.22,interactive:false}).addTo(gridLG);
+   L.circleMarker([lat,lon],{radius:Math.round(blobR*1.15),stroke:false,fillColor:tColScale(cur.temperature_2m),fillOpacity:0.3,interactive:false,className:'blobT'}).addTo(gridLG);
   }
   if(MLAYERS.rain&&sum>=0.2){
-   L.circleMarker([lat,lon],{radius:Math.round(blobR*0.8),stroke:false,fillColor:(sum>=10?'#0E7490':'#2caaf0'),fillOpacity:Math.min(0.45,0.15+sum/40),interactive:false}).addTo(gridLG);
+   L.circleMarker([lat,lon],{radius:Math.round(blobR*0.9),stroke:false,fillColor:(sum>=10?'#0E7490':'#2caaf0'),fillOpacity:Math.min(0.55,0.2+sum/30),interactive:false,className:'blobR'}).addTo(gridLG);
   }
   if(MLAYERS.clouds&&cur.cloud_cover!=null){
-   L.circleMarker([lat,lon],{radius:Math.round(blobR*0.7),stroke:false,fillColor:'#9aa0a6',fillOpacity:Math.min(0.55,cur.cloud_cover/100*0.55),interactive:false}).addTo(gridLG);
+   L.circleMarker([lat,lon],{radius:Math.round(blobR*0.85),stroke:false,fillColor:'#9aa0a6',fillOpacity:Math.min(0.6,cur.cloud_cover/100*0.6),interactive:false,className:'blobC'}).addTo(gridLG);
   }
   var html='';
   if(MLAYERS.temp&&cur.temperature_2m!=null){
