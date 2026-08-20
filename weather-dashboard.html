@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.08</title>
+<title>Patrik's weather daily — v3.09</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -27,14 +27,19 @@ body{padding:20px;transition:background .2s}
 .dark .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.92) saturate(0.7);}
 .dark .radarlayer .leaflet-tile{filter:none!important;}
 .dark #view-map .leaflet-tile{filter:none!important;}
-#view-map{position:fixed;inset:0;z-index:1000;background:var(--bg);margin:0;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;}
+#view-map{position:fixed;inset:0;z-index:1000;background:var(--bg);margin:0;padding:0;}
 #view-map.hidden{display:none;}
-#mapTop{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 8px;}
-#radarBox{position:relative;width:100%;flex:1;min-height:180px;border-radius:10px;overflow:hidden;border:0.5px solid var(--bd);}
-#radarCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;}
-#radarSlider{flex:1;min-width:140px;accent-color:#2caaf0;}
+#wrap.big #view-map{zoom:0.667;}
+#radarBox{position:absolute;inset:0;}
+#mapTop{position:absolute;top:10px;left:10px;right:10px;z-index:1100;display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:none;}
+#mapTop .lbtn,#mapTop .mly{pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+#mapTop .lbtn{background:var(--bg);}
+#mapThemeB{margin-left:auto;}
+#mapBottom{position:absolute;left:10px;right:10px;bottom:22px;z-index:1100;max-width:680px;margin:0 auto;background:var(--bg);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(6px);border:0.5px solid var(--bd);border-radius:12px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+#radarCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 4px;}
+#radarSlider{flex:1;min-width:120px;accent-color:#2caaf0;}
 .gridlbl{background:none;border:none;}
-.mly{border:1px solid var(--bd);border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;background:transparent;color:var(--ts);}
+.mly{border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:12.5px;cursor:pointer;background:var(--bg);color:var(--ts);}
 .mly.on{background:var(--tp);color:var(--bg);border-color:var(--tp);}
 .stpop b{font-size:13px}.stpop button{margin-top:6px;background:#2caaf0;color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
 .lbtn{background:transparent;color:var(--ts);border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;cursor:pointer}
@@ -297,24 +302,26 @@ body{padding:20px;transition:background .2s}
 </section>
 
 <section id="view-map" class="hidden">
+  <div id="radarBox" role="img" aria-label="Full-screen weather map with radar, lightning, temperature, wind, rain and cloud layers"></div>
   <div id="mapTop">
     <button class="lbtn" id="mapClose" onclick="location.hash='#weather'" aria-label="Close the map" title="Close">✕</button>
-    <span id="mlyPills" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"></span>
-    <button class="lbtn" id="mapThemeB" onclick="mapThemeToggle()" aria-label="Toggle map light or dark basemap" title="Map light/dark" style="margin-left:auto;">🌓</button>
+    <span id="mlyPills" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:auto;"></span>
+    <button class="lbtn" id="mapThemeB" onclick="mapThemeToggle()" aria-label="Toggle map light or dark basemap" title="Map light/dark">🌓</button>
   </div>
-  <div id="radarCtl">
-    <button class="lbtn" id="radarPrev" onclick="radarStep(-1)" aria-label="Previous radar frame">⏮</button>
-    <button class="lbtn" id="radarPlay" onclick="radarPlay()" aria-label="Play/pause radar animation">▶️</button>
-    <button class="lbtn" id="radarNext" onclick="radarStep(1)" aria-label="Next radar frame">⏭</button>
-    <input type="range" id="radarSlider" min="0" max="0" value="0" oninput="radarSeek(this.value)" aria-label="Radar time slider">
-    <span id="radarTime" style="font-size:13px;font-weight:600;min-width:86px;"></span>
+  <div id="mapBottom">
+    <div id="radarCtl">
+      <button class="lbtn" id="radarPrev" onclick="radarStep(-1)" aria-label="Previous radar frame">⏮</button>
+      <button class="lbtn" id="radarPlay" onclick="radarPlay()" aria-label="Play/pause radar animation">▶️</button>
+      <button class="lbtn" id="radarNext" onclick="radarStep(1)" aria-label="Next radar frame">⏭</button>
+      <input type="range" id="radarSlider" min="0" max="0" value="0" oninput="radarSeek(this.value)" aria-label="Radar time slider">
+      <span id="radarTime" style="font-size:13px;font-weight:600;min-width:86px;"></span>
+    </div>
+    <div id="rainStripSec" style="margin:4px 0 0;">
+      <div class="lab" id="rainStripH" style="letter-spacing:0.05em;font-weight:600;font-size:10.5px;margin:0 0 3px;"></div>
+      <div id="rainStrip" role="img" aria-label="Rain expected in the next two hours in 15-minute steps" style="display:flex;gap:4px;align-items:flex-end;"></div>
+    </div>
+    <p class="lab" id="radarNote" style="margin:5px 0 0;font-size:9.5px;line-height:1.4;"></p>
   </div>
-  <div id="radarBox" role="img" aria-label="Full-screen weather map with radar, lightning, temperature, wind, rain and cloud layers"></div>
-  <div id="rainStripSec" style="margin:8px 0 0;">
-    <div class="lab" id="rainStripH" style="letter-spacing:0.06em;font-weight:600;font-size:11.5px;margin:0 0 4px;"></div>
-    <div id="rainStrip" role="img" aria-label="Rain expected in the next two hours in 15-minute steps" style="display:flex;gap:4px;align-items:flex-end;"></div>
-  </div>
-  <p class="lab" id="radarNote" style="margin:6px 0 0;font-size:10.5px;line-height:1.45;"></p>
 </section>
 
 <section id="view-info" class="hidden">
@@ -325,7 +332,7 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.08 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.09 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -336,7 +343,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.08';
+const APPV='3.09';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -2588,12 +2595,14 @@ function drawRadarMap(att){
  }
  try{
   if(!radarMapL){
-   radarMapL=L.map('radarBox',{scrollWheelZoom:true});
+   radarMapL=L.map('radarBox',{scrollWheelZoom:true,zoomControl:false});
+   L.control.zoom({position:'bottomright'}).addTo(radarMapL);
    radarBase=L.tileLayer(mapBaseUrl(),{subdomains:'abcd',maxZoom:19,attribution:'© OpenStreetMap © CARTO · © RainViewer · ⚡ Blitzortung.org · Open-Meteo'});
    radarBase.addTo(radarMapL);
    radarMapL.on('click',onMapClick);
   }
   gridHook();
+  try{radarMapL.invalidateSize();}catch(e0){}
   setTimeout(()=>{try{radarMapL.invalidateSize();}catch(e){}},120);
   const c=CUR_LOC||DEFAULT_LOC;
   const moved=!radarView||havKm(radarView.lat,radarView.lon,c.lat,c.lon)>1;
@@ -2601,7 +2610,7 @@ function drawRadarMap(att){
   if(radarLocMark){try{radarMapL.removeLayer(radarLocMark);}catch(e){}}
   radarLocMark=L.circleMarker([c.lat,c.lon],{radius:6,color:'#D85A30',fillColor:'#D85A30',fillOpacity:0.9}).addTo(radarMapL);
   loadRadarFrames();
-  gridRefresh();
+  setTimeout(gridRefresh,250);
  }catch(e){console.log('map failed',e);}
 }
 function loadRadarFrames(){
@@ -2630,7 +2639,7 @@ function buildRadarUI(){
 }
 function radarLayerFor(i){
  const f=radarFrames[i];if(!f||!radarMapL)return null;
- if(!radarLayers[f.t]){radarLayers[f.t]=L.tileLayer(radarHost+f.p+'/256/{z}/{x}/{y}/4/1_1.png',{opacity:0,maxNativeZoom:12,maxZoom:19,className:'radarlayer',zIndex:5});radarLayers[f.t].addTo(radarMapL);}
+ if(!radarLayers[f.t]){radarLayers[f.t]=L.tileLayer(radarHost+f.p+'/256/{z}/{x}/{y}/4/1_1.png',{opacity:0,maxNativeZoom:7,maxZoom:19,className:'radarlayer',zIndex:5});radarLayers[f.t].addTo(radarMapL);}
  return radarLayers[f.t];
 }
 function showRadarFrame(i){
@@ -2688,7 +2697,11 @@ function gridRefresh(){
   if(!radarMapL)return;
   var b2=radarMapL.getBounds();
   var curKey=radarMapL.getZoom()+'|'+b2.getSouth().toFixed(1)+','+b2.getWest().toFixed(1)+','+b2.getNorth().toFixed(1)+','+b2.getEast().toFixed(1);
-  if(curKey!==key)return;
+  if(curKey!==key){
+   /* view changed while fetching (e.g. first-open invalidateSize) — retry once with fresh bounds */
+   if(!gridRefresh._r){gridRefresh._r=1;setTimeout(function(){gridRefresh._r=0;gridRefresh();},350);}
+   return;
+  }
   if(!gridActive())return;
   if(!data)return;
   gridDraw(Array.isArray(data)?data:[data]);
@@ -2743,6 +2756,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.09',d:'2026-08-20',en:'Map is now <b>truly full-screen</b>: edge-to-edge with floating layer pills and a floating timeline panel. Fixed radar tiles showing “zoom not supported” beyond zoom 7.',hr:'Karta je sada <b>stvarno cjelozaslonska</b>: od ruba do ruba s plutajućim slojevima i plutajućom vremenskom crtom. Ispravljene radarske pločice („zoom not supported”) iznad razine 7.'},
  {v:'3.08',d:'2026-08-20',en:'One <b>full-screen weather map</b> replaces the Map and Radar tabs: toggleable layers (radar, live lightning, temperature, wind, 48h rainfall, cloud cover as an Open-Meteo point grid), its own light/dark basemap switch, zoom to street level, radar timeline, next-2h rain strip and click-to-forecast. New 🗺️ launcher card and a <b>Tomorrow</b> card (range, icon, vs today / normal / last year) on the main dashboard.',hr:'Jedna <b>cjelozaslonska vremenska karta</b> zamjenjuje kartice Karta i Radar: uključivi slojevi (radar, munje uživo, temperatura, vjetar, kiša 48h, naoblaka kao Open-Meteo mreža točaka), vlastiti svijetli/tamni prekidač podloge, zum do razine ulice, radar vremenska crta, traka kiše za 2h i prognoza na klik. Nova 🗺️ kartica-prečac i kartica <b>Sutra</b> (raspon, ikona, vs danas / normala / lani) na glavnoj ploči.'},
  {v:'3.07',d:'2026-07-28',en:'Hour strip got a <b>Today / Next 24 h</b> toggle plus a slider that slides the 24-hour window up to three days ahead (day changes labelled).',hr:'Satna traka dobila je prekidač <b>Danas / Sljedeća 24 h</b> i klizač koji pomiče 24-satni prozor do tri dana unaprijed (promjene dana označene).'},
  {v:'3.06',d:'2026-07-27',en:'New <b>Info</b> tab: what this dashboard is, its data sources, and this version history.',hr:'Nova kartica Info: što je ova ploča, izvori podataka i ova povijest verzija.'},
