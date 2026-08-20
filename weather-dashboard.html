@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.07</title>
+<title>Patrik's weather daily — v3.08</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -26,15 +26,16 @@ body{padding:20px;transition:background .2s}
 .hd{font-size:16px;font-weight:500;letter-spacing:0.08em;margin:0 0 0.75rem}
 .dark .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.92) saturate(0.7);}
 .dark .radarlayer .leaflet-tile{filter:none!important;}
-#radarBox{position:relative;width:100%;height:340px;border-radius:10px;overflow:hidden;border:0.5px solid var(--bd);}
-#view-radar.mapfull{position:fixed;inset:0;z-index:1000;background:var(--bg);margin:0;padding:10px;box-sizing:border-box;}
-#view-radar.mapfull #radarBox{height:calc(100% - 56px);}
-#view-radar.mapfull .viewhead,#view-radar.mapfull .viewtag,#view-radar.mapfull #rainStripSec,#view-radar.mapfull #radarNote{display:none;}
-#radarCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px;}
+.dark #view-map .leaflet-tile{filter:none!important;}
+#view-map{position:fixed;inset:0;z-index:1000;background:var(--bg);margin:0;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;}
+#view-map.hidden{display:none;}
+#mapTop{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 8px;}
+#radarBox{position:relative;width:100%;flex:1;min-height:180px;border-radius:10px;overflow:hidden;border:0.5px solid var(--bd);}
+#radarCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;}
 #radarSlider{flex:1;min-width:140px;accent-color:#2caaf0;}
-#mapBox{position:relative;width:100%;height:300px;border-radius:10px;overflow:hidden;border:0.5px solid var(--bd);}
-#mapSec.mapfull{position:fixed;inset:0;z-index:1000;background:var(--bg);margin:0;padding:10px;}
-#mapSec.mapfull #mapBox{height:calc(100% - 46px);border-radius:8px;}
+.gridlbl{background:none;border:none;}
+.mly{border:1px solid var(--bd);border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;background:transparent;color:var(--ts);}
+.mly.on{background:var(--tp);color:var(--bg);border-color:var(--tp);}
 .stpop b{font-size:13px}.stpop button{margin-top:6px;background:#2caaf0;color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
 .lbtn{background:transparent;color:var(--ts);border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;cursor:pointer}
 .lbtn:disabled{opacity:0.35;cursor:not-allowed;}
@@ -110,7 +111,6 @@ body{padding:20px;transition:background .2s}
   <a class="tab" role="tab" href="#hike" data-view="hike"><span class="tablabel" data-i="tabHike">Hiking</span><span class="pk" id="pk-hike"></span></a>
   <a class="tab" role="tab" href="#swim" data-view="swim"><span class="tablabel" data-i="tabSwim">Swim</span><span class="pk" id="pk-swim"></span></a>
   <a class="tab" role="tab" href="#map" data-view="map"><span class="tablabel" data-i="tabMap">Map</span><span class="pk" id="pk-map"></span></a>
-  <a class="tab" role="tab" href="#radar" data-view="radar"><span class="tablabel" data-i="tabRadar">Radar</span><span class="pk" id="pk-radar"></span></a>
   <a class="tab" role="tab" href="#info" data-view="info"><span class="tablabel" data-i="tabInfo">Info</span></a>
 </nav>
 <section id="view-weather">
@@ -297,33 +297,24 @@ body{padding:20px;transition:background .2s}
 </section>
 
 <section id="view-map" class="hidden">
-<div id="mapSec" class="hidden" style="margin:0 0 0.5rem;">
-  <div class="hd" style="display:flex;align-items:center;gap:10px;"><span data-i="h8">MAP — PICK A POINT</span>
-    <button class="lbtn" id="btn-mx" onclick="mapMax()" aria-label="Maximize map" title="Maximize / restore map" style="margin-left:auto;">⛶</button>
+  <div id="mapTop">
+    <button class="lbtn" id="mapClose" onclick="location.hash='#weather'" aria-label="Close the map" title="Close">✕</button>
+    <span id="mlyPills" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"></span>
+    <button class="lbtn" id="mapThemeB" onclick="mapThemeToggle()" aria-label="Toggle map light or dark basemap" title="Map light/dark" style="margin-left:auto;">🌓</button>
   </div>
-  <p class="lab" id="mapNote" style="margin:-2px 0 8px;font-size:12px;"></p>
-  <div id="mapBox"></div>
-</div>
-</section>
-
-<section id="view-radar" class="hidden">
-  <div class="viewhead" data-i="radarHead">🌧️ Rain radar</div>
-  <p class="viewtag" data-i="radarTag"></p>
   <div id="radarCtl">
     <button class="lbtn" id="radarPrev" onclick="radarStep(-1)" aria-label="Previous radar frame">⏮</button>
     <button class="lbtn" id="radarPlay" onclick="radarPlay()" aria-label="Play/pause radar animation">▶️</button>
     <button class="lbtn" id="radarNext" onclick="radarStep(1)" aria-label="Next radar frame">⏭</button>
     <input type="range" id="radarSlider" min="0" max="0" value="0" oninput="radarSeek(this.value)" aria-label="Radar time slider">
     <span id="radarTime" style="font-size:13px;font-weight:600;min-width:86px;"></span>
-    <button class="lbtn" id="radarBolt" onclick="lightningToggle()" aria-pressed="false" aria-label="Toggle live lightning strikes" title="Live lightning (Blitzortung.org)" style="opacity:0.5;">⚡</button>
-    <button class="lbtn" id="radarMaxB" onclick="radarMax()" aria-label="Fullscreen radar" title="Fullscreen / restore" style="margin-left:auto;">⛶</button>
   </div>
-  <div id="radarBox" role="img" aria-label="Animated precipitation radar map"></div>
-  <div id="rainStripSec" style="margin:14px 0 0;">
-    <div class="lab" id="rainStripH" style="letter-spacing:0.06em;font-weight:600;font-size:11.5px;margin:0 0 6px;"></div>
+  <div id="radarBox" role="img" aria-label="Full-screen weather map with radar, lightning, temperature, wind, rain and cloud layers"></div>
+  <div id="rainStripSec" style="margin:8px 0 0;">
+    <div class="lab" id="rainStripH" style="letter-spacing:0.06em;font-weight:600;font-size:11.5px;margin:0 0 4px;"></div>
     <div id="rainStrip" role="img" aria-label="Rain expected in the next two hours in 15-minute steps" style="display:flex;gap:4px;align-items:flex-end;"></div>
   </div>
-  <p class="lab" id="radarNote" style="margin:8px 0 0;font-size:11.5px;line-height:1.5;"></p>
+  <p class="lab" id="radarNote" style="margin:6px 0 0;font-size:10.5px;line-height:1.45;"></p>
 </section>
 
 <section id="view-info" class="hidden">
@@ -334,7 +325,7 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.07 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.08 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -345,7 +336,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.07';
+const APPV='3.08';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -357,7 +348,7 @@ function saveRecents(){try{localStorage.setItem('wd_recents',JSON.stringify(rece
 let theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
 let layout='',fontbig=false,lang='en',RANGE=7,CMODE=0,CONF=false,MOON=false,TIDE=false,PRES=false,BBQ=false;
 let GEO_LOC=null;
-let MAPL=null,MAPMARKS=[],MAP_LOC=null,CUR_LOC=null,MAP_VIEW=null,MAP_BUSY=false;
+let MAP_LOC=null,CUR_LOC=null,MAP_BUSY=false;
 const MOONS=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
 function moonPh(iso){const synodic=29.530588853;const ref=Date.UTC(2000,0,6,18,14);const t=new Date(iso+'T12:00:00Z').getTime();const days=(t-ref)/86400000;return ((days%synodic)+synodic)%synodic/synodic;}
 function moonIcon(iso){return MOONS[Math.round(moonPh(iso)*8)%8];}
@@ -495,6 +486,7 @@ const T={
   infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b>/<b>CARTO</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
   radarHead:"🌧️ Rain radar",radarTag:"Where the rain is and where it's headed — past ~2 hours, plus short-term forecast frames when available.",
   h2b:"TODAY HOUR BY HOUR",hAqi:"AIR QUALITY",t24Day:"Today 00–24",t24Next:"Next 24 h",
+  cTom:"Tomorrow",vsTod:"vs today",cMapCard:"Weather map",mapCardSub:"radar · lightning · layers",
   bbqHead:"🔥 ROŠTILJ COMMAND CENTRE",bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
   bbqPrepH:"PREP TIMELINE",bbqGrillH:"TODAY'S GRILL SCORE BY HOUR",bbqNonsense:"THE NONSENSE NUMBERS",bbqCheckH:"PIT CHECKLIST",
   bbqCritL:"Score = what you tick. Prime time is 12–18h (peak 14h); untick a factor to ignore it (grill at 9am if you must).",
@@ -524,6 +516,7 @@ const T={
   infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b>/<b>CARTO</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
   radarHead:"\ud83c\udf27\ufe0f Radar ki\u0161e",radarTag:"Gdje ki\u0161a jest i kamo ide \u2014 zadnja ~2 sata, plus kratkoro\u010dne prognosti\u010dke sli\u010dice kad su dostupne.",
   h2b:"DANAS PO SATIMA",hAqi:"KVALITETA ZRAKA",t24Day:"Danas 00–24",t24Next:"Sljedeća 24 h",
+  cTom:"Sutra",vsTod:"vs danas",cMapCard:"Vremenska karta",mapCardSub:"radar · munje · slojevi",
   bbqHead:"\ud83d\udd25 RO\u0160TILJ ZAPOVJEDNI CENTAR",bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
   bbqPrepH:"VREMENSKA CRTA PRIPREME",bbqGrillH:"DANA\u0160NJI RO\u0160TILJ INDEKS PO SATIMA",bbqNonsense:"BROJKE BEZ VEZE",bbqCheckH:"LISTA ZA RO\u0160TILJ",
   bbqCritL:"Indeks = \u0161to ozna\u010di\u0161. Zlatno doba je 12\u201318 h (vrh 14 h); odzna\u010di faktor da ga zanemari\u0161 (ro\u0161tilj u 9 ujutro ako ba\u0161 mora\u0161).",
@@ -784,11 +777,13 @@ function ensureClimo(loc){
    '&daily=temperature_2m_max,temperature_2m_mean,precipitation_sum&timezone=auto',20000)
    .then(r=>{if(!r.ok)throw new Error('archive '+r.status);return r.json();});
   const lyDt=sameDayISO(1);
+  const lyD2=(()=>{const d=new Date(lyDt+'T12:00');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
   const lyP=tfetch('https://archive-api.open-meteo.com/v1/archive?latitude='+loc.lat+'&longitude='+loc.lon+
-   '&start_date='+lyDt+'&end_date='+lyDt+
+   '&start_date='+lyDt+'&end_date='+lyD2+
    '&daily=temperature_2m_max,temperature_2m_mean,precipitation_sum&timezone=auto',12000)
    .then(r=>{if(!r.ok)throw new Error('archive '+r.status);return r.json();})
-   .then(j=>({max:j.daily.temperature_2m_max[0],mean:j.daily.temperature_2m_mean[0],precip:j.daily.precipitation_sum[0]}))
+   .then(j=>({max:j.daily.temperature_2m_max[0],mean:j.daily.temperature_2m_mean[0],precip:j.daily.precipitation_sum[0],
+    tomMax:(j.daily.temperature_2m_max.length>1&&j.daily.temperature_2m_max[1]!=null)?j.daily.temperature_2m_max[1]:null}))
    .catch(()=>null);
   const [norm,ly]=await Promise.all([normP,lyP]);
   const want=new Set(windowKeys());
@@ -1313,6 +1308,16 @@ function render(){
   const ctxFL = y? tAnom(n.fl-y.fl)+' '+LBL.vsY : '';
   const ctxH = y? sgn(n.hum-y.hum,' %')+' '+LBL.vsY : '';
   const ctxW = y? sgn(n.wind-y.wind,' km/h')+' '+LBL.vsY : '';
+  let tomCard='';
+  {const d1=(D.daysFull&&D.daysFull[1])||null;
+   if(d1&&d1.hi!=null){
+    const nm1=(cl&&cl.byDay)?cl.byDay[d1.dt.slice(5)]:null;
+    const lyT=(ly&&ly.tomMax!=null)?ly.tomMax:null;
+    const ctxTom=tAnom(d1.hi-d0.hi)+' '+LBL.vsTod+
+     (nm1!=null?('<br>'+tAnom(d1.hi-nm1,null,1)+' '+LBL.vsN+' ('+nm1.toFixed(1)+'°)'):'')+
+     (lyT!=null?('<br>'+tAnom(d1.hi-lyT)+' '+LBL.vsLY+' ('+Math.round(lyT)+'°)'):'');
+    tomCard=card(LBL.cTom,(ICON[d1.cond]||'')+' '+d1.lo+'–'+d1.hi+'°','',ctxTom);
+   }}
   let cardsHtml=
    '<div class="card"><div class="lab">'+LBL.cT+'</div><div style="display:flex;align-items:center;gap:6px;">'+
    '<svg width="22" height="34" viewBox="0 0 24 38" fill="none" stroke="'+C.hi+'" stroke-width="2" stroke-linecap="round" aria-hidden="true">'+
@@ -1321,6 +1326,7 @@ function render(){
    '<span class="big">'+((n.t??"—")+"°")+'</span><span style="font-size:20px;margin-left:2px;">'+(ICON[n.cond]||"")+'</span></div>'+
    '<div class="ctx">'+ctxT+'</div></div>'+
    card(LBL.cMax,(d0.hi??"—")+"°","",ctxMax)+
+   tomCard+
    card(LBL.cP,(n.pp??d0.pp??"—")+"%","",ctxP)+
    card(LBL.cFL,(n.fl??"—")+"°","",ctxFL)+
    card(LBL.cH,(n.hum??"—")+"%","",ctxH)+
@@ -1337,6 +1343,7 @@ function render(){
   const bq=bbqScore(D);
   if(bq){const bt=bbqTier(bq.v);
    cardsHtml+='<div class="card"><div class="lab">'+LBL.cBbq+'<span class="info" tabindex="0" role="button" aria-label="BBQ score criteria">i<span class="tip">'+LBL.bbqInfo+(MP?'<br><br><i>And remember \u2014 nobody expects the evening shower.</i>':'')+'</span></span>'+'</div><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:24px;">'+BBQI[bt]+'</span><span class="big">'+bq.v+'</span><span class="lab" style="font-size:11px;">/100</span></div><div class="ctx">'+esc(bbqName(bt))+(bq.why?(' \u00B7 '+(LBL.bbqWhy[bq.why]||'')):'')+'</div></div>';}
+  cardsHtml+='<div class="card" onclick="location.hash=\'#map\'" onkeydown="if(event.key===\'Enter\')location.hash=\'#map\'" role="button" tabindex="0" aria-label="'+esc(LBL.cMapCard)+'" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:86px;"><div style="font-size:30px;line-height:1;">\uD83D\uDDFA\uFE0F</div><div class="lab" style="font-weight:600;">'+esc(LBL.cMapCard)+'</div><div class="ctx">'+esc(LBL.mapCardSub)+'</div></div>';
   document.getElementById('nowCards').innerHTML=cardsHtml;
  }
  {const al=buildAlerts(lang);const ab=document.getElementById('alertBox');const ba=document.getElementById('btn-alert');
@@ -1723,7 +1730,7 @@ function applyResponsive(){
  document.getElementById('mtwrap').style.height=want==='mobile'?'160px':'190px';
  document.getElementById('biowrap').style.height=want==='mobile'?'150px':'170px';
  document.getElementById('grwrap').style.height=want==='mobile'?'160px':'180px';
- const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],hikecwrap:['170px','200px'],hikewwrap:['150px','170px'],swimcwrap:['160px','190px'],radarBox:['260px','340px'],aqiwrap:['150px','170px']};
+ const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],hikecwrap:['170px','200px'],hikewwrap:['150px','170px'],swimcwrap:['160px','190px'],aqiwrap:['150px','170px']};
  for(const id in vw){const e=document.getElementById(id);if(e)e.style.height=want==='mobile'?vw[id][0]:vw[id][1];}
  if(D)renderActive();
  markBtns();
@@ -1765,37 +1772,10 @@ function loadLeaflet(){
   document.head.appendChild(css);
   const js=document.createElement('script');
   js.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-  js.onload=function(){LEAF_STATE='ready';try{updateMap();}catch(e){console.log('map init failed:',e);}};
-  js.onerror=function(){LEAF_STATE='failed';document.getElementById('mapSec').classList.add('hidden');};
+  js.onload=function(){LEAF_STATE='ready';try{renderActive();}catch(e){console.log('map init failed:',e);}};
+  js.onerror=function(){LEAF_STATE='failed';};
   document.head.appendChild(js);
  }catch(e){LEAF_STATE='failed';}
-}
-function initMapIfNeeded(){
- if(MAPL||typeof L==='undefined')return;
- try{
-  MAPL=L.map('mapBox',{scrollWheelZoom:true});
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'\u00A9 OpenStreetMap'}).addTo(MAPL);
-  MAPL.on('click',onMapClick);
-  const c=CUR_LOC||DEFAULT_LOC;MAPL.setView([c.lat,c.lon],9);MAP_VIEW={lat:c.lat,lon:c.lon};
- }catch(e){MAPL=null;}
-}
-function updateMap(){
- const sec=document.getElementById('mapSec');
- if(typeof L==='undefined'){
-  if(LEAF_STATE==='idle')loadLeaflet();
-  if(LEAF_STATE==='failed')sec.classList.add('hidden');
-  return;
- }
- sec.classList.remove('hidden');
- document.getElementById('mapNote').textContent=LBL.mapNote;
- initMapIfNeeded();if(!MAPL)return;
- setTimeout(()=>{try{MAPL&&MAPL.invalidateSize();}catch(e){}},120);
- const c=CUR_LOC||DEFAULT_LOC;
- MAPMARKS.forEach(m=>MAPL.removeLayer(m));MAPMARKS=[];
- const me=L.circleMarker([c.lat,c.lon],{radius:7,color:'#D85A30',fillColor:'#D85A30',fillOpacity:0.9});
- me.bindPopup('<div class="stpop"><b>'+esc(c.name||'')+'</b></div>');me.addTo(MAPL);MAPMARKS.push(me);
- const moved=!MAP_VIEW||havKm(MAP_VIEW.lat,MAP_VIEW.lon,c.lat,c.lon)>1;
- if(moved){try{MAPL.setView([c.lat,c.lon],MAPL.getZoom()||9);}catch(e){try{MAPL.setView([c.lat,c.lon],9);}catch(_){}}MAP_VIEW={lat:c.lat,lon:c.lon};}
 }
 function reverseName(la,lo){
  return tfetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+la+'&lon='+lo,6000)
@@ -1804,8 +1784,7 @@ function reverseName(la,lo){
 }
 function pickPoint(lat,lon,name){
  MAP_LOC={name:name,lat:lat,lon:lon,station:name+' · '+lat.toFixed(3)+', '+lon.toFixed(3)};
- if(MAPL)MAPL.closePopup();
- document.getElementById('mapSec').classList.remove('mapfull');
+ if(radarMapL){try{radarMapL.closePopup();}catch(e){}}
  selB=null;D2=null;
  document.getElementById('locIn').value=name;
  renderRecents();
@@ -1814,21 +1793,17 @@ function pickPoint(lat,lon,name){
  document.getElementById('wrap').scrollIntoView({behavior:'smooth'});
 }
 async function onMapClick(e){
- if(MAP_BUSY||!MAPL)return;
+ if(MAP_BUSY||!radarMapL)return;
  const lat=e.latlng.lat, lon=e.latlng.lng;
  const mk=L.circleMarker([lat,lon],{radius:7,color:'#1D9E75',fillColor:'#1D9E75',fillOpacity:0.9});
- mk.addTo(MAPL);MAPMARKS.push(mk);
+ mk.addTo(radarMapL);
  mk.bindPopup('<div class="stpop"><b>'+esc(LBL.mapLoading||'Loading…')+'</b></div>').openPopup();
  MAP_BUSY=true;
  let nm=await reverseName(lat,lon);
  MAP_BUSY=false;
+ try{radarMapL.removeLayer(mk);}catch(e2){}
  if(!nm)nm=lat.toFixed(3)+', '+lon.toFixed(3);
  pickPoint(lat,lon,nm);
-}
-function mapMax(){
- const sec=document.getElementById('mapSec');
- sec.classList.toggle('mapfull');
- setTimeout(()=>{if(MAPL)MAPL.invalidateSize();},80);
 }
 function requestGeo(){
  return new Promise(res=>{
@@ -2548,25 +2523,42 @@ function boPause(onRadar){
  if(boPaused){if(boWs){try{boWs.close();}catch(e){}boWs=null;}if(boAger){clearInterval(boAger);boAger=null;}}
  else if(boOn){boConnect();if(!boAger)boAger=setInterval(boAge,60000);}
 }
-function radarMax(){
- const s=document.getElementById('view-radar');if(!s)return;
- s.classList.toggle('mapfull');
- setTimeout(()=>{try{if(radarMapL)radarMapL.invalidateSize();}catch(e){}},80);
-}
-
-/* ---------- Map view ---------- */
-function renderMapView(){
- try{updateMap();}catch(e){console.log('map view:',e);}
-}
-
-/* ---------- Radar view (RainViewer: past ~2h + nowcast when available) ---------- */
-let radarMapL=null,radarFrames=[],radarIdx=0,radarLayers={},radarTimer=null,radarFetched=0,radarView=null,radarHost='https://tilecache.rainviewer.com',radarLocMark=null;
+/* ---------- Fullscreen weather map (radar + toggleable layers) ---------- */
+let radarMapL=null,radarFrames=[],radarIdx=0,radarLayers={},radarTimer=null,radarFetched=0,radarView=null,radarHost='https://tilecache.rainviewer.com',radarLocMark=null,radarBase=null;
+let MLAYERS={radar:true,clouds:false,temp:false,wind:false,rain:false,bolt:false};
+let MAPTHEME=null;
 function stopRadarAnim(){if(radarTimer){clearInterval(radarTimer);radarTimer=null;}updateRadarPlayBtn();}
 function updateRadarPlayBtn(){const b=document.getElementById('radarPlay');if(b)b.textContent=radarTimer?'⏸':'▶️';}
-function renderRadar(){
+function mapBaseUrl(){return 'https://{s}.basemaps.cartocdn.com/'+(MAPTHEME==='dark'?'dark_all':'light_all')+'/{z}/{x}/{y}{r}.png';}
+function mapThemeToggle(){
+ MAPTHEME=(MAPTHEME==='dark')?'light':'dark';
+ if(radarBase){try{radarBase.setUrl(mapBaseUrl());}catch(e){}}
+}
+function renderMapPills(){
+ const el=document.getElementById('mlyPills');if(!el)return;
  const hrv=lang==='hr';
+ const defs=[['radar','🌧️','Radar'],['clouds','☁️',hrv?'Oblaci':'Clouds'],['temp','🌡️','Temp'],['wind','💨',hrv?'Vjetar':'Wind'],['rain','💧',hrv?'Kiša 48h':'Rain 48h'],['bolt','⚡',hrv?'Munje':'Lightning']];
+ el.innerHTML=defs.map(d=>'<button class="mly'+(MLAYERS[d[0]]?' on':'')+'" onclick="mlyToggle(\''+d[0]+'\')" aria-pressed="'+(MLAYERS[d[0]]?'true':'false')+'">'+d[1]+' '+d[2]+'</button>').join('');
+}
+function mlyToggle(k){
+ if(k==='bolt'){lightningToggle();MLAYERS.bolt=boOn;}
+ else MLAYERS[k]=!MLAYERS[k];
+ if(k==='radar'){
+  const ctl=document.getElementById('radarCtl');if(ctl)ctl.style.display=MLAYERS.radar?'':'none';
+  if(!MLAYERS.radar){stopRadarAnim();for(const t in radarLayers){try{radarLayers[t].setOpacity(0);}catch(e){}}}
+  else showRadarFrame(radarIdx);
+ }
+ if(k==='clouds'||k==='temp'||k==='wind'||k==='rain')gridRefresh();
+ renderMapPills();
+}
+function renderMapFull(){
+ const hrv=lang==='hr';
+ if(MAPTHEME===null)MAPTHEME=theme;
+ MLAYERS.bolt=boOn;
+ renderMapPills();
+ const ctl=document.getElementById('radarCtl');if(ctl)ctl.style.display=MLAYERS.radar?'':'none';
  const note=document.getElementById('radarNote');
- if(note)note.textContent=hrv?'Plavo = slaba kiša, žuto/crveno = jaka, ljubičasto = tuča-kandidat · sličice svakih ~10 min · ⚡ uključuje munje uživo (skupljaju se dok je kartica otvorena; boja blijedi sa starošću) · radar © RainViewer · munje © Blitzortung.org · karta © OpenStreetMap © CARTO':'Blue = light rain, yellow/red = heavy, purple = hail candidate · frames every ~10 min · ⚡ toggles live lightning (accumulates while this tab is open; colour fades with age) · radar © RainViewer · lightning © Blitzortung.org · map © OpenStreetMap © CARTO';
+ if(note)note.textContent=hrv?'Klik na kartu = prognoza te točke · radar: plavo slaba, žuto/crveno jaka kiša · ⚡ munje uživo (blijede sa starošću) · 🌡️💨💧☁️ mreža Open-Meteo točaka · © OpenStreetMap © CARTO · © RainViewer · ⚡ Blitzortung.org':'Click the map = forecast for that point · radar: blue light, yellow/red heavy rain · ⚡ live lightning (fades with age) · 🌡️💨💧☁️ Open-Meteo point grid · © OpenStreetMap © CARTO · © RainViewer · ⚡ Blitzortung.org';
  const rs=document.getElementById('rainStrip'),rh=document.getElementById('rainStripH');
  const R=(D&&D.rain15)||[];
  if(rs&&rh){
@@ -2579,9 +2571,9 @@ function renderRadar(){
    const mx=Math.max.apply(null,R.map(x=>x.v||0).concat([0.6]));
    rs.innerHTML=R.map(x=>{
     const v=x.v||0;
-    const hpx=6+Math.round(34*Math.min(1,v/mx));
+    const hpx=4+Math.round(26*Math.min(1,v/mx));
     const col=v<=0.02?'var(--bd)':(v<0.2?'#7cc4f5':(v<0.8?'#2caaf0':(v<2?'#0E7490':'#5b2d91')));
-    return '<div style="flex:1;text-align:center;min-width:0;"><div class="lab" style="font-size:9px;margin-bottom:2px;height:12px;">'+(v>0.02?(Math.round(v*10)/10):'')+'</div><div style="height:40px;display:flex;align-items:flex-end;"><div style="width:100%;height:'+hpx+'px;border-radius:3px 3px 0 0;background:'+col+';"></div></div><div class="lab" style="font-size:9.5px;margin-top:3px;">'+x.h+'</div></div>';
+    return '<div style="flex:1;text-align:center;min-width:0;"><div class="lab" style="font-size:9px;margin-bottom:1px;height:11px;">'+(v>0.02?(Math.round(v*10)/10):'')+'</div><div style="height:30px;display:flex;align-items:flex-end;"><div style="width:100%;height:'+hpx+'px;border-radius:3px 3px 0 0;background:'+col+';"></div></div><div class="lab" style="font-size:9px;margin-top:2px;">'+x.h+'</div></div>';
    }).join('');
   }
  }
@@ -2592,18 +2584,25 @@ function drawRadarMap(att){
   if(LEAF_STATE==='idle')loadLeaflet();
   if(LEAF_STATE==='failed')return;
   att=att||0;if(att>20)return;
-  setTimeout(()=>{if(active==='radar')drawRadarMap(att+1);},700);return;
+  setTimeout(()=>{if(active==='map')drawRadarMap(att+1);},700);return;
  }
  try{
-  if(!radarMapL){radarMapL=L.map('radarBox',{scrollWheelZoom:true});L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:12,attribution:'© OpenStreetMap © CARTO · © RainViewer · ⚡ Blitzortung.org'}).addTo(radarMapL);}
+  if(!radarMapL){
+   radarMapL=L.map('radarBox',{scrollWheelZoom:true});
+   radarBase=L.tileLayer(mapBaseUrl(),{subdomains:'abcd',maxZoom:19,attribution:'© OpenStreetMap © CARTO · © RainViewer · ⚡ Blitzortung.org · Open-Meteo'});
+   radarBase.addTo(radarMapL);
+   radarMapL.on('click',onMapClick);
+  }
+  gridHook();
   setTimeout(()=>{try{radarMapL.invalidateSize();}catch(e){}},120);
   const c=CUR_LOC||DEFAULT_LOC;
   const moved=!radarView||havKm(radarView.lat,radarView.lon,c.lat,c.lon)>1;
-  if(moved){radarMapL.setView([c.lat,c.lon],7);radarView={lat:c.lat,lon:c.lon};}
+  if(moved){radarMapL.setView([c.lat,c.lon],8);radarView={lat:c.lat,lon:c.lon};}
   if(radarLocMark){try{radarMapL.removeLayer(radarLocMark);}catch(e){}}
   radarLocMark=L.circleMarker([c.lat,c.lon],{radius:6,color:'#D85A30',fillColor:'#D85A30',fillOpacity:0.9}).addTo(radarMapL);
   loadRadarFrames();
- }catch(e){console.log('radar map failed',e);}
+  gridRefresh();
+ }catch(e){console.log('map failed',e);}
 }
 function loadRadarFrames(){
  const now=new Date().getTime();
@@ -2631,13 +2630,14 @@ function buildRadarUI(){
 }
 function radarLayerFor(i){
  const f=radarFrames[i];if(!f||!radarMapL)return null;
- if(!radarLayers[f.t]){radarLayers[f.t]=L.tileLayer(radarHost+f.p+'/256/{z}/{x}/{y}/4/1_1.png',{opacity:0,maxZoom:12,className:'radarlayer',zIndex:5});radarLayers[f.t].addTo(radarMapL);}
+ if(!radarLayers[f.t]){radarLayers[f.t]=L.tileLayer(radarHost+f.p+'/256/{z}/{x}/{y}/4/1_1.png',{opacity:0,maxNativeZoom:12,maxZoom:19,className:'radarlayer',zIndex:5});radarLayers[f.t].addTo(radarMapL);}
  return radarLayers[f.t];
 }
 function showRadarFrame(i){
  if(!radarFrames.length)return;
  radarIdx=((i%radarFrames.length)+radarFrames.length)%radarFrames.length;
  for(const t in radarLayers)radarLayers[t].setOpacity(0);
+ if(!MLAYERS.radar)return;
  const cur=radarLayerFor(radarIdx);if(cur)cur.setOpacity(0.75);
  radarLayerFor((radarIdx+1)%radarFrames.length); /* preload next frame */
  const f=radarFrames[radarIdx],d=new Date(f.t*1000),hrv=lang==='hr';
@@ -2650,12 +2650,100 @@ function radarStep(d){stopRadarAnim();showRadarFrame(radarIdx+d);}
 function radarPlay(){
  if(radarTimer){stopRadarAnim();return;}
  if(!radarFrames.length)return;
- radarTimer=setInterval(()=>{if(active!=='radar'){stopRadarAnim();return;}showRadarFrame(radarIdx+1);},600);
+ radarTimer=setInterval(()=>{if(active!=='map'){stopRadarAnim();return;}showRadarFrame(radarIdx+1);},600);
  updateRadarPlayBtn();
+}
+
+/* ---------- Grid overlay (Open-Meteo point grid: temp / wind / rain / clouds) ---------- */
+let gridLG=null,gridCache={},gridKeys=[],gridMoveT=null,gridHooked=false;
+function gridActive(){
+ return !!(MLAYERS.temp||MLAYERS.wind||MLAYERS.rain||MLAYERS.clouds);
+}
+function gridRefresh(){
+ if(!radarMapL)return;
+ if(!gridActive()){if(gridLG){gridLG.clearLayers();}return;}
+ var b=radarMapL.getBounds();
+ var south=b.getSouth(),north=b.getNorth(),west=b.getWest(),east=b.getEast();
+ var insetLat=(north-south)*0.08,insetLon=(east-west)*0.08;
+ var s2=south+insetLat,n2=north-insetLat,w2=west+insetLon,e2=east-insetLon;
+ var COLS=5,ROWS=4,lats=[],lons=[];
+ for(var row=0;row<ROWS;row++){
+  var latF=ROWS>1?row/(ROWS-1):0.5;
+  var lat=s2+(n2-s2)*latF;
+  for(var col=0;col<COLS;col++){
+   var lonF=COLS>1?col/(COLS-1):0.5;
+   var lon=w2+(e2-w2)*lonF;
+   lats.push(lat.toFixed(4));lons.push(lon.toFixed(4));
+  }
+ }
+ var key=radarMapL.getZoom()+'|'+south.toFixed(1)+','+west.toFixed(1)+','+north.toFixed(1)+','+east.toFixed(1);
+ if(!gridCache[key]){
+  gridCache[key]=tfetch('https://api.open-meteo.com/v1/forecast?latitude='+lats.join(',')+'&longitude='+lons.join(',')+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover&daily=precipitation_sum&forecast_days=2&timezone=auto',12000)
+   .then(function(r){return r.json();})
+   .catch(function(){return null;});
+  gridKeys.push(key);
+  if(gridKeys.length>20){delete gridCache[gridKeys.shift()];}
+ }
+ gridCache[key].then(function(data){
+  if(!radarMapL)return;
+  var b2=radarMapL.getBounds();
+  var curKey=radarMapL.getZoom()+'|'+b2.getSouth().toFixed(1)+','+b2.getWest().toFixed(1)+','+b2.getNorth().toFixed(1)+','+b2.getEast().toFixed(1);
+  if(curKey!==key)return;
+  if(!gridActive())return;
+  if(!data)return;
+  gridDraw(Array.isArray(data)?data:[data]);
+ });
+}
+function gridDraw(list){
+ if(!radarMapL||!list)return;
+ if(!gridLG){gridLG=L.layerGroup().addTo(radarMapL);}
+ gridLG.clearLayers();
+ for(var i=0;i<list.length;i++){
+  var item=list[i];
+  if(!item)continue;
+  var lat=item.latitude,lon=item.longitude;
+  if(lat==null||lon==null)continue;
+  var cur=item.current;
+  if(!cur)continue;
+  if(MLAYERS.clouds&&cur.cloud_cover!=null){
+   L.circleMarker([lat,lon],{radius:16,stroke:false,fillColor:'#9aa0a6',fillOpacity:Math.min(0.6,cur.cloud_cover/100*0.6),interactive:false}).addTo(gridLG);
+  }
+  var html='';
+  if(MLAYERS.temp&&cur.temperature_2m!=null){
+   var t=cur.temperature_2m;
+   var tCol=t<=0?'#7cc4f5':(t<=15?'#2caaf0':(t<=25?'#E0A53C':'#D85A30'));
+   html+='<div style="font-weight:700;font-size:12px;color:'+tCol+';">'+Math.round(t)+'°</div>';
+  }
+  if(MLAYERS.wind&&cur.wind_speed_10m!=null){
+   var dir=cur.wind_direction_10m||0,spd=cur.wind_speed_10m;
+   html+='<div style="font-size:11px;color:#455a75;"><span style="display:inline-block;transform:rotate('+(dir+90)+'deg);">➤</span> '+Math.round(spd)+'</div>';
+  }
+  if(MLAYERS.rain&&item.daily&&item.daily.precipitation_sum){
+   var d0=item.daily.precipitation_sum[0],d1=item.daily.precipitation_sum[1];
+   var sum=(d0||0)+(d1||0);
+   if(sum>=0.2)html+='<div style="font-size:10.5px;color:#0E7490;font-weight:600;">💧'+(Math.round(sum*10)/10)+'</div>';
+   else html+='<div style="font-size:10.5px;color:#9aa0a6;">·</div>';
+  }
+  if(MLAYERS.clouds&&cur.cloud_cover!=null){
+   html+='<div style="font-size:9.5px;color:#7a7f87;">☁'+Math.round(cur.cloud_cover)+'%</div>';
+  }
+  if(html){
+   gridLG.addLayer(L.marker([lat,lon],{icon:L.divIcon({className:'gridlbl',html:'<div style="text-align:center;line-height:1.25;text-shadow:0 0 3px rgba(255,255,255,0.9),0 0 6px rgba(255,255,255,0.7);">'+html+'</div>',iconSize:null,iconAnchor:[18,10]}),interactive:false,keyboard:false}));
+  }
+ }
+}
+function gridHook(){
+ if(gridHooked||!radarMapL)return;
+ gridHooked=true;
+ radarMapL.on('moveend zoomend',function(){
+  if(gridMoveT)clearTimeout(gridMoveT);
+  gridMoveT=setTimeout(gridRefresh,700);
+ });
 }
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.08',d:'2026-08-20',en:'One <b>full-screen weather map</b> replaces the Map and Radar tabs: toggleable layers (radar, live lightning, temperature, wind, 48h rainfall, cloud cover as an Open-Meteo point grid), its own light/dark basemap switch, zoom to street level, radar timeline, next-2h rain strip and click-to-forecast. New 🗺️ launcher card and a <b>Tomorrow</b> card (range, icon, vs today / normal / last year) on the main dashboard.',hr:'Jedna <b>cjelozaslonska vremenska karta</b> zamjenjuje kartice Karta i Radar: uključivi slojevi (radar, munje uživo, temperatura, vjetar, kiša 48h, naoblaka kao Open-Meteo mreža točaka), vlastiti svijetli/tamni prekidač podloge, zum do razine ulice, radar vremenska crta, traka kiše za 2h i prognoza na klik. Nova 🗺️ kartica-prečac i kartica <b>Sutra</b> (raspon, ikona, vs danas / normala / lani) na glavnoj ploči.'},
  {v:'3.07',d:'2026-07-28',en:'Hour strip got a <b>Today / Next 24 h</b> toggle plus a slider that slides the 24-hour window up to three days ahead (day changes labelled).',hr:'Satna traka dobila je prekidač <b>Danas / Sljedeća 24 h</b> i klizač koji pomiče 24-satni prozor do tri dana unaprijed (promjene dana označene).'},
  {v:'3.06',d:'2026-07-27',en:'New <b>Info</b> tab: what this dashboard is, its data sources, and this version history.',hr:'Nova kartica Info: što je ova ploča, izvori podataka i ova povijest verzija.'},
  {v:'3.05',d:'2026-07-27',en:'Radar: light CARTO basemap for contrast, fullscreen toggle, live <b>lightning layer</b> (Blitzortung.org, age-fading strikes). New <b>AQI</b> card + 48h air-quality chart (European AQI, vs yesterday, PM2.5). New <b>today hour-by-hour</b> strip on the Weather tab.',hr:'Radar: svjetla CARTO podloga radi kontrasta, cjelozaslonski prikaz, munje uživo (Blitzortung.org, boja blijedi sa starošću). Nova AQI kartica + 48-satni graf kvalitete zraka (europski AQI, usporedba s jučer, PM2.5). Nova traka “danas po satima” na kartici Vrijeme.'},
@@ -2680,8 +2768,8 @@ function renderInfo(){
 }
 
 /* ---------- view router ---------- */
-const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#swim':'swim','#map':'map','#radar':'radar','#info':'info'};
-const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},swim:{el:'view-swim',render:renderSwim},map:{el:'view-map',render:renderMapView},radar:{el:'view-radar',render:renderRadar},info:{el:'view-info',render:renderInfo}};
+const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#swim':'swim','#map':'map','#radar':'map','#info':'info'};
+const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},swim:{el:'view-swim',render:renderSwim},map:{el:'view-map',render:renderMapFull},info:{el:'view-info',render:renderInfo}};
 let active='weather';
 function route(){return ROUTES[(location.hash||'').split('?')[0]]||'weather';}
 function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh,swimCh,aqiCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=swimCh=aqiCh=null;}
@@ -2692,8 +2780,7 @@ function updateTabs(){
   const bq=bbqScore(D);if(el('pk-bbq'))el('pk-bbq').textContent=bq?BBQI[bbqTier(bq.v)]:'';
   if(el('pk-hike'))el('pk-hike').textContent='🥾';
   if(el('pk-swim'))el('pk-swim').textContent=D.sea?(D.sea.cur+'°'):'🏊';
-  if(el('pk-map'))el('pk-map').textContent='📍';
-  if(el('pk-radar'))el('pk-radar').textContent=(D.hours||[]).some(h=>(h.pp||0)>=40)?'🌧️':'';
+  if(el('pk-map'))el('pk-map').textContent=(D.hours||[]).some(h=>(h.pp||0)>=40)?'🌧️':'🗺️';
  }catch(e){}}
  const cap=active.charAt(0).toUpperCase()+active.slice(1);
  document.title=(LBL.tShort||"Patrik's weather")+' v'+APPV+' · '+(LBL['tab'+cap]||'');
@@ -2701,7 +2788,7 @@ function updateTabs(){
 function showView(name){
  if(!VIEWS[name])name='weather';active=name;
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
- destroyAllCharts();stopRadarAnim();boPause(name==='radar');updateTabs();
+ destroyAllCharts();stopRadarAnim();boPause(name==='map');updateTabs();
  if(!D)return;
  setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}updateTabs();},0);
 }

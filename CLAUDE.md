@@ -6,11 +6,21 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~2,750 lines). Current version: **v3.07** (also in the
-`APPV` JS constant, used for the dynamic `document.title` — bump all three together).
+(HTML + CSS + vanilla JS, ~2,850 lines). Current version: **v3.08** (also in the
+`APPV` JS constant, used for the dynamic `document.title` — bump all three together,
+plus add a `CHANGELOG` entry).
 
-As of v3 it's a **seven-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
-`#hike`/`#swim`/`#map`/`#radar`/`#info`) over a `VIEWS` registry. One shared data fetch (`D`) feeds all views;
+As of v3.08 it's a **six-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
+`#hike`/`#swim`/`#map`/`#info`; `#radar` redirects to `#map`) over a `VIEWS` registry.
+The `#map` view is a **full-screen weather map** (`renderMapFull`/`drawRadarMap`, Leaflet map
+`radarMapL`): CARTO basemap with its own light/dark switch (`MAPTHEME`/`mapThemeToggle`,
+independent of app theme; excluded from the dark-mode tile invert), zoom to 19 (radar tiles
+stretched via `maxNativeZoom:12`), toggleable layers in `MLAYERS`/`mlyToggle` — RainViewer
+radar frames with timeline, Blitzortung live lightning, and an Open-Meteo **point grid**
+(`gridRefresh`/`gridDraw`: temperature, wind arrows, 48h rainfall, cloud cover; one
+multi-coordinate API call per view change, cached), plus the next-2h rain strip and
+click-to-forecast (`onMapClick`/`pickPoint`). Launched from the Map tab or the 🗺️ card at
+the end of the RIGHT NOW cards; ✕ returns to `#weather`. One shared data fetch (`D`) feeds all views;
 `showView(name)` toggles `#view-*` sections, `destroyAllCharts()`, then dispatches the active
 view's render via `setTimeout(0)` (NOT rAF — throttled in background tabs). The four global
 hooks (`applyTheme`/`setLang`/`toggleFont`/`applyResponsive`, plus `toggleMP`) call
@@ -112,9 +122,10 @@ Roughly top-to-bottom:
 - `<body>` markup — header controls (lang / theme / font / toggles), then `#dash` sections:
   Weather view: (severe-weather alert banner, when active) · RIGHT NOW · NEXT 24 HOURS ·
   SEA TEMPERATURE · OUTLOOK · WEEKEND PLANS · GRILLING · BIOMETEO · MOON & TIDE ·
-  INTERESTING FACT. The MAP (pick a point), RADAR (RainViewer animation with
-  play/slider controls) and INFO (about + `CHANGELOG` array, bilingual version history)
-  are their own views/tabs; shared footer sits outside the sections.
+  INTERESTING FACT. The MAP (full-screen, layered — see above) and INFO (about +
+  `CHANGELOG` array, bilingual version history) are their own views/tabs; shared footer
+  sits outside the sections. The RIGHT NOW cards include a TOMORROW card (range/icon,
+  vs today / vs normal / vs last year via `climo.ly.tomMax`) and end with the 🗺️ map card.
   Severe-weather alerts (`buildAlerts`/`D.alerts`) are derived client-side from Open-Meteo
   (storm code / strong wind / heavy rain / big swing) — official DHMZ/Meteoalarm feeds are
   CORS-blocked from the browser, so they'd need a Worker proxy. WEEKEND PLANS rates this & next
