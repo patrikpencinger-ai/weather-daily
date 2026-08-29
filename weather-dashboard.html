@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.12</title>
+<title>Patrik's weather daily — v3.13</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -27,6 +27,7 @@ body{padding:20px;transition:background .2s}
 .dark .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.92) saturate(0.7);}
 .dark .radarlayer .leaflet-tile{filter:none!important;}
 .dark #view-map .leaflet-tile{filter:none!important;}
+#view-map.mapdark .basetiles .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.87) contrast(0.9) saturate(0.55)!important;}
 #view-map{position:fixed;inset:0;z-index:1000;background:var(--bg);margin:0;padding:0;}
 #view-map.hidden{display:none;}
 #wrap.big #view-map{zoom:0.667;}
@@ -334,7 +335,7 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.12 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.13 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -345,7 +346,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.12';
+const APPV='3.13';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -492,7 +493,7 @@ const T={
   zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",h7:"INTERESTING FACT",h8:"MAP — PICK A POINT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
   tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",tabMap:"Map",tabRadar:"Radar",tabInfo:"Info",tShort:"Patrik's weather",
   infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",
-  infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b>/<b>CARTO</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
+  infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
   radarHead:"🌧️ Rain radar",radarTag:"Where the rain is and where it's headed — past ~2 hours, plus short-term forecast frames when available.",
   h2b:"TODAY HOUR BY HOUR",hAqi:"AIR QUALITY",t24Day:"Today 00–24",t24Next:"Next 24 h",
   cTom:"Tomorrow",vsTod:"vs today",cMapCard:"Weather map",mapCardSub:"radar · lightning · layers",
@@ -522,7 +523,7 @@ const T={
   zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",h7:"ZANIMLJIVOST",h8:"KARTA \u2014 ODABERI TO\u010cKU",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
   tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",tabMap:"Karta",tabRadar:"Radar",tabInfo:"Info",tShort:"Patrikova prognoza",
   infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",
-  infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b>/<b>CARTO</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
+  infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
   radarHead:"\ud83c\udf27\ufe0f Radar ki\u0161e",radarTag:"Gdje ki\u0161a jest i kamo ide \u2014 zadnja ~2 sata, plus kratkoro\u010dne prognosti\u010dke sli\u010dice kad su dostupne.",
   h2b:"DANAS PO SATIMA",hAqi:"KVALITETA ZRAKA",t24Day:"Danas 00–24",t24Next:"Sljedeća 24 h",
   cTom:"Sutra",vsTod:"vs danas",cMapCard:"Vremenska karta",mapCardSub:"radar · munje · slojevi",
@@ -2544,9 +2545,15 @@ let MLAYERS={radar:true,clouds:false,temp:false,wind:false,rain:false,bolt:false
 let MAPTHEME=null;
 function stopRadarAnim(){if(radarTimer){clearInterval(radarTimer);radarTimer=null;}updateRadarPlayBtn();}
 function updateRadarPlayBtn(){const b=document.getElementById('radarPlay');if(b)b.textContent=radarTimer?'⏸':'▶️';}
-function mapBaseUrl(){return 'https://{s}.basemaps.cartocdn.com/'+(MAPTHEME==='dark'?'dark_all':'light_all')+'/{z}/{x}/{y}{r}.png';}
+const CARTOKEY='';/* CARTO basemaps went key-only (Aug 2026, watermarked tiles) — a free non-commercial key from carto.com/basemaps/apikey restores Positron; empty = keyless OSM tiles */
+function mapBaseUrl(){
+ if(CARTOKEY)return 'https://{s}.basemaps.cartocdn.com/'+(MAPTHEME==='dark'?'dark_all':'light_all')+'/{z}/{x}/{y}{r}.png?key='+CARTOKEY;
+ return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';/* OSM has no dark style — dark map = .mapdark CSS invert on the base tiles */
+}
+function applyMapDark(){var v=document.getElementById('view-map');if(v)v.classList.toggle('mapdark',MAPTHEME==='dark'&&!CARTOKEY);}
 function mapThemeToggle(){
  MAPTHEME=(MAPTHEME==='dark')?'light':'dark';
+ applyMapDark();
  if(radarBase){try{radarBase.setUrl(mapBaseUrl());}catch(e){}}
  try{gridRefresh();}catch(e){} /* labels re-halo for the new basemap */
 }
@@ -2570,11 +2577,12 @@ function mlyToggle(k){
 function renderMapFull(){
  const hrv=lang==='hr';
  if(MAPTHEME===null)MAPTHEME=theme;
+ applyMapDark();
  MLAYERS.bolt=boOn;
  renderMapPills();
  const ctl=document.getElementById('radarCtl');if(ctl)ctl.style.display=MLAYERS.radar?'':'none';
  const note=document.getElementById('radarNote');
- if(note)note.textContent=hrv?'Klik na kartu = prognoza te točke · radar: plavo slaba, žuto/crveno jaka kiša · ⚡ munje uživo (blijede sa starošću) · 🌡️💨💧☁️ mreža Open-Meteo točaka · © OpenStreetMap © CARTO · © RainViewer · ⚡ Blitzortung.org':'Click the map = forecast for that point · radar: blue light, yellow/red heavy rain · ⚡ live lightning (fades with age) · 🌡️💨💧☁️ Open-Meteo point grid · © OpenStreetMap © CARTO · © RainViewer · ⚡ Blitzortung.org';
+ if(note)note.textContent=hrv?'Klik na kartu = prognoza te točke · radar: plavo slaba, žuto/crveno jaka kiša · ⚡ munje uživo (blijede sa starošću) · 🌡️💨💧☁️ mreža Open-Meteo točaka · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org':'Click the map = forecast for that point · radar: blue light, yellow/red heavy rain · ⚡ live lightning (fades with age) · 🌡️💨💧☁️ Open-Meteo point grid · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org';
  const rs=document.getElementById('rainStrip'),rh=document.getElementById('rainStripH');
  const R=(D&&D.rain15)||[];
  if(rs&&rh){
@@ -2606,7 +2614,7 @@ function drawRadarMap(att){
   if(!radarMapL){
    radarMapL=L.map('radarBox',{scrollWheelZoom:true,zoomControl:false});
    L.control.zoom({position:'bottomright'}).addTo(radarMapL);
-   radarBase=L.tileLayer(mapBaseUrl(),{subdomains:'abcd',maxZoom:19,attribution:'© OpenStreetMap © CARTO · © RainViewer · ⚡ Blitzortung.org · Open-Meteo'});
+   radarBase=L.tileLayer(mapBaseUrl(),{subdomains:'abcd',maxZoom:19,className:'basetiles',attribution:'© OpenStreetMap'+(CARTOKEY?' © CARTO':'')+' · © RainViewer · ⚡ Blitzortung.org · Open-Meteo'});
    radarBase.addTo(radarMapL);
    radarMapL.on('click',onMapClick);
   }
@@ -2852,6 +2860,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.13',d:'2026-08-29',en:'Map basemap fixed: CARTO tiles started demanding an API key (watermarked “API KEY REQUIRED”), so the map now uses keyless <b>OpenStreetMap</b> tiles; the map’s dark mode inverts them in CSS. A free CARTO key can still be plugged in to restore the old look.',hr:'Popravljena podloga karte: CARTO pločice počele su tražiti API ključ (vodeni žig “API KEY REQUIRED”), pa karta sada koristi <b>OpenStreetMap</b> pločice bez ključa; tamni način karte invertira ih u CSS-u. Besplatni CARTO ključ i dalje se može upisati za stari izgled.'},
  {v:'3.12',d:'2026-08-20',en:'Temperature layer sharpened: denser data grid (9×6), heatmap colours now <b>stretch to the visible range</b> (small deltas = big colour shifts), and temp labels are bigger with theme-aware outlines — readable on dark and light basemaps.',hr:'Izoštren temperaturni sloj: gušća mreža (9×6), boje toplinske karte <b>rastežu se na vidljivi raspon</b> (male razlike = velike promjene boje), a oznake su veće s obrubom po temi — čitljive na tamnoj i svijetloj podlozi.'},
  {v:'3.11',d:'2026-08-20',en:'Temperature layer is now a true <b>heatmap</b> — a continuous interpolated colour field across the whole map instead of blobs.',hr:'Temperaturni sloj je sada prava <b>toplinska karta</b> — kontinuirano interpolirano polje boja preko cijele karte umjesto mrlja.'},
  {v:'3.10',d:'2026-08-20',en:'Map layers polished: denser honeycomb data grid, semi-transparent <b>colour overlays</b> for temperature and rainfall, wind arrows scale with speed, and lightning strikes are now big glowing pulsing ⚡ markers.',hr:'Dorađeni slojevi karte: gušća saćasta mreža točaka, poluprozirni <b>obojeni slojevi</b> za temperaturu i kišu, strelice vjetra rastu s brzinom, a munje su sada veliki svjetleći pulsirajući ⚡ markeri.'},

@@ -65,8 +65,11 @@ timeout so a failed load shows the error rather than hanging forever.
 - **Blitzortung.org** — live lightning strikes over websocket (`ws1/ws7/ws8.blitzortung.org`,
   LZW-decoded JSON) as a ⚡ toggle layer on the Radar map. Live-only (accumulates while the
   view is open), suspended when leaving the tab, attribution required, non-commercial use.
-- **CARTO Positron** (`basemaps.cartocdn.com`) — light base map for the Radar view only
-  (better radar contrast); attribution "© OpenStreetMap © CARTO".
+- **OpenStreetMap tiles** (`tile.openstreetmap.org`) — keyless base map for the Map view;
+  the map's dark mode is a CSS invert on the base tiles (`.mapdark .basetiles`).
+  CARTO Positron (`basemaps.cartocdn.com`) was dropped in v3.13 when CARTO made its
+  basemaps key-only (tiles come back watermarked "API KEY REQUIRED"); setting the
+  `CARTOKEY` constant to a free key from carto.com/basemaps/apikey restores it.
 - **Open-Meteo Archive** — `archive-api.open-meteo.com` (1991–2020 climatology / anomalies).
 - **AI feed (optional secondary)** — a Claude + web-search "interesting fact" / outlook feed.
   The dashboard degrades gracefully when this is unavailable.
