@@ -3006,8 +3006,8 @@ function drawRadarMap(att){
   if(!radarMapL){
    const box0=document.getElementById('radarBox');if(box0)box0.innerHTML=''; /* FIX-5: clear any failed-load message before Leaflet mounts */
    radarMapL=L.map('radarBox',{scrollWheelZoom:true,zoomControl:false});
-   radarLocateCtl=new (getLocateControlCls())();radarLocateCtl.addTo(radarMapL); /* UX-3: added before zoom so it sits above it */
    L.control.zoom({position:'bottomright'}).addTo(radarMapL);
+   radarLocateCtl=new (getLocateControlCls())();radarLocateCtl.addTo(radarMapL); /* UX-3: added AFTER zoom — Leaflet prepends bottom-corner controls, so the later one sits on top */
    radarBase=L.tileLayer(mapBaseUrl(),{subdomains:'abcd',maxZoom:19,className:'basetiles',attribution:'© OpenStreetMap'+(CARTOKEY?' © CARTO':'')+' · © RainViewer · ⚡ Blitzortung.org · Open-Meteo'});
    radarBase.addTo(radarMapL);
    radarMapL.on('click',onMapClick);
@@ -3339,15 +3339,16 @@ function renderFeeds(){
  const hrv=lang==='hr';
  el.innerHTML=FEED_ROWS.map(function(r){
   const name=r[0],f=FEEDS[name];
-  const col=!f?'var(--ts)':(f.ok?C.ok:C.bad);
-  const word=!f?(hrv?'još nije korišteno':'not used yet'):(f.ok?(hrv?'uživo':'live'):(hrv?'greška':'failed'));
+  const inland=(name==='marine'&&f&&!f.ok&&D&&!D.sea); /* inland city: the marine API has no sea point here — not a failure */
+  const col=!f?'var(--ts)':(inland?'var(--ts)':(f.ok?C.ok:C.bad));
+  const word=!f?(hrv?'još nije korišteno':'not used yet'):(inland?(hrv?'nema mora ovdje':'no sea here'):(f.ok?(hrv?'uživo':'live'):(hrv?'greška':'failed')));
   const hhmm=f?new Date(f.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';
   let detail='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+col+';margin-right:6px;vertical-align:middle;"></span>'+word;
   if(f){
    const mins=Math.max(0,Math.round((Date.now()-f.t)/60000));
    detail+=' · '+(hrv?('prije '+mins+' min'):(mins+' min ago'));
    if(name==='forecast'&&D&&D.fromCache)detail+=hrv?' (predmemorija)':' (cached)';
-   if(!f.ok&&f.err)detail+=' · '+esc(f.err);
+   if(!f.ok&&f.err&&!inland)detail+=' · '+esc(f.err);
   }
   return '<div class="logrow"><div class="logv">'+(hrv?r[2]:r[1])+'</div><div class="logd">'+hhmm+'</div><div class="logi">'+detail+'</div></div>';
  }).join('');
