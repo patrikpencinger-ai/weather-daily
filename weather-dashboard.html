@@ -52,6 +52,8 @@ body{padding:20px;transition:background .2s}
 .mly{border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:12.5px;cursor:pointer;background:var(--bg);color:var(--ts);}
 .mly.on{background:var(--tp);color:var(--bg);border-color:var(--tp);}
 .mly.dimmed{opacity:0.45;}
+.locate-ctl a{width:30px;height:30px;line-height:30px;font-size:15px;text-align:center;display:block;text-decoration:none;}
+.locate-ctl a[aria-disabled="true"]{opacity:0.45;pointer-events:none;}
 #heatLeg{align-items:center;gap:6px;margin:4px 0 0;}
 #heatLeg .bar{flex:1;height:8px;border-radius:4px;min-width:40px;}
 .stpop b{font-size:13px}.stpop button{margin-top:6px;background:#2caaf0;color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
@@ -2341,18 +2343,35 @@ function renderHike(){
  const dayPp=raw.length?raw.map(o=>o.pp||0):[(n.pp||0)];
  const maxPp=Math.max.apply(null,dayPp.concat([0]));
  const meanPp=dayPp.reduce((a,b)=>a+b,0)/(dayPp.length||1);
+ /* FEAT-1: real hourly extras for today (visibility/freezing level/gusts/snowfall) replace estimates when D.hx is present */
+ const hx=D.hx||[];
+ let visMinM=null,visAtH=null;
+ hx.forEach(o=>{const hh=parseInt(o.h.slice(0,2),10);if(hh>=6&&hh<=20&&o.vis!=null&&(visMinM===null||o.vis<visMinM)){visMinM=o.vis;visAtH=o.h;}});
+ const hasVis=visMinM!=null, visKm=hasVis?Math.round(visMinM/100)/10:null;
+ const isFoggyReal=hasVis?(visKm<1):null;
+ let frzMin=null;
+ hx.forEach(o=>{if(o.frz!=null&&(frzMin===null||o.frz<frzMin))frzMin=o.frz;});
+ const hasFrz=frzMin!=null;
+ let gustMaxHx=null,gustAtH=null;
+ hx.forEach(o=>{if(o.gust!=null&&(gustMaxHx===null||o.gust>gustMaxHx)){gustMaxHx=o.gust;gustAtH=o.h;}});
+ const gustMaxVal=(D.gustMax!=null)?D.gustMax:gustMaxHx;
+ let snowSum=0;hx.forEach(o=>{if(o.snow!=null)snowSum+=o.snow;});snowSum=Math.round(snowSum*10)/10;
+ const showSnowToday=snowSum>0.1;
  const sComfort=clmp(100-Math.min(100,Math.abs(fl-14)*4));
  const sDry=clmp(100-maxPp);
- const sWind=clmp(100-Math.min(100,Math.max(0,wind-10)*3));
- const sSky=HIKESKY[cond]!=null?HIKESKY[cond]:60;
- const trail=clmp((sComfort+sDry+sWind+sSky)/4);
+ const windEff=(gustMaxVal!=null)?Math.max(wind,gustMaxVal*0.6):wind;
+ const sWind=clmp(100-Math.min(100,Math.max(0,windEff-10)*3));
+ let sSky=HIKESKY[cond]!=null?HIKESKY[cond]:60;
+ if(hasVis&&isFoggyReal)sSky=Math.min(sSky,HIKESKY.fog);
+ const sVis=hasVis?clmp(visKm*10):null;
+ const trail=hasVis?clmp((sComfort+sDry+sWind+sSky+sVis)/5):clmp((sComfort+sDry+sWind+sSky)/4);
  const tband=trail>=80?(hrv?'Vrhunski dan za stazu':'Prime trail day'):trail>=60?(hrv?'Veži cipele':'Lace up'):trail>=40?(hrv?'Izvedivo':'Doable'):(hrv?'Možda ipak kafić':'Maybe a café');
  const tcolH=trail>=66?C.ok:trail>=40?C.warn:C.bad;
  document.getElementById('hikeHero').innerHTML='<div class="card" style="grid-column:1/-1;">'+
   '<div class="lab">'+(hrv?'Trail indeks':'Trail score')+'</div>'+
   '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span class="big" style="font-size:36px;">'+trail+'</span><span class="lab" style="font-size:13px;">/100 · '+tband+'</span></div>'+
   gaugeBar(trail,tcolH)+
-  '<div class="ctx">'+(hrv?'Ugoda':'Comfort')+' '+sComfort+' · '+(hrv?'suho':'dry')+' '+sDry+' · '+(hrv?'vjetar':'wind')+' '+sWind+' · '+(hrv?'nebo':'sky')+' '+sSky+'</div></div>';
+  '<div class="ctx">'+(hrv?'Ugoda':'Comfort')+' '+sComfort+' · '+(hrv?'suho':'dry')+' '+sDry+' · '+(hrv?'vjetar':'wind')+' '+sWind+' · '+(hrv?'nebo':'sky')+' '+sSky+(hasVis?(' · '+(hrv?'vidljivost':'visibility')+' '+sVis):'')+'</div></div>';
  const sun=D.sun||{};
  let bi=0,bj=0,ci=0;
  if(raw.length){for(let i=0;i<raw.length;i++){if((raw[i].pp||0)<=20){if(i===0||(raw[i-1].pp||0)>20)ci=i;if(i-ci>bj-bi){bi=ci;bj=i;}}}}
@@ -2360,20 +2379,34 @@ function renderHike(){
  if(raw.length){if((raw[bi].pp||0)<=20){bestWin=raw[bi].hh+'–'+raw[bj].hh;bestPp=Math.max.apply(null,raw.slice(bi,bj+1).map(o=>o.pp||0));}else{let lo=0;raw.forEach((o,i)=>{if((o.pp||0)<(raw[lo].pp||0))lo=i;});bestWin=raw[lo].hh;bestPp=raw[lo].pp||0;}}
  const dp=Math.round(magnusDew(t,hum));
  const dpBand=dp<10?(hrv?'suho, ugodno':'dry, comfortable'):dp<16?(hrv?'malo vlažno':'a touch humid'):dp<20?(hrv?'ljepljivo':'sticky'):(hrv?'znojara':'sweat-fest');
- const gust=Math.round(wind*1.6);
+ const gustEst=Math.round(wind*1.6);
+ const gustCard=(gustMaxVal!=null)
+  ?card('💨 '+(hrv?'Udari vjetra':'Gusts'),gustMaxVal+' km/h',gustAtH?('@ '+gustAtH):'',hrv?'Grebeni dodaju još.':'Ridges add more.')
+  :card('💨 '+(hrv?'Vjetar / greben':'Wind / ridge'),wind+' km/h '+wdir,'~'+gustEst+' km/h '+(hrv?'gore':'up high'),hrv?'Grebeni dodaju 50–80%.':'Ridges add 50–80% over the valley.');
  const cards=[
   card('🌅 '+(hrv?'Dnevno svjetlo':'Daylight'),(sun.rise||'—')+'–'+(sun.set||'—'),(sun.len?(Math.floor(sun.len/60)+'h '+(sun.len%60)+'m'):''),hrv?('Pola svjetla = vrijeme za okret. '+(sun.dmin!=null?((sun.dmin>=0?'+':'')+sun.dmin+' min vs jučer.'):'')):('Half your daylight = turn-around time. '+(sun.dmin!=null?((sun.dmin>=0?'+':'')+sun.dmin+' min vs yesterday.'):''))),
   card('🌦️ '+(hrv?'Najsuši prozor':'Driest window'),bestWin,(hrv?'vrh kiše ':'peak rain ')+Math.round(bestPp)+'%',hrv?'Izložene grebene gurni ovamo.':'Put the exposed ridges here.'),
   card('🌡️ '+(hrv?'Osjet':'Feels like'),fl+'°',(hrv?'vlaga ':'humidity ')+hum+'%',hrv?'Idealno za uzbrdicu je 8–18°.':'Sweet spot for climbing is 8–18°.'),
   card('🏔️ '+(hrv?'Na +1000 m':'At +1000 m'),Math.round(t-6.5)+'°','',hrv?('U dolini '+t+'° → gore hladnije (~6,5°/1000 m).'):('Valley '+t+'° → cooler up high (~6.5°/1000 m).')),
-  card('💨 '+(hrv?'Vjetar / greben':'Wind / ridge'),wind+' km/h '+wdir,'~'+gust+' km/h '+(hrv?'gore':'up high'),hrv?'Grebeni dodaju 50–80%.':'Ridges add 50–80% over the valley.'),
+  gustCard,
   card('💧 '+(hrv?'Rosište':'Dew point'),dp+'°','',hrv?('Zrak je '+dpBand+'. Zato se penjanje čini znojnim.'):('Air is '+dpBand+'. This is why the climb feels sweaty.'))
  ];
- if(D.uv&&D.uv.max!=null){const lv=LBL.uvLevels[uvLvl(D.uv.max)];cards.splice(3,0,card('☀️ '+(hrv?'UV zaštita':'UV window'),'UV '+D.uv.max,lv,(D.uv.max>=6?(hrv?'Kapa + SPF ~10–16 h. Goli vrhovi peku brzo.':'Hat + SPF ~10:00–16:00. Bare summits fry fast.'):(hrv?'Umjeren UV — opusti se.':'Moderate UV — relax.'))));}
+ const extra=[];
+ if(hasVis){
+  const visBand=visKm>=10?(hrv?'jasno':'clear'):visKm>=4?(hrv?'zamućeno':'hazy'):visKm>=1?(hrv?'loša':'poor'):(hrv?'magla':'fog');
+  extra.push(card('👁 '+(hrv?'Vidljivost':'Visibility'),visKm.toFixed(1)+' km',visBand,(hrv?'Najmanja u ':'Lowest at ')+visAtH));
+ }
+ if(hasFrz){
+  const frzCtx=frzMin<2000?(hrv?('vrhovi iznad '+frzMin+' m mogu imati snijeg/led — ponesi slojeve'):('peaks above '+frzMin+' m may see snow/ice — pack layers')):(hrv?'visoko iznad staza':'well above the trails');
+  extra.push(card('❄️ '+(hrv?'Snježna granica':'Snow line'),(hrv?'iznad ':'above ')+frzMin+' m','',frzCtx));
+ }
+ if(showSnowToday)extra.push(card('🌨 '+(hrv?'Snijeg danas':'Snow today'),snowSum+' cm','',''));
+ if(extra.length)cards.splice(3,0,...extra);
+ if(D.uv&&D.uv.max!=null){const lv=LBL.uvLevels[uvLvl(D.uv.max)];cards.splice(3+extra.length,0,card('☀️ '+(hrv?'UV zaštita':'UV window'),'UV '+D.uv.max,lv,(D.uv.max>=6?(hrv?'Kapa + SPF ~10–16 h. Goli vrhovi peku brzo.':'Hat + SPF ~10:00–16:00. Bare summits fry fast.'):(hrv?'Umjeren UV — opusti se.':'Moderate UV — relax.'))));}
  document.getElementById('hikeCards').innerHTML=cards.join('');
  const len=sun.len||720;
  const blister=clmp((hum/100)*40+(maxPp>30?25:0)+(fl>24?20:0)+(fl<3?15:0));
- const wrong=clmp((cond==='fog'?40:0)+(cond==='cloud'?8:0)+(len<600?15:5)+(maxPp>40?10:0)+5);
+ const wrong=clmp(((hasVis?isFoggyReal:cond==='fog')?40:0)+(cond==='cloud'?8:0)+(len<600?15:5)+(maxPp>40?10:0)+5);
  const bear=clmp((len>840?15:8)+(cond==='fog'?10:0)+(meanPp<20?10:5)+7);
  const cloudArt={sun:hrv?'☀️ prazno platno':'☀️ a blank canvas',partcloud:hrv?'⛅ zmajevi i ovce':'⛅ dragons & sheep',cloud:hrv?'☁️ jedan veliki poplun':'☁️ one big duvet',fog:hrv?'🌫️ sve je sad oblak':'🌫️ everything is a cloud now',rain:hrv?'🌧️ sumorno sive':'🌧️ moody greys',storm:hrv?'⛈️ dramatične':'⛈️ dramatic',snow:hrv?'❄️ bijelo platno':'❄️ a white canvas',wind:hrv?'💨 raščupane':'💨 windswept wisps'};
  const fun=[
@@ -2775,7 +2808,7 @@ function boConnect(){
  if(boWs||!boOn||boPaused)return;
  try{
   const ws=new WebSocket('wss://'+BOHOSTS[boHostIdx%BOHOSTS.length]+'/');boWs=ws;
-  ws.onopen=()=>{try{ws.send(JSON.stringify({a:111}));}catch(e){}};
+  ws.onopen=()=>{feedMark('lightning',true);try{ws.send(JSON.stringify({a:111}));}catch(e){}};
   ws.onmessage=ev=>{
    boFails=0; /* FIX-6: any message means the connection is healthy */
    try{
@@ -2796,6 +2829,7 @@ function boConnect(){
     if(boFails>=10){
      /* FIX-6: give up after 10 consecutive failures — dim the pill instead of retrying forever */
      boOn=false;boFailed=true;MLAYERS.bolt=false;
+     feedMark('lightning',false,'gave up');
      try{renderMapPills();}catch(e){}
      return;
     }
@@ -2834,7 +2868,7 @@ function boPause(onRadar){
  else if(boOn){boConnect();if(!boAger)boAger=setInterval(boAge,60000);}
 }
 /* ---------- Fullscreen weather map (radar + toggleable layers) ---------- */
-let radarMapL=null,radarFrames=[],radarIdx=0,radarLayers={},radarTimer=null,radarFetched=0,radarView=null,radarHost='https://tilecache.rainviewer.com',radarLocMark=null,radarBase=null,radarRetryT=null;
+let radarMapL=null,radarFrames=[],radarIdx=0,radarLayers={},radarTimer=null,radarFetched=0,radarView=null,radarHost='https://tilecache.rainviewer.com',radarLocMark=null,radarBase=null,radarRetryT=null,radarGeoPin=null,radarLocateCtl=null;
 let MLAYERS={radar:true,clouds:false,temp:false,wind:false,rain:false,bolt:false};
 let MAPTHEME=null;
 function stopRadarAnim(){if(radarTimer){clearInterval(radarTimer);radarTimer=null;}updateRadarPlayBtn();}
@@ -2914,6 +2948,49 @@ function retryMapLoad(){
  const box=document.getElementById('radarBox');if(box)box.innerHTML='';
  drawRadarMap();
 }
+/* UX-3: "my location" Leaflet control — a leaflet-bar button that geolocates and recenters the map.
+   Built lazily (not at top level) since Leaflet is lazy-loaded and `L` doesn't exist until drawRadarMap runs. */
+let LocateControlCls=null;
+function getLocateControlCls(){
+ if(!LocateControlCls){
+  LocateControlCls=L.Control.extend({
+   options:{position:'bottomright'},
+   onAdd:function(){
+    const hrv=lang==='hr';
+    const div=L.DomUtil.create('div','leaflet-bar leaflet-control locate-ctl');
+    const btn=L.DomUtil.create('a','',div);
+    btn.href='#';btn.innerHTML='📍';
+    btn.title=hrv?'Moja lokacija':'My location';
+    btn.setAttribute('aria-label',hrv?'Moja lokacija':'My location');
+    btn.setAttribute('role','button');
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.on(btn,'click',L.DomEvent.stop);
+    L.DomEvent.on(btn,'click',function(){locateOnMap(btn);});
+    return div;
+   }
+  });
+ }
+ return LocateControlCls;
+}
+function locateOnMap(btn){
+ if(!btn||btn.getAttribute('aria-disabled')==='true')return;
+ btn.setAttribute('aria-disabled','true');
+ requestGeo().then(function(g){
+  btn.removeAttribute('aria-disabled');
+  const hrv=lang==='hr';
+  if(!g){
+   const el=document.getElementById('radarTime');
+   if(el)el.textContent=hrv?'lokacija nedostupna':'location unavailable';
+   setTimeout(function(){if(radarFrames.length)showRadarFrame(radarIdx);},2000);
+   return;
+  }
+  if(!radarMapL)return;
+  radarMapL.setView([g.lat,g.lon],Math.max(radarMapL.getZoom(),10));
+  if(radarGeoPin){try{radarMapL.removeLayer(radarGeoPin);}catch(e){}}
+  radarGeoPin=L.circleMarker([g.lat,g.lon],{radius:8,color:C.sky,fillColor:C.sky,fillOpacity:0.9}).addTo(radarMapL);
+  radarGeoPin.bindPopup('<div class="stpop"><b>'+esc(g.name)+'</b></div>').openPopup();
+ });
+}
 function drawRadarMap(att){
  if(typeof L==='undefined'){
   if(LEAF_STATE==='idle')loadLeaflet();
@@ -2926,6 +3003,7 @@ function drawRadarMap(att){
   if(!radarMapL){
    const box0=document.getElementById('radarBox');if(box0)box0.innerHTML=''; /* FIX-5: clear any failed-load message before Leaflet mounts */
    radarMapL=L.map('radarBox',{scrollWheelZoom:true,zoomControl:false});
+   radarLocateCtl=new (getLocateControlCls())();radarLocateCtl.addTo(radarMapL); /* UX-3: added before zoom so it sits above it */
    L.control.zoom({position:'bottomright'}).addTo(radarMapL);
    radarBase=L.tileLayer(mapBaseUrl(),{subdomains:'abcd',maxZoom:19,className:'basetiles',attribution:'© OpenStreetMap'+(CARTOKEY?' © CARTO':'')+' · © RainViewer · ⚡ Blitzortung.org · Open-Meteo'});
    radarBase.addTo(radarMapL);
@@ -2956,10 +3034,12 @@ function loadRadarFrames(){
   radarLayers={};
   radarIdx=Math.max(0,past.length-1);
   buildRadarUI();showRadarFrame(radarIdx);
+  feedMark('radar',true);
  }).catch(e=>{
   const el=document.getElementById('radarTime');
   if(el)el.textContent=lang==='hr'?'radar nedostupan':'radar unavailable';
   console.log('rainviewer failed:',e);
+  feedMark('radar',false,e);
  });
 }
 function buildRadarUI(){
@@ -3039,7 +3119,7 @@ function gridRefresh(){
  }
  var key=gridCellKey(radarMapL.getZoom(),radarMapL.getCenter());
  if(!gridCache[key]){
-  gridCache[key]=tfetch('https://api.open-meteo.com/v1/forecast?latitude='+lats.join(',')+'&longitude='+lons.join(',')+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover&daily=precipitation_sum&forecast_days=2&timezone=auto',12000)
+  gridCache[key]=tfetch('https://api.open-meteo.com/v1/forecast?latitude='+lats.join(',')+'&longitude='+lons.join(',')+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover&daily=precipitation_sum&forecast_days=2&timezone=auto',12000)
    .then(function(r){return r.json();})
    .catch(function(){return null;});
   gridKeys.push(key);
@@ -3183,9 +3263,10 @@ function gridDraw(list){
    html+='<div style="font-weight:800;font-size:13.5px;color:'+lc+';">'+Math.round(t)+'°</div>';
   }
   if(MLAYERS.wind&&cur.wind_speed_10m!=null){
-   var dir=cur.wind_direction_10m||0,spd=cur.wind_speed_10m;
+   var dir=cur.wind_direction_10m||0,spd=cur.wind_speed_10m,gu=cur.wind_gusts_10m;
    var asz=11+Math.min(6,Math.round(spd/8)); /* stronger wind → bigger arrow */
-   html+='<div style="font-size:11px;color:#607a9b;"><span style="display:inline-block;font-size:'+asz+'px;transform:rotate('+(dir+90)+'deg);">➤</span> '+Math.round(spd)+'</div>';
+   var gtxt=(gu!=null&&gu>=spd+5)?(' ('+Math.round(gu)+')'):'';
+   html+='<div style="font-size:11px;color:#607a9b;"><span style="display:inline-block;font-size:'+asz+'px;transform:rotate('+(dir+90)+'deg);">➤</span> '+Math.round(spd)+gtxt+'</div>';
   }
   if(MLAYERS.rain&&sum>=0.2){
    html+='<div style="font-size:10.5px;color:#0E7490;font-weight:600;">💧'+(Math.round(sum*10)/10)+'</div>';
