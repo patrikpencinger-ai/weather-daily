@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Patrik's weather daily — v3.13</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
+<link rel="preconnect" href="https://api.open-meteo.com">
+<link rel="preconnect" href="https://archive-api.open-meteo.com">
+<link rel="preconnect" href="https://marine-api.open-meteo.com">
+<link rel="preconnect" href="https://air-quality-api.open-meteo.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://tile.openstreetmap.org">
+<link rel="preconnect" href="https://nominatim.openstreetmap.org">
 <style>
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 body{padding:20px;transition:background .2s}
@@ -339,7 +346,7 @@ body{padding:20px;transition:background .2s}
 </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" defer></script>
 <script>
 (function(){if(typeof window.console==='undefined')window.console={};var noop=function(){};['log','info','warn','error','debug'].forEach(function(k){if(typeof console[k]!=='function')console[k]=console.log&&typeof console.log==='function'?console.log.bind(console):noop;});})();
 const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn:'#BA7517',bad:'#A32D2D',sea:'#0E7490',pres:'#6E8B3D',bbq:'#A0522D'};
@@ -474,7 +481,21 @@ let BG,txt,strong,halo,grid,ptb;
 const cache={};
 const climoCache={};
 const marineCache={};
+const marineTime={};
 const airCache={};
+const airTime={};
+/* PERF-1: Chart.js is now loaded with `defer`, so this inline script can run before it is ready.
+   Stand in with an inert constructor (only .destroy() is ever called on chart instances elsewhere)
+   so render() never throws; the real Chart.js overwrites window.Chart when it finishes loading. */
+let CHART_PENDING=false;
+if(typeof Chart==='undefined'){
+ CHART_PENDING=true;
+ window.Chart=function(){this.destroy=function(){};};
+}
+(function(){
+ const cs=document.querySelector('script[src*="chart.umd"]');
+ if(cs)cs.addEventListener('load',function(){if(CHART_PENDING){CHART_PENDING=false;renderActive();}});
+})();
 function calc(){const D=theme==='dark';BG=D?'#262624':'#ffffff';txt=D?'rgba(255,255,255,0.72)':'rgba(0,0,0,0.62)';strong=D?'#fff':'#1a1a18';halo=D?'rgba(38,38,36,0.85)':'rgba(255,255,255,0.85)';grid=D?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.08)';ptb=D?'#262624':'#ffffff';}
 calc();
 const bgPlug={id:'bg',beforeDraw(c){const x=c.ctx;x.save();x.globalCompositeOperation='destination-over';x.fillStyle=BG;x.fillRect(0,0,c.width,c.height);x.restore();}};
@@ -694,14 +715,16 @@ async function fetchOpenMeteo(loc,range){
 /* ---------- Marine: sea surface temperature ---------- */
 function ensureMarine(loc){
  const k=loc.lat.toFixed(3)+','+loc.lon.toFixed(3);
+ if(marineCache[k]&&marineTime[k]!=null&&(Date.now()-marineTime[k])>1800000){delete marineCache[k];delete marineTime[k];}
  if(marineCache[k])return marineCache[k];
- marineCache[k]=(async()=>{
+ marineTime[k]=Date.now();
+ const raw=(async()=>{
   const r=await tfetch('https://marine-api.open-meteo.com/v1/marine?latitude='+loc.lat+'&longitude='+loc.lon+'&hourly=sea_surface_temperature,sea_level_height_msl,wave_height&forecast_days=7&timezone=auto',10000);
-  if(!r.ok)return null;
+  if(!r.ok)throw new Error('marine '+r.status);
   const j=await r.json();
   const tm=j.hourly&&j.hourly.time, vv=j.hourly&&j.hourly.sea_surface_temperature;
   const lv=j.hourly&&j.hourly.sea_level_height_msl, wv=j.hourly&&j.hourly.wave_height;
-  if(!tm||!vv)return null;
+  if(!tm||!vv)throw new Error('marine: incomplete data');
   const byDate={},byLvl={};let cur=null,wave=null;
   for(let i=0;i<tm.length;i++){
    const d=tm[i].slice(0,10);
@@ -716,22 +739,26 @@ function ensureMarine(loc){
    if(l!=null&&isFinite(l))(byLvl[d]=byLvl[d]||[]).push(l);
   }
   const dts=Object.keys(byDate).sort();
-  if(!dts.length)return null;
+  if(!dts.length)throw new Error('marine: no days');
   if(cur===null)cur=byDate[dts[0]][0];
   const tide=Object.keys(byLvl).sort().map(d=>({dt:d,hi:Math.round(Math.max.apply(null,byLvl[d])*100),lo:Math.round(Math.min.apply(null,byLvl[d])*100)}));
   return{cur:Math.round(cur*10)/10,wave:(wave!=null?Math.round(wave*100):null),days:dts.map(d=>({dt:d,t:Math.round((byDate[d].reduce((a,b)=>a+b,0)/byDate[d].length)*10)/10})),tide:tide};
- })().catch(()=>null);
+ })();
+ raw.catch(()=>{delete marineCache[k];delete marineTime[k];});
+ marineCache[k]=raw.catch(()=>null);
  return marineCache[k];
 }
 
 /* ---------- Air quality: pollen ---------- */
 function ensureAir(loc){
  const k=loc.lat.toFixed(3)+','+loc.lon.toFixed(3);
+ if(airCache[k]&&airTime[k]!=null&&(Date.now()-airTime[k])>1800000){delete airCache[k];delete airTime[k];}
  if(airCache[k])return airCache[k];
- airCache[k]=(async()=>{
+ airTime[k]=Date.now();
+ const raw=(async()=>{
   const r=await tfetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen,european_aqi,pm2_5&current=european_aqi&forecast_days=3&past_days=1&timezone=auto',10000);
-  if(!r.ok)return null;
-  const j=await r.json();const h=j.hourly;if(!h||!h.time)return null;
+  if(!r.ok)throw new Error('air-quality '+r.status);
+  const j=await r.json();const h=j.hourly;if(!h||!h.time)throw new Error('air-quality: incomplete data');
   let idx=h.time.findIndex(t=>new Date(t)>=new Date());if(idx<0)idx=h.time.length-1;
   const keys=['alder','birch','grass','mugwort','olive','ragweed'];
   const list=[];
@@ -749,9 +776,11 @@ function ensureAir(loc){
    }
    aqi={now:cur,yest:yv,pm25:(h.pm2_5&&h.pm2_5[idx]!=null&&isFinite(h.pm2_5[idx]))?Math.round(h.pm2_5[idx]*10)/10:null,series:ser};
   }
-  if(!list.length&&!aqi)return null;
+  if(!list.length&&!aqi)throw new Error('air-quality: no data');
   return{list:list,dom:dom,aqi:aqi};
- })().catch(()=>null);
+ })();
+ raw.catch(()=>{delete airCache[k];delete airTime[k];});
+ airCache[k]=raw.catch(()=>null);
  return airCache[k];
 }
 
@@ -840,6 +869,35 @@ async function fetchAI(locName,range){
 }
 
 /* ---------- Orchestration ---------- */
+const WD_LAST_KEY='wd_last';
+const FRESH_MS=900000; /* PERF-4: 15 min — in-memory forecast still considered fresh */
+const STALE_VIS_MS=1800000; /* PERF-4: 30 min — refetch on tab becoming visible again */
+let loadSeq=0; /* guards against an older loadData() call clobbering a newer one (FIX-1 can now fire two) */
+let lastRefreshFailed=false; /* PERF-2: a background SWR refetch failed while cached data stayed on screen */
+let renderTimer=null;
+function scheduleRender(){ /* PERF-3: 150ms trailing debounce so 3-4 async arrivals coalesce into one render */
+ if(renderTimer)clearTimeout(renderTimer);
+ renderTimer=setTimeout(function(){renderTimer=null;renderActive();},150);
+}
+function saveLast(key,locName,d){ /* PERF-2: persist the last good direct-mode forecast for instant SWR reload */
+ try{
+  if(!d||d.mode==='ai')return;
+  const s=JSON.stringify({key:key,loc:locName,t:Date.now(),D:d});
+  if(s.length>400000)return;
+  localStorage.setItem(WD_LAST_KEY,s);
+ }catch(e){}
+}
+function readWdLast(locName,key){
+ try{
+  const raw=localStorage.getItem(WD_LAST_KEY);
+  if(!raw)return null;
+  const o=JSON.parse(raw);
+  if(!o||!o.D||o.D.mode==='ai'||!o.key||!o.loc)return null;
+  if(o.key.split('|')[0]!==key.split('|')[0])return null; /* RANGE must match */
+  if(o.loc.trim().toLowerCase()!==locName.trim().toLowerCase())return null;
+  return o;
+ }catch(e){return null;}
+}
 async function fetchFor(locName,key,getCur){
  if(IN_CLAUDE){
   try{return await fetchAI(locName,RANGE);}
@@ -858,10 +916,26 @@ async function runDirect(locName,key,getCur){
  const mp=ensureMarine(loc);
  const ap=ensureAir(loc);
  const d=await fetchOpenMeteo(loc,RANGE);
- cp.then(cl=>{d.climo=cl;cache[key]=d;if(getCur()===d)renderActive();}).catch(e=>console.log('normals unavailable:',e));
- mp.then(m=>{if(m){d.sea=m;cache[key]=d;if(getCur()===d)renderActive();}}).catch(()=>{});
- ap.then(a=>{if(a){d.air=a;cache[key]=d;if(getCur()===d)renderActive();}}).catch(()=>{});
+ if(getCur===getA)saveLast(key,locName,d);
+ cp.then(cl=>{d.climo=cl;cache[key]=d;if(getCur===getA)saveLast(key,locName,d);if(getCur()===d)scheduleRender();}).catch(e=>console.log('normals unavailable:',e));
+ mp.then(m=>{if(m){d.sea=m;cache[key]=d;if(getCur===getA)saveLast(key,locName,d);if(getCur()===d)scheduleRender();}}).catch(()=>{});
+ ap.then(a=>{if(a){d.air=a;cache[key]=d;if(getCur===getA)saveLast(key,locName,d);if(getCur()===d)scheduleRender();}}).catch(()=>{});
  return d;
+}
+async function refreshInBackground(locName,key,mySeq){ /* PERF-2/PERF-4: SWR / stale-TTL background refetch */
+ try{
+  const d=await fetchFor(locName,key,getA);
+  if(mySeq!==loadSeq)return; /* superseded by a newer loadData() call */
+  d.fetchedAt=Date.now();d.fromCache=false;
+  D=d;cache[key]=D;
+  lastRefreshFailed=false;
+  scheduleRender();
+ }catch(err){
+  if(mySeq!==loadSeq)return;
+  console.log('background refresh failed:',err);
+  lastRefreshFailed=true; /* footer chip notes this; cached D keeps showing, no error screen */
+  scheduleRender();
+ }
 }
 async function loadData(){
  const btn=document.getElementById('btn-rf');btn.disabled=true;
@@ -869,15 +943,33 @@ async function loadData(){
  document.getElementById('locIn').value=locName;
  if(selB&&selB.toLowerCase()===locName.toLowerCase()){selB=null;D2=null;}
  const key=RANGE+"|"+locName.trim().toLowerCase();
- if(cache[key]){D=cache[key];addRecent(locName);show('dash');showView(route());btn.disabled=false;loadSecondary();return;}
+ const mySeq=++loadSeq;
+ lastErrs={direct:null,ai:null};
+ lastRefreshFailed=false;
+ if(cache[key]){
+  D=cache[key];addRecent(locName);show('dash');showView(route());btn.disabled=false;
+  if(Date.now()-(D.fetchedAt||0)>FRESH_MS)refreshInBackground(locName,key,mySeq); /* PERF-4: stale in-memory entry */
+  loadSecondary();
+  return;
+ }
+ const last=readWdLast(locName,key); /* PERF-2: no in-memory hit — fall back to the persisted snapshot */
+ if(last){
+  D=last.D;D.fetchedAt=last.t;D.fromCache=true;cache[key]=D;
+  addRecent(locName);show('dash');showView(route());btn.disabled=false;
+  refreshInBackground(locName,key,mySeq);
+  loadSecondary();
+  return;
+ }
  document.getElementById('loadingSub').textContent=RANGE+"d · "+locName;
  show('loading');
- lastErrs={direct:null,ai:null};
  try{
-  D=await fetchFor(locName,key,getA);
-  cache[key]=D;addRecent(locName);show('dash');showView(route());
+  const d=await fetchFor(locName,key,getA);
+  if(mySeq!==loadSeq)return; /* a newer loadData() call already took over */
+  d.fetchedAt=Date.now();d.fromCache=false;
+  D=d;cache[key]=D;addRecent(locName);show('dash');showView(route());
   loadSecondary();
  }catch(err){
+  if(mySeq!==loadSeq)return;
   if(lastErrs.direct&&!lastErrs.ai)lastErrs.ai=err.message||String(err);
   else if(!lastErrs.direct)lastErrs.direct=err.message||String(err);
   console.error(err);
@@ -897,6 +989,20 @@ async function loadSecondary(){
   selB=null;D2=null;markBtns();renderActive();
  }
 }
+let FOOT_BASE=''; /* PERF-4: the static part of the footer line; footChip() appends the live "updated Xm ago" bit */
+function footChip(){
+ if(!D||!D.fetchedAt)return '';
+ const mins=Math.max(0,Math.round((Date.now()-D.fetchedAt)/60000));
+ let s=lang==='hr'?(mins<1?' · ažurirano upravo':' · ažurirano prije '+mins+' min'):(mins<1?' · updated just now':' · updated '+mins+' min ago');
+ if(D.fromCache)s+=lang==='hr'?' (predmemorija)':' (cached)';
+ if(lastRefreshFailed)s+=lang==='hr'?' · osvježavanje nije uspjelo':' · refresh failed';
+ return s;
+}
+function refreshFootChip(){ /* PERF-4: single interval, no per-render setInterval calls */
+ const el=document.getElementById('foot');
+ if(el&&D&&FOOT_BASE)el.textContent=FOOT_BASE+footChip();
+}
+setInterval(refreshFootChip,60000);
 function showError(){
  document.getElementById('errDirect').textContent=LBL.errDirect+(lastErrs&&lastErrs.direct?lastErrs.direct:'—');
  document.getElementById('errAI').textContent=LBL.errAI+(lastErrs&&lastErrs.ai?(lastErrs.ai==='Failed to fetch'?LBL.aiOnly:lastErrs.ai):'—');
@@ -1423,7 +1529,8 @@ function render(){
  }
  const av=D.climo&&D.climo.avg;
  const now=new Date();
- document.getElementById('foot').textContent=(lang==='hr'?"Prognoza: ":"Forecast: ")+esc(D.loc||locA())+(isC?(' + '+esc(D2.loc||selB)):'')+" · "+(D.src||"")+((D.mode==='direct'&&RANGE>16)?(' '+LBL.capNote):'')+((!isC&&av)?(" · "+LBL.normFoot):"")+" · "+(lang==='hr'?"osvježeno ":"refreshed ")+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+ FOOT_BASE=(lang==='hr'?"Prognoza: ":"Forecast: ")+esc(D.loc||locA())+(isC?(' + '+esc(D2.loc||selB)):'')+" · "+(D.src||"")+((D.mode==='direct'&&RANGE>16)?(' '+LBL.capNote):'')+((!isC&&av)?(" · "+LBL.normFoot):"")+" · "+(lang==='hr'?"osvježeno ":"refreshed ")+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+ document.getElementById('foot').textContent=FOOT_BASE+footChip();
 }
 
 function drawHourly(){
@@ -2918,11 +3025,21 @@ function renderActive(){if(!D)return;try{VIEWS[active].render();}catch(e){consol
 addEventListener('hashchange',()=>{const r=route();if(r!==active)showView(r);});
 
 function initLoc(){
+ /* FIX-1: fetch for whatever locIn already holds right away — don't wait on GPS/Nominatim */
+ loadData();
  requestGeo().then(g=>{
-  if(g){GEO_LOC=g;document.getElementById('locIn').value=g.name;}
-  loadData();
+  if(!g)return;
+  const known=CUR_LOC;
+  if(!known||havKm(g.lat,g.lon,known.lat,known.lon)>2){
+   GEO_LOC=g;
+   document.getElementById('locIn').value=g.name;
+   loadData();
+  }
  });
 }
+document.addEventListener('visibilitychange',()=>{ /* PERF-4: catch up on data missed while the tab was hidden */
+ if(document.visibilityState==='visible'&&D&&D.fetchedAt&&(Date.now()-D.fetchedAt)>STALE_VIS_MS)loadData();
+});
 initLoc();
 </script>
 </body>
