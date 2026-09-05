@@ -229,6 +229,14 @@ body{padding:20px;transition:background .2s}
   <canvas id="bio" role="img" aria-label="Biometeorological load forecast as colored bars: green favorable, amber moderately unfavorable, red unfavorable"></canvas>
 </div>
 <div class="lab" id="bioLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
+<div id="presBlk" class="hidden">
+<div class="hd" data-i="hPres">PRESSURE TREND</div>
+<p class="lab" id="presSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+<div id="preswrap" style="position:relative;width:100%;height:170px;margin:0 0 6px;">
+  <canvas id="presTrend" role="img" aria-label="Sea-level pressure over the past day and next two days"></canvas>
+</div>
+<div class="lab" id="presLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
+</div>
 </div>
 
 <div id="aqiSec" class="hidden">
@@ -488,6 +496,8 @@ const marineCache={};
 const marineTime={};
 const airCache={};
 const airTime={};
+const FEEDS={}; /* UX-1: last known status per data source, for a future status readout */
+function feedMark(name,ok,err){FEEDS[name]={t:Date.now(),ok:!!ok,err:err?String(err&&err.message||err).slice(0,80):null};}
 /* PERF-1: Chart.js is now loaded with `defer`, so this inline script can run before it is ready.
    Stand in with an inert constructor (only .destroy() is ever called on chart instances elsewhere)
    so render() never throws; the real Chart.js overwrites window.Chart when it finishes loading. */
@@ -525,7 +535,7 @@ const T={
   capNote:"(direct feed tops out at 16 days)",
   best:"Best window",worst:"Wettest risk",dry:"dry all day",
   vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
-  zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
+  zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
   tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",tabMap:"Map",tabInfo:"Info",tShort:"Patrik's weather",
   infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",
   infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
@@ -554,7 +564,7 @@ const T={
   capNote:"(izravni izvor ide do 16 dana)",
   best:"Najbolji prozor",worst:"Najveći rizik kiše",dry:"suho cijeli dan",
   vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
-  zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
+  zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
   tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",tabMap:"Karta",tabInfo:"Info",tShort:"Patrikova prognoza",
   infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",
   infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
@@ -574,7 +584,7 @@ const T={
   aiOnly:"dostupno samo unutar Claudea",
   dows:['Ned','Pon','Uto','Sri','Čet','Pet','Sub']}
 };
-let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, swimCh=null, aqiCh=null, lastErrs=null;
+let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, swimCh=null, aqiCh=null, presCh=null, lastErrs=null;
 let BBQCRIT={time:true,temp:true,rain:true,wind:true,humid:true,storm:true}, bbqSeries=[], bbqPeak=null;
 let TSTRIP='day', TOFF=0;
 let VEGAN=false, bbqCheck={};
@@ -610,8 +620,8 @@ async function fetchOpenMeteo(loc,range){
  const fetchDays=Math.min(Math.max(days,14),16);
  const url='https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+
   '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,pressure_msl'+
-  '&hourly=temperature_2m,precipitation_probability,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,pressure_msl'+
-  '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,precipitation_sum,uv_index_max,wind_speed_10m_max,sunrise,sunset'+
+  '&hourly=temperature_2m,precipitation_probability,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,pressure_msl,visibility,freezing_level_height,wind_gusts_10m,snowfall'+
+  '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,precipitation_sum,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset'+
   '&minutely_15=precipitation&forecast_minutely_15=16'+
   '&forecast_days='+fetchDays+'&past_days=1&timezone=auto';
  const r=await tfetch(url,10000);
@@ -653,23 +663,50 @@ async function fetchOpenMeteo(loc,range){
  {const todayStr=(dl.time[1]||hl.time[0]||'').slice(0,10);
   for(let i=0;i<hl.time.length;i++){const ts=hl.time[i];if(ts.slice(0,10)!==todayStr)continue;
    const hh=parseInt(ts.slice(11,13),10);if(hh<9||hh>22)continue;
-   grillRaw.push({h:hh,hh:ts.slice(11,16),t:hl.temperature_2m[i],fl:hl.apparent_temperature[i],pp:Math.round(hl.precipitation_probability[i]||0),wind:hl.wind_speed_10m[i],rh:hl.relative_humidity_2m[i],cond:WMO(hl.weather_code[i])});}}
+   grillRaw.push({h:hh,hh:ts.slice(11,16),t:hl.temperature_2m[i],fl:hl.apparent_temperature[i],pp:Math.round(hl.precipitation_probability[i]||0),wind:hl.wind_speed_10m[i],rh:hl.relative_humidity_2m[i],cond:WMO(hl.weather_code[i]),gust:(hl.wind_gusts_10m&&hl.wind_gusts_10m[i]!=null&&isFinite(hl.wind_gusts_10m[i]))?Math.round(hl.wind_gusts_10m[i]):null});}}
  const grillH=grillRaw.map(o=>({h:o.hh,s:grillCompound(o,GRILLALL).v}));
  fullDs.forEach((x,i)=>{const v=pmean((i+1)*24,(i+2)*24);x.p=v!=null?Math.round(v):null;x.w=(dl.wind_speed_10m_max&&dl.wind_speed_10m_max[i+1]!=null)?Math.round(dl.wind_speed_10m_max[i+1]):null;});
+ /* FEAT-1: today's hourly extras (visibility/freezing level/gusts/snowfall) for the Hiking view */
+ const hx=[];
+ for(let k4=0;k4<24;k4++){const i4=24+k4;if(i4>=hl.time.length)break;
+  const vis=hl.visibility?hl.visibility[i4]:null,frz=hl.freezing_level_height?hl.freezing_level_height[i4]:null,
+   gu=hl.wind_gusts_10m?hl.wind_gusts_10m[i4]:null,sn=hl.snowfall?hl.snowfall[i4]:null;
+  hx.push({h:hl.time[i4].slice(11,16),
+   vis:(vis!=null&&isFinite(vis))?Math.round(vis):null,
+   frz:(frz!=null&&isFinite(frz))?Math.round(frz):null,
+   gust:(gu!=null&&isFinite(gu))?Math.round(gu):null,
+   snow:(sn!=null&&isFinite(sn))?Math.round(sn*10)/10:null});}
+ const gustMax=(dl.wind_gusts_10m_max&&dl.wind_gusts_10m_max[1]!=null&&isFinite(dl.wind_gusts_10m_max[1]))?Math.round(dl.wind_gusts_10m_max[1]):null;
  const ds=fullDs.slice(0,days);
  const alerts=[];
  {const end=Math.min(hl.time.length,nowIdx+30);
   let stormFrom=null,stormTo=null,stormD=null,windMax=0,windAt=null,windD=null,rainMax=0,rainAt=null,rainD=null;
+  let heatMax=null,heatAt=null,heatD=null,coldMin=null,coldAt=null,coldD=null;
   for(let i=nowIdx;i<end;i++){
    const code=hl.weather_code[i],ts=hl.time[i].slice(11,16),td=hl.time[i].slice(0,10);
    if(code>=95){if(stormFrom===null){stormFrom=ts;stormD=td;}stormTo=ts;}
    const w=hl.wind_speed_10m[i];if(w!=null&&w>windMax){windMax=w;windAt=ts;windD=td;}
    const pp=hl.precipitation_probability[i];if(pp!=null&&pp>rainMax){rainMax=pp;rainAt=ts;rainD=td;}
+   const flv=hl.apparent_temperature[i];
+   if(flv!=null&&isFinite(flv)){
+    if(heatMax===null||flv>heatMax){heatMax=flv;heatAt=ts;heatD=td;}
+    if(coldMin===null||flv<coldMin){coldMin=flv;coldAt=ts;coldD=td;}
+   }
   }
   if(stormFrom!==null)alerts.push({sev:2,type:'storm',from:stormFrom,to:stormTo,d:stormD});
   if(windMax>=55)alerts.push({sev:1,type:'wind',val:Math.round(windMax),at:windAt,d:windD});
   if(rainMax>=80&&stormFrom===null)alerts.push({sev:1,type:'rain',val:Math.round(rainMax),at:rainAt,d:rainD});
   const t0=fullDs[0];if(t0&&t0.hi!=null&&t0.lo!=null&&(t0.hi-t0.lo)>=14)alerts.push({sev:1,type:'swing',hi:t0.hi,lo:t0.lo});
+  if(heatMax!=null&&heatMax>=35)alerts.push({sev:1,type:'heat',val:Math.round(heatMax),at:heatAt,d:heatD});
+  if(coldMin!=null&&coldMin<=-15)alerts.push({sev:1,type:'cold',val:Math.round(coldMin),at:coldAt,d:coldD});
+  {const todayD=dl.time[1],tomD=dl.time[2];
+   const uvT=(dl.uv_index_max&&dl.uv_index_max[1]!=null&&isFinite(dl.uv_index_max[1]))?dl.uv_index_max[1]:null;
+   const uvM=(dl.uv_index_max&&dl.uv_index_max[2]!=null&&isFinite(dl.uv_index_max[2]))?dl.uv_index_max[2]:null;
+   let uvVal=null,uvD=null;
+   if(uvT!=null&&uvT>=8&&(uvM==null||uvT>=uvM)){uvVal=uvT;uvD=todayD;}
+   else if(uvM!=null&&uvM>=8){uvVal=uvM;uvD=tomD;}
+   if(uvVal!=null)alerts.push({sev:1,type:'uv',val:Math.round(uvVal*10)/10,d:uvD});
+  }
  }
  let sunObj=null;
  if(dl.sunrise&&dl.sunset&&dl.sunrise[1]&&dl.sunset[1]){
@@ -685,6 +722,20 @@ async function fetchOpenMeteo(loc,range){
   const d3=(p3!=null)?(pcur-p3):null,d24=(p24!=null)?(pcur-p24):null;
   const ti2=(d3==null)?1:(d3>0.5?0:(d3<-0.5?2:1));
   presObj={cur:Math.round(pcur),t:ti2,d3:d3!=null?Math.round(d3*10)/10:null,d24:d24!=null?Math.round(d24*10)/10:null};
+ }
+ /* FEAT-2: 72h pressure trend for the BIOMETEO chart */
+ let presH=[],presNowIdx=0;
+ if(hl.pressure_msl){
+  let prevDay=null,pos=0;
+  const endP=Math.min(hl.time.length,72);
+  for(let i5=0;i5<endP;i5+=3,pos++){
+   const ts5=hl.time[i5],dpart=ts5.slice(0,10);
+   const dayStart=(dpart!==prevDay);prevDay=dpart;
+   const v5=hl.pressure_msl[i5];
+   /* label is formatted at draw time (presLab) so a language toggle re-labels without a refetch */
+   presH.push({dt:dpart,hm:ts5.slice(11,16),ds:dayStart,v:(v5!=null&&isFinite(v5))?Math.round(v5*10)/10:null,past:i5<nowIdx});
+   if(i5<=nowIdx)presNowIdx=pos;
+  }
  }
  const uvObj={cur:(hl.uv_index&&hl.uv_index[nowIdx]!=null)?Math.round(hl.uv_index[nowIdx]*10)/10:null,max:(dl.uv_index_max&&dl.uv_index_max[1]!=null)?Math.round(dl.uv_index_max[1]*10)/10:null};
  let rain15=null;
@@ -715,7 +766,7 @@ async function fetchOpenMeteo(loc,range){
    ex.push({a:k3,dt:hl.time[i3].slice(0,10),h:hl.time[i3].slice(11,16),t:Math.round(hl.temperature_2m[i3]),cond:WMO(hl.weather_code[i3]),pp:(hl.precipitation_probability&&hl.precipitation_probability[i3]!=null)?Math.round(hl.precipitation_probability[i3]):null});}
   if(ex.length>=9)h3ext=ex;
  }
- return{loc:loc.name,station:loc.station,uv:uvObj,rain15:rain15,today3:today3,todayMeta:todayMeta,h3ext:h3ext,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,sun:sunObj,
+ return{loc:loc.name,station:loc.station,uv:uvObj,rain15:rain15,today3:today3,todayMeta:todayMeta,h3ext:h3ext,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,presH:presH,presNowIdx:presNowIdx,sun:sunObj,hx:hx,gustMax:gustMax,
   daysFull:fullDs,
   now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),wdeg:Math.round(((cur.wind_direction_10m%360)+360)%360),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
   hours:hours,days:ds,yest:yest,badge:badge,
@@ -756,6 +807,7 @@ function ensureMarine(loc){
   const tide=Object.keys(byLvl).sort().map(d=>({dt:d,hi:Math.round(Math.max.apply(null,byLvl[d])*100),lo:Math.round(Math.min.apply(null,byLvl[d])*100)}));
   return{cur:Math.round(cur*10)/10,wave:(wave!=null?Math.round(wave*100):null),days:dts.map(d=>({dt:d,t:Math.round((byDate[d].reduce((a,b)=>a+b,0)/byDate[d].length)*10)/10})),tide:tide};
  })();
+ raw.then(()=>feedMark('marine',true),e=>feedMark('marine',false,e));
  raw.catch(()=>{delete marineCache[k];delete marineTime[k];});
  marineCache[k]=raw.catch(()=>null);
  return marineCache[k];
@@ -768,7 +820,7 @@ function ensureAir(loc){
  if(airCache[k])return airCache[k];
  airTime[k]=Date.now();
  const raw=(async()=>{
-  const r=await tfetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen,european_aqi,pm2_5&current=european_aqi&forecast_days=3&past_days=1&timezone=auto',10000);
+  const r=await tfetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,dust&current=european_aqi&forecast_days=3&past_days=1&timezone=auto',10000);
   if(!r.ok)throw new Error('air-quality '+r.status);
   const j=await r.json();const h=j.hourly;if(!h||!h.time)throw new Error('air-quality: incomplete data');
   let idx=h.time.findIndex(t=>new Date(t)>=new Date());if(idx<0)idx=h.time.length-1;
@@ -787,10 +839,14 @@ function ensureAir(loc){
     ser.push({h:((i2-idx)>=24?'+1d ':'')+h.time[i2].slice(11,16),v:Math.round(ea[i2])});
    }
    aqi={now:cur,yest:yv,pm25:(h.pm2_5&&h.pm2_5[idx]!=null&&isFinite(h.pm2_5[idx]))?Math.round(h.pm2_5[idx]*10)/10:null,series:ser};
+   const pval=arr=>(arr&&arr[idx]!=null&&isFinite(arr[idx]))?Math.round(arr[idx]):null;
+   const pol={pm10:pval(h.pm10),no2:pval(h.nitrogen_dioxide),o3:pval(h.ozone),dust:pval(h.dust)};
+   if(pol.pm10!=null||pol.no2!=null||pol.o3!=null||pol.dust!=null)aqi.pol=pol;
   }
   if(!list.length&&!aqi)throw new Error('air-quality: no data');
   return{list:list,dom:dom,aqi:aqi};
  })();
+ raw.then(()=>feedMark('air',true),e=>feedMark('air',false,e));
  raw.catch(()=>{delete airCache[k];delete airTime[k];});
  airCache[k]=raw.catch(()=>null);
  return airCache[k];
@@ -853,6 +909,7 @@ function ensureClimo(loc){
   const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
   return{ly:ly,avg:{max:mean(mx),mean:mean(mn),precip:mean(pr),n:mx.length},byDay:buildByDay(rawMax)};
  })();
+ climoCache[k].then(()=>feedMark('climo',true),e=>feedMark('climo',false,e));
  climoCache[k].catch(()=>{delete climoCache[k];});
  return climoCache[k];
 }
@@ -910,13 +967,17 @@ function readWdLast(locName,key){
   return o;
  }catch(e){return null;}
 }
+async function fetchAIMarked(locName,range){ /* UX-1: wraps fetchAI with feed bookkeeping only */
+ try{const r=await fetchAI(locName,range);feedMark('ai',true);return r;}
+ catch(e){feedMark('ai',false,e);throw e;}
+}
 async function fetchFor(locName,key,getCur){
  if(IN_CLAUDE){
-  try{return await fetchAI(locName,RANGE);}
+  try{return await fetchAIMarked(locName,RANGE);}
   catch(eA){console.log('AI feed failed, trying direct feed:',eA);return await runDirect(locName,key,getCur);}
  }else{
   try{return await runDirect(locName,key,getCur);}
-  catch(eD){if(getCur===getA)lastErrs.direct=eD.message||String(eD);console.log('direct feed unavailable — using AI feed');return await fetchAI(locName,RANGE);}
+  catch(eD){if(getCur===getA)lastErrs.direct=eD.message||String(eD);console.log('direct feed unavailable — using AI feed');return await fetchAIMarked(locName,RANGE);}
  }
 }
 function getA(){return D;}
@@ -928,6 +989,7 @@ async function runDirect(locName,key,getCur){
  const mp=ensureMarine(loc);
  const ap=ensureAir(loc);
  const d=await fetchOpenMeteo(loc,RANGE);
+ feedMark('forecast',true);
  if(getCur===getA)saveLast(key,locName,d);
  cp.then(cl=>{d.climo=cl;cache[key]=d;if(getCur===getA)saveLast(key,locName,d);if(getCur()===d)scheduleRender();}).catch(e=>console.log('normals unavailable:',e));
  mp.then(m=>{if(m){d.sea=m;cache[key]=d;if(getCur===getA)saveLast(key,locName,d);if(getCur()===d)scheduleRender();}}).catch(()=>{});
@@ -944,6 +1006,7 @@ async function refreshInBackground(locName,key,mySeq){ /* PERF-2/PERF-4: SWR / s
   scheduleRender();
  }catch(err){
   if(mySeq!==loadSeq)return;
+  feedMark('forecast',false,err);
   console.log('background refresh failed:',err);
   lastRefreshFailed=true; /* footer chip notes this; cached D keeps showing, no error screen */
   scheduleRender();
@@ -982,6 +1045,7 @@ async function loadData(){
   loadSecondary();
  }catch(err){
   if(mySeq!==loadSeq)return;
+  feedMark('forecast',false,err);
   if(lastErrs.direct&&!lastErrs.ai)lastErrs.ai=err.message||String(err);
   else if(!lastErrs.direct)lastErrs.direct=err.message||String(err);
   console.error(err);
@@ -1252,13 +1316,16 @@ function buildWeekend(l){
 function buildAlerts(l){
  const A=(D&&D.alerts)||[];if(!A.length)return null;
  const hrv=l==='hr';
- const ic={storm:'⛈️',wind:'💨',rain:'🌧️',swing:'🌡️'};
+ const ic={storm:'⛈️',wind:'💨',rain:'🌧️',swing:'🌡️',uv:'☀️',heat:'🥵',cold:'🥶'};
  const parts=A.map(a=>{
   const tom=(a.d&&a.d!==todayIso())?(hrv?'sutra ':'tomorrow '):'';
   if(a.type==='storm')return (hrv?'Grmljavinsko nevrijeme očekuje se ':'Thunderstorms expected ')+tom+(hrv?'oko ':'around ')+a.from+((a.to&&a.to!==a.from)?('–'+a.to):'')+(hrv?' h.':'.');
   if(a.type==='wind')return (hrv?'Jak vjetar do ':'Strong wind up to ')+a.val+' km/h'+(a.at?((hrv?' ':' ')+tom+(hrv?'oko ':'around ')+a.at):'')+'.';
   if(a.type==='rain')return (hrv?'Obilna kiša, vjerojatnost do ':'Heavy rain, up to ')+a.val+'%'+(a.at?((hrv?' ':' ')+tom+(hrv?'oko ':'around ')+a.at):'')+'.';
   if(a.type==='swing')return (hrv?'Velika promjena temperature ':'Large temperature swing ')+a.lo+'°→'+a.hi+'°.';
+  if(a.type==='uv')return (hrv?'Ekstreman UV ('+a.val+') ':'Extreme UV ('+a.val+') ')+tom+(hrv?'oko podneva — zaštiti se.':'around midday — cover up.');
+  if(a.type==='heat')return (hrv?'Opasna vrućina: osjet '+a.val+'° ':'Dangerous heat: feels like '+a.val+'° ')+(a.at?(tom+(hrv?'oko ':'around ')+a.at):'')+'.';
+  if(a.type==='cold')return (hrv?'Opasna hladnoća: osjet '+a.val+'° ':'Dangerous cold: feels like '+a.val+'° ')+(a.at?(tom+(hrv?'oko ':'around ')+a.at):'')+'.';
   return '';
  });
  return{sev:Math.max.apply(null,A.map(a=>a.sev)),icon:ic[A[0].type]||'⚠️',html:parts.filter(Boolean).map(p=>'• '+esc(p)).join('<br>')};
@@ -1447,7 +1514,8 @@ function render(){
     const lyT=(ly&&ly.tomMax!=null)?ly.tomMax:null;
     const ctxTom=tAnom(d1.hi-d0.hi)+' '+LBL.vsTod+
      (nm1!=null?('<br>'+tAnom(d1.hi-nm1,null,1)+' '+LBL.vsN+' ('+nm1.toFixed(1)+'°)'):'')+
-     (lyT!=null?('<br>'+tAnom(d1.hi-lyT)+' '+LBL.vsLY+' ('+Math.round(lyT)+'°)'):'');
+     (lyT!=null?('<br>'+tAnom(d1.hi-lyT)+' '+LBL.vsLY+' ('+Math.round(lyT)+'°)'):'')+
+     '<br>💧 '+(d1.pp??'—')+'% · 💨 '+(d1.w??'—')+' km/h';
     tomCard=card(LBL.cTom,(ICON[d1.cond]||'')+' '+d1.lo+'–'+d1.hi+'°','',ctxTom);
    }}
   let cardsHtml=
@@ -1499,6 +1567,9 @@ function render(){
  const bioShow=!isC&&D.bio&&D.bio.h&&D.bio.h.length;
  document.getElementById('bioSec').classList.toggle('hidden',!bioShow);
  if(bioShow)drawBio();
+ const presShow=!isC&&D.presH&&D.presH.length>=6;
+ document.getElementById('presBlk').classList.toggle('hidden',!presShow);
+ if(presShow)drawPressure();else if(presCh){presCh.destroy();presCh=null;}
  const aqiShow=!isC&&D.air&&D.air.aqi&&D.air.aqi.series&&D.air.aqi.series.length;
  document.getElementById('aqiSec').classList.toggle('hidden',!aqiShow);
  if(aqiShow){document.getElementById('aqiSum').textContent=buildAqiSum(lang);drawAqi();}
@@ -1523,6 +1594,7 @@ function render(){
  document.getElementById('wkSum').textContent=buildWkSum(lang);
  document.getElementById('seaSum').textContent=hasSea?buildSeaSum(lang):'';
  document.getElementById('bioSum').textContent=bioShow?buildBioSum(lang):'';
+ document.getElementById('presSum').textContent=presShow?buildPresSum(lang):'';
  document.getElementById('grSum').textContent=grillShow?buildGrillSum(lang):'';
  const h7el=document.querySelector('[data-i="h7"]');
  if(h7el)h7el.textContent=MP?'AND NOW FOR SOMETHING COMPLETELY DIFFERENT':LBL.h7;
@@ -1757,6 +1829,62 @@ function drawBio(){
  });
 }
 
+/* FEAT-2: 72h sea-level pressure trend, shown under BIOMETEO */
+function presLab(p){return p.lab||((p.ds?dayLab(p.dt)+' ':'')+p.hm);}
+function buildPresSum(l){
+ const hrv=l==='hr';
+ const H=D.presH;if(!H||H.length<6)return'';
+ const nowI=D.presNowIdx||0;
+ const cur=H[nowI]&&H[nowI].v!=null?H[nowI].v:((D.pres&&D.pres.cur!=null)?D.pres.cur:null);
+ const d24=(D.pres&&D.pres.d24!=null)?D.pres.d24:null;
+ let mn=null,mx=null,mnI=nowI,mxI=nowI;
+ for(let i=nowI;i<H.length;i++){
+  const v=H[i].v;if(v==null)continue;
+  if(mn===null||v<mn){mn=v;mnI=i;}
+  if(mx===null||v>mx){mx=v;mxI=i;}
+ }
+ let t=(hrv?'Tlak trenutno ':'Pressure currently ')+(cur!=null?Math.round(cur)+' hPa':'—');
+ if(d24!=null)t+=hrv?(', '+sgn(d24,' hPa',1)+' u zadnja 24 h'):(', '+sgn(d24,' hPa',1)+' over the last 24 h');
+ t+='. ';
+ if(mn!=null&&mx!=null&&(mxI!==mnI||mn!==cur)){
+  t+=hrv?('Raspon idućih dana '+Math.round(mn)+'–'+Math.round(mx)+' hPa (min '+presLab(H[mnI])+', maks '+presLab(H[mxI])+'). ')
+        :('Range ahead '+Math.round(mn)+'–'+Math.round(mx)+' hPa (min '+presLab(H[mnI])+', max '+presLab(H[mxI])+'). ');
+ }
+ if(d24!=null&&d24<=-6)t+=hrv?'Brzo pada — vjerojatna fronta.':'Falling fast — front likely.';
+ else if(d24!=null&&d24>=6)t+=hrv?'Raste — smirivanje.':'Rising — settling.';
+ else t+=hrv?'Stabilno.':'Steady.';
+ return t.trim();
+}
+function drawPressure(){
+ if(presCh){presCh.destroy();presCh=null;}
+ const H=D.presH;if(!H||H.length<6)return;
+ const el=document.getElementById('presTrend');if(!el)return;
+ const hrv=lang==='hr',M=layout==='mobile',nowI=D.presNowIdx||0;
+ presCh=new Chart(el,{type:'line',
+  data:{labels:H.map(presLab),datasets:[{data:H.map(p=>p.v),borderColor:C.pres,backgroundColor:C.pres,borderWidth:2,pointRadius:1.5,pointBorderColor:ptb,pointBorderWidth:1,tension:0.25,spanGaps:true,
+   segment:{borderDash:ctx=>(H[ctx.p0DataIndex]&&H[ctx.p0DataIndex].past)?[5,4]:undefined,
+    borderWidth:ctx=>(H[ctx.p0DataIndex]&&H[ctx.p0DataIndex].past)?1.5:2}}]},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:14}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' hPa'}}},
+   scales:{
+    x:{grid:{display:false},ticks:{color:txt,autoSkip:true,maxTicksLimit:M?6:10,font:{size:M?8:9}}},
+    y:{grace:'15%',grid:{color:grid},ticks:{color:txt,callback:v=>Math.round(v)+' hPa',font:{size:M?8:9}}}
+   }},
+  plugins:[bgPlug,{id:'presNow',afterDatasetsDraw(ch){
+   const x=ch.scales.x.getPixelForValue(nowI);if(x==null||isNaN(x))return;
+   const ca=ch.chartArea,ctx=ch.ctx;ctx.save();ctx.strokeStyle=C.bad;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+   ctx.beginPath();ctx.moveTo(x,ca.top);ctx.lineTo(x,ca.bottom);ctx.stroke();ctx.setLineDash([]);
+   ctx.fillStyle=C.bad;ctx.font='600 9px sans-serif';ctx.textAlign='center';ctx.fillText(hrv?'sad':'now',x,ca.top-2);ctx.restore();}}]
+ });
+ const leg=document.getElementById('presLeg');
+ if(leg){
+  const lineSw=c=>'<span style="width:14px;height:0;border-top:3px solid '+c+';"></span>';
+  const dashSw=c=>'<span style="width:14px;height:0;border-top:2px dashed '+c+';"></span>';
+  const nowSw='<span style="width:0;height:12px;border-left:2px dashed '+C.bad+';"></span>';
+  leg.innerHTML=legSwatch(lineSw(C.pres),LBL.lgPr)+legSwatch(dashSw(C.pres),hrv?'zadnja 24 h':'past 24 h')+legSwatch(nowSw,hrv?'sad':'now');
+ }
+}
+
 function drawGrill(){
  if(grillCh){grillCh.destroy();grillCh=null;}
  const days=D.days||[];
@@ -1863,7 +1991,7 @@ function applyResponsive(){
  document.getElementById('mtwrap').style.height=want==='mobile'?'160px':'190px';
  document.getElementById('biowrap').style.height=want==='mobile'?'150px':'170px';
  document.getElementById('grwrap').style.height=want==='mobile'?'160px':'180px';
- const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],hikecwrap:['170px','200px'],hikewwrap:['150px','170px'],swimcwrap:['160px','190px'],aqiwrap:['150px','170px']};
+ const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],hikecwrap:['170px','200px'],hikewwrap:['150px','170px'],swimcwrap:['160px','190px'],aqiwrap:['150px','170px'],preswrap:['150px','170px']};
  for(const id in vw){const e=document.getElementById(id);if(e)e.style.height=want==='mobile'?vw[id][0]:vw[id][1];}
  if(D)renderActive();
  markBtns();
@@ -2560,6 +2688,18 @@ function aqiName(i){
  var hr=['Dobro','Prihvatljivo','Umjereno','Loše','Vrlo loše','Ekstremno'];
  return (lang==='hr'?hr:en)[i];
 }
+function aqiPolLine(){
+ var a=D.air&&D.air.aqi;if(!a||!a.pol)return '';
+ var p=a.pol,hrv=lang==='hr';
+ var thr={pm10:40,no2:90,o3:120,dust:50};
+ var names={pm10:'PM10',no2:'NO₂',o3:'O₃',dust:hrv?'prašina':'dust'};
+ var keys=['pm10','no2','o3','dust'].filter(function(k){return p[k]!=null;});
+ if(!keys.length)return '';
+ var domK=keys[0];keys.forEach(function(k){if((p[k]/thr[k])>(p[domK]/thr[domK]))domK=k;});
+ var lab=hrv?'prevladava':'dominant';
+ var parts=keys.map(function(k){var s=esc(names[k])+' '+p[k];return k===domK?('<b>'+s+'</b>'):s;});
+ return '<div class="ctx">'+esc(lab)+': '+parts.join(' · ')+'</div>';
+}
 function aqiCardHtml(){
  if(!D.air||!D.air.aqi)return '';
  var a=D.air.aqi,hrv=lang==='hr',b=aqiBand(a.now),parts=[];
@@ -2572,7 +2712,7 @@ function aqiCardHtml(){
   '<div style="display:flex;align-items:baseline;gap:8px;">'+
   '<span style="font-size:24px;font-weight:500;color:'+AQICOL[b]+'">'+a.now+'</span>'+
   '<span style="color:'+AQICOL[b]+';font-weight:500;">'+esc(aqiName(b))+'</span>'+
-  '</div><div class="ctx">'+esc(parts.join(' · '))+'</div></div>';
+  '</div><div class="ctx">'+esc(parts.join(' · '))+'</div>'+aqiPolLine()+'</div>';
 }
 function buildAqiSum(l){
  if(!D.air||!D.air.aqi)return '';
@@ -3104,7 +3244,7 @@ const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#sw
 const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},swim:{el:'view-swim',render:renderSwim},map:{el:'view-map',render:renderMapFull},info:{el:'view-info',render:renderInfo}};
 let active='weather';
 function route(){return ROUTES[(location.hash||'').split('?')[0]]||'weather';}
-function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh,swimCh,aqiCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=swimCh=aqiCh=null;}
+function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh,swimCh,aqiCh,presCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=swimCh=aqiCh=presCh=null;}
 function updateTabs(){
  document.querySelectorAll('#tabs .tab').forEach(a=>{const on=a.dataset.view===active;a.classList.toggle('on',on);a.setAttribute('aria-selected',on?'true':'false');a.setAttribute('tabindex',on?'0':'-1');});
  if(D){try{const el=id=>document.getElementById(id);
