@@ -51,6 +51,9 @@ body{padding:20px;transition:background .2s}
 @keyframes boPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
 .mly{border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:12.5px;cursor:pointer;background:var(--bg);color:var(--ts);}
 .mly.on{background:var(--tp);color:var(--bg);border-color:var(--tp);}
+.mly.dimmed{opacity:0.45;}
+#heatLeg{align-items:center;gap:6px;margin:4px 0 0;}
+#heatLeg .bar{flex:1;height:8px;border-radius:4px;min-width:40px;}
 .stpop b{font-size:13px}.stpop button{margin-top:6px;background:#2caaf0;color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
 .lbtn{background:transparent;color:var(--ts);border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;cursor:pointer}
 .lbtn:disabled{opacity:0.35;cursor:not-allowed;}
@@ -330,6 +333,7 @@ body{padding:20px;transition:background .2s}
       <div class="lab" id="rainStripH" style="letter-spacing:0.05em;font-weight:600;font-size:10.5px;margin:0 0 3px;"></div>
       <div id="rainStrip" role="img" aria-label="Rain expected in the next two hours in 15-minute steps" style="display:flex;gap:4px;align-items:flex-end;"></div>
     </div>
+    <div id="heatLeg" role="img" style="display:none;" aria-label="Temperature layer colour legend"></div>
     <p class="lab" id="radarNote" style="margin:5px 0 0;font-size:9.5px;line-height:1.4;"></p>
   </div>
 </section>
@@ -2590,7 +2594,7 @@ function drawAqi(){
 }
 
 /* ---------- Lightning layer (Blitzortung.org live strikes, radar view) ---------- */
-let boWs=null,boOn=false,boPaused=false,boStrikes=[],boAger=null,boHostIdx=0;
+let boWs=null,boOn=false,boPaused=false,boStrikes=[],boAger=null,boHostIdx=0,boFails=0,boFailed=false,boReconnT=null;
 const BOHOSTS=['ws1.blitzortung.org','ws7.blitzortung.org','ws8.blitzortung.org'];
 function boDecode(b){var e={},d=b.split(''),c=d[0],f=c,g=[c],o=256,a,q;for(var i=1;i<d.length;i++){a=d[i].charCodeAt(0);q=256>a?d[i]:(e[a]?e[a]:(f+c));g.push(q);c=q.charAt(0);e[o]=f+c;o++;f=q;}return g.join('');}
 function boIcon(age){
@@ -2602,6 +2606,7 @@ function boIcon(age){
 }
 function lightningToggle(){
  boOn=!boOn;
+ if(boOn){boFails=0;boFailed=false;} /* FIX-6: turning the layer on resets the backoff counter */
  const b=document.getElementById('radarBolt');
  if(b){b.style.opacity=boOn?'1':'0.5';b.setAttribute('aria-pressed',boOn?'true':'false');}
  if(boOn){boConnect();if(!boAger)boAger=setInterval(boAge,60000);}
@@ -2612,22 +2617,40 @@ function boConnect(){
  try{
   const ws=new WebSocket('wss://'+BOHOSTS[boHostIdx%BOHOSTS.length]+'/');boWs=ws;
   ws.onopen=()=>{try{ws.send(JSON.stringify({a:111}));}catch(e){}};
-  ws.onmessage=ev=>{try{
+  ws.onmessage=ev=>{
+   boFails=0; /* FIX-6: any message means the connection is healthy */
+   try{
    const j=JSON.parse(boDecode(String(ev.data)));
    if(j&&j.lat!=null&&j.lon!=null&&radarMapL){
     let bb=null;try{bb=radarMapL.getBounds().pad(1.0);}catch(e){}
     if(bb&&bb.contains([j.lat,j.lon])){
      const mk=L.marker([j.lat,j.lon],{icon:boIcon(0),interactive:false,keyboard:false}).addTo(radarMapL);
-     boStrikes.push({t:new Date().getTime(),m:mk});
+     boStrikes.push({t:new Date().getTime(),m:mk,b:0});
      if(boStrikes.length>600){const old=boStrikes.shift();try{radarMapL.removeLayer(old.m);}catch(e){}}
     }
    }
   }catch(e){}};
-  ws.onclose=()=>{boWs=null;if(boOn&&!boPaused){boHostIdx++;setTimeout(boConnect,2000);}};
+  ws.onclose=()=>{
+   boWs=null;
+   if(boOn&&!boPaused){
+    boFails++;
+    if(boFails>=10){
+     /* FIX-6: give up after 10 consecutive failures — dim the pill instead of retrying forever */
+     boOn=false;boFailed=true;MLAYERS.bolt=false;
+     try{renderMapPills();}catch(e){}
+     return;
+    }
+    boHostIdx++;
+    const delay=Math.min(30000,2000*Math.pow(2,boFails-1));
+    if(boReconnT)clearTimeout(boReconnT);
+    boReconnT=setTimeout(boConnect,delay);
+   }
+  };
   ws.onerror=()=>{try{ws.close();}catch(e){}};
  }catch(e){boWs=null;}
 }
 function boDisconnect(){
+ if(boReconnT){clearTimeout(boReconnT);boReconnT=null;}
  if(boWs){try{boWs.close();}catch(e){}boWs=null;}
  if(boAger){clearInterval(boAger);boAger=null;}
  boStrikes.forEach(s=>{try{radarMapL.removeLayer(s.m);}catch(e){}});boStrikes=[];
@@ -2637,17 +2660,22 @@ function boAge(){
  boStrikes=boStrikes.filter(s=>{
   const a=now-s.t;
   if(a>60*60000){try{radarMapL.removeLayer(s.m);}catch(e){}return false;}
-  try{s.m.setIcon(boIcon(a));}catch(e){}
+  const b=a<5*60000?0:(a<15*60000?1:(a<30*60000?2:3)); /* FIX-9: only touch the DOM icon when the fade bucket actually changed */
+  if(s.b!==b){s.b=b;try{s.m.setIcon(boIcon(a));}catch(e){}}
   return true;
  });
 }
 function boPause(onRadar){
  boPaused=!onRadar;
- if(boPaused){if(boWs){try{boWs.close();}catch(e){}boWs=null;}if(boAger){clearInterval(boAger);boAger=null;}}
+ if(boPaused){
+  if(boReconnT){clearTimeout(boReconnT);boReconnT=null;}
+  if(boWs){try{boWs.close();}catch(e){}boWs=null;}
+  if(boAger){clearInterval(boAger);boAger=null;}
+ }
  else if(boOn){boConnect();if(!boAger)boAger=setInterval(boAge,60000);}
 }
 /* ---------- Fullscreen weather map (radar + toggleable layers) ---------- */
-let radarMapL=null,radarFrames=[],radarIdx=0,radarLayers={},radarTimer=null,radarFetched=0,radarView=null,radarHost='https://tilecache.rainviewer.com',radarLocMark=null,radarBase=null;
+let radarMapL=null,radarFrames=[],radarIdx=0,radarLayers={},radarTimer=null,radarFetched=0,radarView=null,radarHost='https://tilecache.rainviewer.com',radarLocMark=null,radarBase=null,radarRetryT=null;
 let MLAYERS={radar:true,clouds:false,temp:false,wind:false,rain:false,bolt:false};
 let MAPTHEME=null;
 function stopRadarAnim(){if(radarTimer){clearInterval(radarTimer);radarTimer=null;}updateRadarPlayBtn();}
@@ -2668,18 +2696,23 @@ function renderMapPills(){
  const el=document.getElementById('mlyPills');if(!el)return;
  const hrv=lang==='hr';
  const defs=[['radar','🌧️','Radar'],['clouds','☁️',hrv?'Oblaci':'Clouds'],['temp','🌡️','Temp'],['wind','💨',hrv?'Vjetar':'Wind'],['rain','💧',hrv?'Kiša 48h':'Rain 48h'],['bolt','⚡',hrv?'Munje':'Lightning']];
- el.innerHTML=defs.map(d=>'<button class="mly'+(MLAYERS[d[0]]?' on':'')+'" onclick="mlyToggle(\''+d[0]+'\')" aria-pressed="'+(MLAYERS[d[0]]?'true':'false')+'">'+d[1]+' '+d[2]+'</button>').join('');
+ el.innerHTML=defs.map(d=>{
+  const dim=(d[0]==='bolt'&&boFailed)?' dimmed':'';
+  const title=(d[0]==='bolt'&&boFailed)?(hrv?'Munje nedostupne — klikni za ponovni pokušaj':'Lightning unavailable — click to retry'):'';
+  return '<button class="mly'+(MLAYERS[d[0]]?' on':'')+dim+'" onclick="mlyToggle(\''+d[0]+'\')" aria-pressed="'+(MLAYERS[d[0]]?'true':'false')+'"'+(title?' title="'+title+'"':'')+'>'+d[1]+' '+d[2]+'</button>';
+ }).join('');
 }
 function mlyToggle(k){
  if(k==='bolt'){lightningToggle();MLAYERS.bolt=boOn;}
  else MLAYERS[k]=!MLAYERS[k];
  if(k==='radar'){
   const ctl=document.getElementById('radarCtl');if(ctl)ctl.style.display=MLAYERS.radar?'':'none';
-  if(!MLAYERS.radar){stopRadarAnim();for(const t in radarLayers){try{radarLayers[t].setOpacity(0);}catch(e){}}}
+  if(!MLAYERS.radar){stopRadarAnim();radarDetachExcept([]);} /* FIX-2: fully detach so hidden frames stop fetching tiles */
   else showRadarFrame(radarIdx);
  }
  if(k==='clouds'||k==='temp'||k==='wind'||k==='rain')gridRefresh();
  renderMapPills();
+ updateHeatLeg();
 }
 function renderMapFull(){
  const hrv=lang==='hr';
@@ -2710,15 +2743,29 @@ function renderMapFull(){
  }
  drawRadarMap();
 }
+function showMapFailMsg(){
+ const box=document.getElementById('radarBox');if(!box)return;
+ const hrv=lang==='hr';
+ box.innerHTML='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--bg);"><div><p style="margin:0 0 14px;font-size:14px;color:var(--tp);">'+
+  (hrv?'Karta se nije uspjela učitati (Leaflet CDN).':'The map library failed to load (Leaflet CDN).')+
+  '</p><button class="lbtn" onclick="retryMapLoad()">'+(hrv?'Pokušaj ponovno':'Retry')+'</button></div></div>';
+}
+function retryMapLoad(){
+ LEAF_STATE='idle';
+ const box=document.getElementById('radarBox');if(box)box.innerHTML='';
+ drawRadarMap();
+}
 function drawRadarMap(att){
  if(typeof L==='undefined'){
   if(LEAF_STATE==='idle')loadLeaflet();
-  if(LEAF_STATE==='failed')return;
-  att=att||0;if(att>20)return;
-  setTimeout(()=>{if(active==='map')drawRadarMap(att+1);},700);return;
+  if(LEAF_STATE==='failed'){showMapFailMsg();return;}
+  att=att||0;
+  if(att>20){showMapFailMsg();return;}
+  radarRetryT=setTimeout(()=>{radarRetryT=null;if(active==='map')drawRadarMap(att+1);},700);return;
  }
  try{
   if(!radarMapL){
+   const box0=document.getElementById('radarBox');if(box0)box0.innerHTML=''; /* FIX-5: clear any failed-load message before Leaflet mounts */
    radarMapL=L.map('radarBox',{scrollWheelZoom:true,zoomControl:false});
    L.control.zoom({position:'bottomright'}).addTo(radarMapL);
    radarBase=L.tileLayer(mapBaseUrl(),{subdomains:'abcd',maxZoom:19,className:'basetiles',attribution:'© OpenStreetMap'+(CARTOKEY?' © CARTO':'')+' · © RainViewer · ⚡ Blitzortung.org · Open-Meteo'});
@@ -2762,17 +2809,32 @@ function buildRadarUI(){
  updateRadarPlayBtn();
 }
 function radarLayerFor(i){
- const f=radarFrames[i];if(!f||!radarMapL)return null;
- if(!radarLayers[f.t]){radarLayers[f.t]=L.tileLayer(radarHost+f.p+'/256/{z}/{x}/{y}/4/1_1.png',{opacity:0,maxNativeZoom:7,maxZoom:19,className:'radarlayer',zIndex:5});radarLayers[f.t].addTo(radarMapL);}
+ const f=radarFrames[i];if(!f)return null;
+ /* FIX-2: build the tile layer lazily but do NOT attach it here — attaching is what starts tile requests */
+ if(!radarLayers[f.t])radarLayers[f.t]=L.tileLayer(radarHost+f.p+'/256/{z}/{x}/{y}/4/1_1.png',{opacity:0,maxNativeZoom:7,maxZoom:19,className:'radarlayer',zIndex:5});
  return radarLayers[f.t];
+}
+function radarAttach(i){
+ const ly=radarLayerFor(i);
+ if(ly&&radarMapL&&!radarMapL.hasLayer(ly))ly.addTo(radarMapL);
+ return ly;
+}
+function radarDetachExcept(keepIdxs){
+ /* FIX-2: keep at most the given frames attached — everything else is removed so it stops fetching tiles */
+ const keep={};
+ (keepIdxs||[]).forEach(function(i){const f=radarFrames[i];if(f)keep[f.t]=1;});
+ for(const t in radarLayers){
+  if(!keep[t]){try{if(radarMapL&&radarMapL.hasLayer(radarLayers[t]))radarMapL.removeLayer(radarLayers[t]);}catch(e){}}
+ }
 }
 function showRadarFrame(i){
  if(!radarFrames.length)return;
  radarIdx=((i%radarFrames.length)+radarFrames.length)%radarFrames.length;
- for(const t in radarLayers)radarLayers[t].setOpacity(0);
- if(!MLAYERS.radar)return;
- const cur=radarLayerFor(radarIdx);if(cur)cur.setOpacity(0.75);
- radarLayerFor((radarIdx+1)%radarFrames.length); /* preload next frame */
+ if(!MLAYERS.radar){radarDetachExcept([]);return;}
+ const nextIdx=(radarIdx+1)%radarFrames.length;
+ const cur=radarAttach(radarIdx);if(cur)cur.setOpacity(0.75); /* already preloaded from the previous step, so this is flicker-free */
+ const nxt=radarAttach(nextIdx);if(nxt&&nxt!==cur)nxt.setOpacity(0); /* preload next frame (guard: single-frame data has next===current) */
+ radarDetachExcept([radarIdx,nextIdx]); /* drop every other frame — at most 2 layers stay attached */
  const f=radarFrames[radarIdx],d=new Date(f.t*1000),hrv=lang==='hr';
  const el=document.getElementById('radarTime');
  if(el){el.textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+(f.fc?(hrv?' · prognoza':' · forecast'):'');el.style.color=f.fc?C.warn:'';}
@@ -2792,9 +2854,14 @@ let gridLG=null,gridCache={},gridKeys=[],gridMoveT=null,gridHooked=false;
 function gridActive(){
  return !!(MLAYERS.temp||MLAYERS.wind||MLAYERS.rain||MLAYERS.clouds);
 }
+/* FIX-3: zoom-scaled cache cell so pans at high zoom (a narrow viewport) don't all collapse onto one coarse key */
+function gridCellKey(zoom,center){
+ var cell=Math.max(0.01,0.1/Math.pow(2,Math.max(0,zoom-8))); /* floor ≈1 km so street-level pans don't refetch on every nudge */
+ return zoom+'|'+Math.round(center.lat/cell)+','+Math.round(center.lng/cell);
+}
 function gridRefresh(){
  if(!radarMapL)return;
- if(!gridActive()){if(gridLG){gridLG.clearLayers();}removeHeatOv();return;}
+ if(!gridActive()){if(gridLG){gridLG.clearLayers();}removeHeatOv();updateHeatLeg();return;}
  var b=radarMapL.getBounds();
  var south=b.getSouth(),north=b.getNorth(),west=b.getWest(),east=b.getEast();
  var insetLat=(north-south)*0.08,insetLon=(east-west)*0.08;
@@ -2811,7 +2878,7 @@ function gridRefresh(){
    lats.push(lat.toFixed(4));lons.push(lon.toFixed(4));
   }
  }
- var key=radarMapL.getZoom()+'|'+south.toFixed(1)+','+west.toFixed(1)+','+north.toFixed(1)+','+east.toFixed(1);
+ var key=gridCellKey(radarMapL.getZoom(),radarMapL.getCenter());
  if(!gridCache[key]){
   gridCache[key]=tfetch('https://api.open-meteo.com/v1/forecast?latitude='+lats.join(',')+'&longitude='+lons.join(',')+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover&daily=precipitation_sum&forecast_days=2&timezone=auto',12000)
    .then(function(r){return r.json();})
@@ -2821,8 +2888,7 @@ function gridRefresh(){
  }
  gridCache[key].then(function(data){
   if(!radarMapL)return;
-  var b2=radarMapL.getBounds();
-  var curKey=radarMapL.getZoom()+'|'+b2.getSouth().toFixed(1)+','+b2.getWest().toFixed(1)+','+b2.getNorth().toFixed(1)+','+b2.getEast().toFixed(1);
+  var curKey=gridCellKey(radarMapL.getZoom(),radarMapL.getCenter());
   if(curKey!==key){
    /* view changed while fetching (e.g. first-open invalidateSize) — retry once with fresh bounds */
    if(!gridRefresh._r){gridRefresh._r=1;setTimeout(function(){gridRefresh._r=0;gridRefresh();},350);}
@@ -2834,18 +2900,6 @@ function gridRefresh(){
  });
 }
 function tColScale(t){return t<0?'#4f7bd9':(t<8?'#2caaf0':(t<16?'#3DA35D':(t<24?'#E0A53C':(t<30?'#D85A30':(t<35?'#A32D2D':'#7a1fa2')))));}
-/* smooth colour ramp for the heatmap: linear rgb interpolation between temperature stops */
-const HEATSTOPS=[[-10,[79,123,217]],[0,[44,170,240]],[8,[61,163,93]],[16,[224,165,60]],[24,[216,90,48]],[30,[163,45,45]],[36,[122,31,162]]];
-function tColRGB(t){
- if(t<=HEATSTOPS[0][0])return HEATSTOPS[0][1];
- for(var i=1;i<HEATSTOPS.length;i++){
-  if(t<=HEATSTOPS[i][0]){
-   var a=HEATSTOPS[i-1],b=HEATSTOPS[i],f=(t-a[0])/(b[0]-a[0]);
-   return[Math.round(a[1][0]+(b[1][0]-a[1][0])*f),Math.round(a[1][1]+(b[1][1]-a[1][1])*f),Math.round(a[1][2]+(b[1][2]-a[1][2])*f)];
-  }
- }
- return HEATSTOPS[HEATSTOPS.length-1][1];
-}
 /* normalized ramp (0..1 across the SAME colours) — used with data-range stretch so small local deltas get big colour differences */
 const HEATRAMP=[[0,[79,123,217]],[0.17,[44,170,240]],[0.33,[61,163,93]],[0.5,[224,165,60]],[0.67,[216,90,48]],[0.83,[163,45,45]],[1,[122,31,162]]];
 function rampRGB(p){
@@ -2863,14 +2917,14 @@ function brightenHex(h,f){
  r=Math.round(r+(255-r)*f);g=Math.round(g+(255-g)*f);b=Math.round(b+(255-b)*f);
  return 'rgb('+r+','+g+','+b+')';
 }
-let heatOv=null;
-function removeHeatOv(){if(heatOv){try{radarMapL.removeLayer(heatOv);}catch(e){}heatOv=null;}}
+let heatOv=null,heatRange=null,heatLastCenter=null,heatLastZoom=null;
+function removeHeatOv(){if(heatOv){try{radarMapL.removeLayer(heatOv);}catch(e){}heatOv=null;}heatRange=null;heatLastCenter=null;heatLastZoom=null;}
 /* true heatmap: IDW-interpolate the grid points per pixel on a canvas, geo-anchor as an image overlay */
 function buildHeatOverlay(list){
  try{
   var pts=[];
   list.forEach(function(it){if(it&&it.latitude!=null&&it.longitude!=null&&it.current&&it.current.temperature_2m!=null)pts.push([it.latitude,it.longitude,it.current.temperature_2m]);});
-  if(pts.length<3)return null;
+  if(pts.length<3){heatRange=null;return null;}
   var b=radarMapL.getBounds(),n=b.getNorth(),s=b.getSouth(),w=b.getWest(),e=b.getEast();
   var sz=radarMapL.getSize();
   var W=140,H=Math.max(50,Math.round(W*(sz.y/Math.max(1,sz.x))));
@@ -2901,15 +2955,44 @@ function buildHeatOverlay(list){
   var cv2=document.createElement('canvas');cv2.width=W*4;cv2.height=H*4;
   var c2=cv2.getContext('2d');c2.imageSmoothingEnabled=true;c2.imageSmoothingQuality='high';
   c2.drawImage(cv,0,0,cv2.width,cv2.height);
+  heatRange={min:tmin,max:tmin+span}; /* UX-2: expose the actual stretch range for the on-map legend */
   return L.imageOverlay(cv2.toDataURL('image/png'),[[s,w],[n,e]],{opacity:0.5,interactive:false});
- }catch(e){return null;}
+ }catch(e){heatRange=null;return null;}
+}
+function updateHeatLeg(){
+ var el=document.getElementById('heatLeg');if(!el)return;
+ if(!MLAYERS.temp||!heatOv||!heatRange){el.style.display='none';return;}
+ var hrv=lang==='hr';
+ var stops=HEATRAMP.map(function(s){return 'rgb('+s[1][0]+','+s[1][1]+','+s[1][2]+') '+(s[0]*100)+'%';}).join(',');
+ el.innerHTML='<span class="lab" style="font-size:9.5px;">'+Math.round(heatRange.min)+'°C</span>'+
+  '<span class="bar" style="background:linear-gradient(to right,'+stops+');"></span>'+
+  '<span class="lab" style="font-size:9.5px;">'+Math.round(heatRange.max)+'°C</span>'+
+  '<span class="lab" style="font-size:9px;">'+(hrv?'Temperatura (sloj)':'Temperature (layer)')+'</span>';
+ el.style.display='flex';
 }
 function gridDraw(list){
  if(!radarMapL||!list)return;
  if(!gridLG){gridLG=L.layerGroup().addTo(radarMapL);}
  gridLG.clearLayers();
- removeHeatOv();
- if(MLAYERS.temp){heatOv=buildHeatOverlay(list);if(heatOv)heatOv.addTo(radarMapL);}
+ if(MLAYERS.temp){
+  /* FIX-3: skip rebuilding the (expensive) IDW canvas when the view barely moved at the same zoom */
+  var zoom=radarMapL.getZoom(),center=radarMapL.getCenter(),skip=false;
+  if(heatOv&&heatLastCenter&&heatLastZoom===zoom){
+   try{
+    var vw=radarMapL.getSize().x;
+    var p1=radarMapL.latLngToContainerPoint(heatLastCenter),p2=radarMapL.latLngToContainerPoint(center);
+    if(Math.hypot(p2.x-p1.x,p2.y-p1.y)<vw*0.1)skip=true;
+   }catch(e){}
+  }
+  if(!skip){
+   removeHeatOv();
+   heatOv=buildHeatOverlay(list);
+   if(heatOv){heatOv.addTo(radarMapL);heatLastCenter=center;heatLastZoom=zoom;}
+  }
+ }else{
+  removeHeatOv();
+ }
+ updateHeatLeg();
  /* blob radius ≈ 0.62 × horizontal point spacing, so neighbouring blobs blend into a soft field */
  var blobR=22;
  try{blobR=Math.max(22,Math.round(radarMapL.getSize().x/9*0.62));}catch(e){}
@@ -3017,7 +3100,7 @@ function updateTabs(){
 function showView(name){
  if(!VIEWS[name])name='weather';active=name;
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
- destroyAllCharts();stopRadarAnim();boPause(name==='map');updateTabs();
+ destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
  if(!D)return;
  setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}updateTabs();},0);
 }
