@@ -2362,7 +2362,7 @@ function renderHike(){
  const windEff=(gustMaxVal!=null)?Math.max(wind,gustMaxVal*0.6):wind;
  const sWind=clmp(100-Math.min(100,Math.max(0,windEff-10)*3));
  let sSky=HIKESKY[cond]!=null?HIKESKY[cond]:60;
- if(hasVis&&isFoggyReal)sSky=Math.min(sSky,HIKESKY.fog);
+ if(hasVis){if(isFoggyReal)sSky=Math.min(sSky,HIKESKY.fog);else if(cond==='fog')sSky=HIKESKY.cloud;} /* measured visibility is authoritative both ways */
  const sVis=hasVis?clmp(visKm*10):null;
  const trail=hasVis?clmp((sComfort+sDry+sWind+sSky+sVis)/5):clmp((sComfort+sDry+sWind+sSky)/4);
  const tband=trail>=80?(hrv?'Vrhunski dan za stazu':'Prime trail day'):trail>=60?(hrv?'Veži cipele':'Lace up'):trail>=40?(hrv?'Izvedivo':'Doable'):(hrv?'Možda ipak kafić':'Maybe a café');
@@ -2381,7 +2381,7 @@ function renderHike(){
  const dpBand=dp<10?(hrv?'suho, ugodno':'dry, comfortable'):dp<16?(hrv?'malo vlažno':'a touch humid'):dp<20?(hrv?'ljepljivo':'sticky'):(hrv?'znojara':'sweat-fest');
  const gustEst=Math.round(wind*1.6);
  const gustCard=(gustMaxVal!=null)
-  ?card('💨 '+(hrv?'Udari vjetra':'Gusts'),gustMaxVal+' km/h',gustAtH?('@ '+gustAtH):'',hrv?'Grebeni dodaju još.':'Ridges add more.')
+  ?card('💨 '+(hrv?'Udari vjetra':'Gusts'),gustMaxVal+' km/h',(gustAtH&&gustMaxHx!=null&&Math.abs(gustMaxVal-gustMaxHx)<=3)?('@ '+gustAtH):'',hrv?'Grebeni dodaju još.':'Ridges add more.')
   :card('💨 '+(hrv?'Vjetar / greben':'Wind / ridge'),wind+' km/h '+wdir,'~'+gustEst+' km/h '+(hrv?'gore':'up high'),hrv?'Grebeni dodaju 50–80%.':'Ridges add 50–80% over the valley.');
  const cards=[
   card('🌅 '+(hrv?'Dnevno svjetlo':'Daylight'),(sun.rise||'—')+'–'+(sun.set||'—'),(sun.len?(Math.floor(sun.len/60)+'h '+(sun.len%60)+'m'):''),hrv?('Pola svjetla = vrijeme za okret. '+(sun.dmin!=null?((sun.dmin>=0?'+':'')+sun.dmin+' min vs jučer.'):'')):('Half your daylight = turn-around time. '+(sun.dmin!=null?((sun.dmin>=0?'+':'')+sun.dmin+' min vs yesterday.'):''))),
