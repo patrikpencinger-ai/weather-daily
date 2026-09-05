@@ -6,9 +6,30 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~3,420 lines). Current version: **v3.15** (also in the
+(HTML + CSS + vanilla JS, ~3,600 lines). Current version: **v3.16** (also in the
 `APPV` JS constant, used for the dynamic `document.title` — bump all three together,
 plus add a `CHANGELOG` entry).
+
+### PWA support files
+
+As of v3.16 the app is installable (Android/Chrome "Install app", iOS "Add to Home Screen",
+standalone display) with an offline app shell. This is the **one deliberate exception** to
+"single self-contained file": `manifest.json`, `sw.js`, the `icons/` PNGs, and the
+`tools/make-icons.js` script that generates them are the only other files this project ships.
+None of them touch app data or behaviour — `sw.js` precaches only the HTML shell (this file,
+`index.html`, `manifest.json`, the icons) and the two pinned CDN library files/styles
+(Chart.js, Leaflet JS+CSS); it never intercepts or caches an API or map-tile request — those
+always go straight to the network, untouched, exactly as if the service worker did not exist.
+`tools/make-icons.js` is a dependency-free node script (hand-rolled PNG encoder: raw RGBA
+scanlines → `zlib.deflateSync` → PNG chunks with a hand-rolled CRC32) that regenerates the three
+icon PNGs; it's excluded from the deployed site via `.assetsignore` (`tools/`). **Bump `CACHE`
+in `sw.js`** (currently `wd-shell-v3.16`) whenever the shell's precache list or pinned CDN
+versions change — the old cache is dropped on activate. The SW registers only on `https:` (never
+on `file://`, and it's a no-op if registration fails — the page works identically without it);
+its status is reported through the same `FEEDS`/`feedMark('pwa', …)` mechanism as every other
+data source and shown as a `pwa` row on the Info tab. When a new SW takes over an already-open
+tab (`controllerchange`), the app does **not** auto-reload — it appends a bilingual "new version
+ready — reload" / "nova verzija spremna — osvježi" note to the footer chip instead.
 
 As of v3.08 it's a **six-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
 `#hike`/`#swim`/`#map`/`#info`; `#radar` redirects to `#map`) over a `VIEWS` registry.
@@ -26,7 +47,11 @@ IDW heatmap with a legend, wind arrows, 48h rainfall, cloud cover; cache keyed t
 cell so high-zoom pans stay accurate), plus the next-2h rain strip and click-to-forecast
 (`onMapClick`/`pickPoint`), and (as of v3.15) a **📍 my-location** Leaflet control (`locateOnMap`,
 above the zoom buttons) that geolocates and recentres/pins the map; wind labels show gusts in
-parentheses when they clear speed+5. Launched from the Map tab or the 🗺️ card at
+parentheses when they clear speed+5. As of v3.16, the grid fetch also carries 24 h of hourly
+temperature/wind/gusts/cloud/precip per point, and a **⏱ time-scrub slider** in the bottom panel
+(0 = now … +24 h) redraws the heatmap, labels and rain/cloud blobs for the chosen hour straight
+from that cached response — no refetch while scrubbing; the legend shows the selected hour, and
+the next-2h rain strip's pill re-labels to match. Launched from the Map tab or the 🗺️ card at
 the end of the RIGHT NOW cards; ✕ returns to `#weather`. One shared data fetch (`D`) feeds all views;
 `showView(name)` toggles `#view-*` sections, `destroyAllCharts()`, then dispatches the active
 view's render via `setTimeout(0)` (NOT rAF — throttled in background tabs). The four global
@@ -169,7 +194,8 @@ Roughly top-to-bottom:
   fog/snow-line/gust cards and a 5th trail-score component — falling back to its older estimates
   for the reduced AI-feed object. The `#infoFeeds` panel (`renderFeeds()`, called from
   `renderInfo()` and every 60 s while the Info tab is open) lists one row per entry in `FEEDS`
-  (forecast/marine/air/climo/radar/lightning/ai): a coloured dot, live/failed/not-used-yet
+  (forecast/marine/air/climo/radar/lightning/ai/pwa — the last is the offline app-shell service
+  worker, see "PWA support files" above): a coloured dot, live/failed/not-used-yet
   status, last-update time and age, and any error text.
 - `<script>` — organized by `/* ---------- ... ---------- */` banners:
   state/helpers (incl. `FEEDS`/`feedMark()`, per-source health for the Info status panel) ·

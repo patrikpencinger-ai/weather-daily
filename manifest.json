@@ -1,0 +1,26 @@
+{
+  "name": "Patrik's weather daily",
+  "short_name": "Weather",
+  "description": "Bilingual (EN/HR) weather dashboard: forecast, BBQ, hiking, swimming and a full-screen radar map.",
+  "id": "./weather-dashboard.html",
+  "start_url": "./weather-dashboard.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#262624",
+  "theme_color": "#16243a",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

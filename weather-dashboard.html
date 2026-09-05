@@ -3,8 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.15</title>
+<title>Patrik's weather daily — v3.16</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16243a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Weather">
 <link rel="preconnect" href="https://api.open-meteo.com">
 <link rel="preconnect" href="https://archive-api.open-meteo.com">
 <link rel="preconnect" href="https://marine-api.open-meteo.com">
@@ -375,7 +381,7 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.15 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.16 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -386,7 +392,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.15';
+const APPV='3.16';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -1103,14 +1109,16 @@ async function loadSecondary(){
  }
 }
 let FOOT_BASE=''; /* PERF-4: the static part of the footer line; footChip() appends the live "updated Xm ago" bit */
+let SW_UPDATE_READY=false; /* FEAT-9: a new service worker took over; tell the user, never auto-reload */
 function footChip(){
  const chartsNote=CHARTS_DEAD?(lang==='hr'?' · grafovi nedostupni (CDN)':' · charts unavailable (CDN)'):'';
- if(!D||!D.fetchedAt)return chartsNote;
+ const pwaNote=SW_UPDATE_READY?(lang==='hr'?' · nova verzija spremna — osvježi':' · new version ready — reload'):'';
+ if(!D||!D.fetchedAt)return chartsNote+pwaNote;
  const mins=Math.max(0,Math.round((Date.now()-D.fetchedAt)/60000));
  let s=lang==='hr'?(mins<1?' · ažurirano upravo':' · ažurirano prije '+mins+' min'):(mins<1?' · updated just now':' · updated '+mins+' min ago');
  if(D.fromCache)s+=lang==='hr'?' (predmemorija)':' (cached)';
  if(lastRefreshFailed)s+=lang==='hr'?' · osvježavanje nije uspjelo':' · refresh failed';
- return s+chartsNote;
+ return s+chartsNote+pwaNote;
 }
 function refreshFootChip(){ /* PERF-4: single interval, no per-render setInterval calls */
  const el=document.getElementById('foot');
@@ -3461,6 +3469,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.16',d:'2026-09-05',en:'Header buttons are now grouped (display | data &amp; overlays | fun) with a bilingual tooltip on every one. Marine data adds <b>swell height/period</b> and <b>ocean current</b> — the coastal Swim view shows both. Hiking blends real <b>cloud layers</b> into its sky score and gains a <b>golden-hour</b> card. BBQ now shows a verdict for <b>both</b> upcoming weekends side by side. The map’s data-grid layers (temperature/wind/rain/clouds) got a <b>time-scrub slider</b> (now … +24h) that redraws instantly from the already-fetched data — no refetch while scrubbing — and loading/empty states across the map and other views now share one consistent card style. Biggest change: the app is now <b>installable</b> (Android/Chrome “Install app”, iOS “Add to Home Screen”) with a proper icon and an offline app shell — the page and its two library files load even with no signal, while forecasts still come from your last-synced data; live data is never cached.',hr:'Gumbi u zaglavlju sada su grupirani (prikaz | podaci i slojevi | zabava) i svaki ima dvojezičan opis pri lebdenju. Podaci o moru dobivaju <b>visinu/period valova</b> i <b>morsku struju</b> — obalni prikaz Kupanja prikazuje oboje. Planinarenje sada uračunava stvarne <b>slojeve oblaka</b> u ocjenu neba i dobiva karticu <b>zlatnog sata</b>. Roštilj sada prikazuje ocjenu za <b>oba</b> nadolazeća vikenda jedan pored drugog. Slojevi mreže podataka na karti (temperatura/vjetar/kiša/oblaci) dobili su <b>klizač vremena</b> (sad … +24 h) koji se odmah ponovno iscrtava iz već dohvaćenih podataka — bez ponovnog dohvata tijekom pomicanja — a stanja učitavanja/praznine na karti i drugim karticama sada dijele jedan dosljedan izgled kartice. Najveća promjena: aplikacija se sada može <b>instalirati</b> (Android/Chrome “Instaliraj aplikaciju”, iOS “Dodaj na početni zaslon”) s pravom ikonom i radi offline za samu ljusku — stranica i njezine dvije biblioteke učitavaju se i bez signala, dok prognoza i dalje dolazi iz zadnjeg sinkroniziranog stanja; podaci uživo se nikad ne predmemoriraju.'},
  {v:'3.15',d:'2026-09-05',en:'Hiking now scores on <b>real</b> hourly data instead of estimates whenever the direct feed has it: measured visibility (with a fog card), freezing-level height (snow-line card), wind gusts (new gust card feeding the wind score), and today’s snowfall — the map’s wind labels show gusts too. BIOMETEO gets a <b>72-hour pressure trend</b> chart (past day dashed, now marker). The AQI card now breaks down PM10/NO₂/O₃/dust and names the dominant pollutant. The Tomorrow card adds rain % and wind, and severe-weather alerts gain <b>extreme UV</b>, <b>dangerous heat</b> and <b>extreme cold</b> types. New: the Info tab shows a live <b>data-sources status</b> panel (per-feed live/failed/not-used-yet, last update time and age), and the map gained a <b>📍 my-location</b> control.',hr:'Planinarenje sada boduje na <b>stvarnim</b> satnim podacima umjesto procjena kad god ih izravni izvor ima: izmjerena vidljivost (kartica magle), visina snježne granice (kartica snježne granice), udari vjetra (nova kartica udara koja hrani ocjenu vjetra) i današnji snijeg — oznake vjetra na karti sada prikazuju i udare. BIOMETEO dobiva graf <b>trenda tlaka za 72 sata</b> (prošli dan isprekidano, oznaka „sad”). AQI kartica sada raščlanjuje PM10/NO₂/O₃/prašinu i imenuje prevladavajuću česticu. Kartica Sutra dobiva postotak kiše i vjetar, a upozorenja na opasno vrijeme dobivaju vrste <b>ekstremni UV</b>, <b>opasna vrućina</b> i <b>ekstremna hladnoća</b>. Novo: kartica Info prikazuje ploču <b>statusa izvora podataka</b> uživo (po izvoru uživo/greška/još nije korišteno, vrijeme zadnje nadopune i starost), a karta je dobila kontrolu <b>📍 moja lokacija</b>.'},
  {v:'3.14',d:'2026-09-05',en:'Faster, steadier start: the last forecast loads <b>instantly</b> from cache while a fresh one is fetched in the background, with an “updated X min ago” chip and an automatic refetch once it goes stale. The map now keeps at most <b>two radar frames</b> attached at a time, its data grid stays accurate at high zoom, a temperature-layer legend was added, and map/lightning failures show a retry with backoff; marine/air fetch failures no longer get cached as empty. Elsewhere: the BBQ weekend verdict and the Weather tab’s weekend plans now always describe the same weekend, the BBQ checklist and tab bar are keyboard-operable, a Croatian heading was fixed, a couple of rare null-comparison bugs were squashed, and Chart.js now falls back to a second CDN if the first is down.',hr:'Brži i stabilniji početak: zadnja prognoza učitava se <b>trenutno</b> iz predmemorije dok se u pozadini dohvaća nova, uz oznaku „ažurirano prije X min” i automatsko ponovno dohvaćanje čim podaci zastare. Karta sada drži najviše <b>dva radarska sloja</b> istovremeno, mreža podataka ostaje točna pri velikom zumu, dodana je legenda temperaturnog sloja, a greške karte/munja prikazuju ponovni pokušaj s odgodom; neuspjeli dohvat mora/zraka više se ne pamti kao prazan. Uz to: presuda za vikend na Roštilju i planovi za vikend na Vremenu sada uvijek govore o istom vikendu, lista za roštilj i traka kartica rade se i tipkovnicom, ispravljen je hrvatski naslov, uklonjeno je nekoliko rijetkih grešaka s null vrijednostima, a Chart.js sada ima rezervni CDN ako prvi ne radi.'},
  {v:'3.13',d:'2026-08-29',en:'Map basemap fixed: CARTO tiles started demanding an API key (watermarked “API KEY REQUIRED”), so the map now uses keyless <b>OpenStreetMap</b> tiles; the map’s dark mode inverts them in CSS. A free CARTO key can still be plugged in to restore the old look.',hr:'Popravljena podloga karte: CARTO pločice počele su tražiti API ključ (vodeni žig “API KEY REQUIRED”), pa karta sada koristi <b>OpenStreetMap</b> pločice bez ključa; tamni način karte invertira ih u CSS-u. Besplatni CARTO ključ i dalje se može upisati za stari izgled.'},
@@ -3500,7 +3509,8 @@ const FEED_ROWS=[
  ['climo','Climatology (archive)','Klimatologija (arhiv)'],
  ['radar','Rain radar (RainViewer)','Radar kiše (RainViewer)'],
  ['lightning','Lightning (Blitzortung)','Munje (Blitzortung)'],
- ['ai','AI feed','AI izvor']
+ ['ai','AI feed','AI izvor'],
+ ['pwa','App shell (offline)','Ljuska aplikacije (offline)']
 ];
 function renderFeeds(){
  const el=document.getElementById('infoFeeds');if(!el)return;
@@ -3580,6 +3590,19 @@ function initLoc(){
 document.addEventListener('visibilitychange',()=>{ /* PERF-4: catch up on data missed while the tab was hidden */
  if(document.visibilityState==='visible'&&D&&D.fetchedAt&&(Date.now()-D.fetchedAt)>STALE_VIS_MS)loadData();
 });
+/* FEAT-9: offline app-shell service worker — optional enhancement, page works the same without it (and on file://) */
+if(location.protocol==='https:'&&'serviceWorker' in navigator){
+ const swHadCtl=!!navigator.serviceWorker.controller; /* first install also fires controllerchange via clients.claim() — that is not an update */
+ navigator.serviceWorker.register('sw.js')
+  .then(reg=>{ if(typeof feedMark==='function')feedMark('pwa',true); })
+  .catch(e=>{ if(typeof feedMark==='function')feedMark('pwa',false,e); });
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{
+  /* a new SW just took over an already-open tab — never auto-reload, just flag it in the footer */
+  if(!swHadCtl)return;
+  SW_UPDATE_READY=true;
+  refreshFootChip();
+ });
+}
 initLoc();
 </script>
 </body>
