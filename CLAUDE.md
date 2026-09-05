@@ -6,20 +6,25 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~2,850 lines). Current version: **v3.08** (also in the
+(HTML + CSS + vanilla JS, ~3,160 lines). Current version: **v3.14** (also in the
 `APPV` JS constant, used for the dynamic `document.title` — bump all three together,
 plus add a `CHANGELOG` entry).
 
 As of v3.08 it's a **six-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/
 `#hike`/`#swim`/`#map`/`#info`; `#radar` redirects to `#map`) over a `VIEWS` registry.
 The `#map` view is a **full-screen weather map** (`renderMapFull`/`drawRadarMap`, Leaflet map
-`radarMapL`): CARTO basemap with its own light/dark switch (`MAPTHEME`/`mapThemeToggle`,
-independent of app theme; excluded from the dark-mode tile invert), zoom to 19 (radar tiles
-stretched via `maxNativeZoom:12`), toggleable layers in `MLAYERS`/`mlyToggle` — RainViewer
-radar frames with timeline, Blitzortung live lightning, and an Open-Meteo **point grid**
-(`gridRefresh`/`gridDraw`: temperature, wind arrows, 48h rainfall, cloud cover; one
-multi-coordinate API call per view change, cached), plus the next-2h rain strip and
-click-to-forecast (`onMapClick`/`pickPoint`). Launched from the Map tab or the 🗺️ card at
+`radarMapL`): keyless **OpenStreetMap** basemap (`mapBaseUrl`; an optional `CARTOKEY` restores
+CARTO Positron) with its own light/dark switch (`MAPTHEME`/`mapThemeToggle`, independent of app
+theme) — dark mode is a CSS invert on the base tiles (`.mapdark .basetiles`) — zoom to 19 (radar
+tiles stretched via `maxNativeZoom:7` — RainViewer's free tiles END at z7; requesting deeper
+native tiles returns "Zoom Level Not Supported" error tiles), toggleable layers in
+`MLAYERS`/`mlyToggle` — RainViewer
+radar frames with timeline (at most **two frames stay attached** at a time, current + preloaded
+next, so panning doesn't refetch every frame), Blitzortung live lightning (reconnects with
+exponential backoff), and an Open-Meteo **point grid** (`gridRefresh`/`gridDraw`: a temperature
+IDW heatmap with a legend, wind arrows, 48h rainfall, cloud cover; cache keyed to a zoom-scaled
+cell so high-zoom pans stay accurate), plus the next-2h rain strip and click-to-forecast
+(`onMapClick`/`pickPoint`). Launched from the Map tab or the 🗺️ card at
 the end of the RIGHT NOW cards; ✕ returns to `#weather`. One shared data fetch (`D`) feeds all views;
 `showView(name)` toggles `#view-*` sections, `destroyAllCharts()`, then dispatches the active
 view's render via `setTimeout(0)` (NOT rAF — throttled in background tabs). The four global
@@ -28,7 +33,13 @@ hooks (`applyTheme`/`setLang`/`toggleFont`/`applyResponsive`, plus `toggleMP`) c
 (`render()`) wrapped unchanged. BBQ grill score is a toggleable compound (`grillCompound`/
 `BBQCRIT`, time/temp/rain/wind/humid/storm). Swimming auto-detects coastal (`D.sea`) vs inland
 (Overpass pools/spas within 50 km, lazy + cached). New per-view drawers follow the same
-destroy-guard + summary-above/legend-below conventions.
+destroy-guard + summary-above/legend-below conventions. As of v3.14, boot is instant and
+stale-while-revalidate: `initLoc()` fires `loadData()` for the current location immediately
+(GPS/Nominatim resolve in parallel and only trigger a refetch if they land >2 km away), the
+last direct-mode forecast is cached to `localStorage` (`wd_last`) and rendered right away while
+a background refetch runs, async climo/marine/air arrivals are coalesced through
+`scheduleRender()` (150 ms debounce), and forecast/marine/air caches carry short TTLs (15 min /
+30 min) with a refetch on tab visibility and a bilingual "updated X min ago" footer chip.
 
 There is no build step, no bundler, no package manager, and no backend. It is
 opened directly in a browser or served as a static file. Keep it that way.
