@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~3,160 lines). Current version: **v3.14** (also in the
+(HTML + CSS + vanilla JS, ~3,420 lines). Current version: **v3.15** (also in the
 `APPV` JS constant, used for the dynamic `document.title` — bump all three together,
 plus add a `CHANGELOG` entry).
 
@@ -24,7 +24,9 @@ next, so panning doesn't refetch every frame), Blitzortung live lightning (recon
 exponential backoff), and an Open-Meteo **point grid** (`gridRefresh`/`gridDraw`: a temperature
 IDW heatmap with a legend, wind arrows, 48h rainfall, cloud cover; cache keyed to a zoom-scaled
 cell so high-zoom pans stay accurate), plus the next-2h rain strip and click-to-forecast
-(`onMapClick`/`pickPoint`). Launched from the Map tab or the 🗺️ card at
+(`onMapClick`/`pickPoint`), and (as of v3.15) a **📍 my-location** Leaflet control (`locateOnMap`,
+above the zoom buttons) that geolocates and recentres/pins the map; wind labels show gusts in
+parentheses when they clear speed+5. Launched from the Map tab or the 🗺️ card at
 the end of the RIGHT NOW cards; ✕ returns to `#weather`. One shared data fetch (`D`) feeds all views;
 `showView(name)` toggles `#view-*` sections, `destroyAllCharts()`, then dispatches the active
 view's render via `setTimeout(0)` (NOT rAF — throttled in background tabs). The four global
@@ -39,7 +41,16 @@ stale-while-revalidate: `initLoc()` fires `loadData()` for the current location 
 last direct-mode forecast is cached to `localStorage` (`wd_last`) and rendered right away while
 a background refetch runs, async climo/marine/air arrivals are coalesced through
 `scheduleRender()` (150 ms debounce), and forecast/marine/air caches carry short TTLs (15 min /
-30 min) with a refetch on tab visibility and a bilingual "updated X min ago" footer chip.
+30 min) with a refetch on tab visibility and a bilingual "updated X min ago" footer chip. As of
+v3.15, the direct hourly/daily fetch also pulls `visibility`, `freezing_level_height`,
+`wind_gusts_10m`, `snowfall` and `wind_gusts_10m_max` — today's hourly values land in `D.hx`
+and today's gust max in `D.gustMax`, feeding the Hiking view's visibility/snow-line/gust
+cards (falling back to the old estimates when the AI feed's reduced object lacks them) and the
+map's gust-aware wind labels. The air-quality fetch adds `pm10`/`nitrogen_dioxide`/`ozone`/`dust`
+for the RIGHT NOW AQI card's pollutant breakdown. BIOMETEO gained a 72 h pressure-trend chart
+(`drawPressure`/`presCh`, backed by `D.presH`). Every data source now reports its own health via
+`FEEDS[name]={t,ok,err}` (written by `feedMark()` for forecast/ai/marine/air/climo/radar/lightning),
+rendered live on the Info tab (`renderFeeds`/`#infoFeeds`).
 
 There is no build step, no bundler, no package manager, and no backend. It is
 opened directly in a browser or served as a static file. Keep it that way.
@@ -68,11 +79,15 @@ timeout so a failed load shows the error rather than hanging forever.
 ## Data sources (all keyless, all client-side)
 
 - **Open-Meteo forecast** — `api.open-meteo.com` (hourly + daily + `minutely_15`
-  precipitation for the Radar view's next-2h rain strip, `D.rain15`) and
-  `geocoding-api.open-meteo.com` for city → lat/lon.
+  precipitation for the Radar view's next-2h rain strip, `D.rain15`; hourly also carries
+  `pressure_msl` (72 h pressure trend, `D.presH`) and, as of v3.15, `visibility`,
+  `freezing_level_height`, `wind_gusts_10m`, `snowfall` (today's values in `D.hx`) plus daily
+  `wind_gusts_10m_max` (`D.gustMax`) for the Hiking view and the map's gust-aware wind labels)
+  and `geocoding-api.open-meteo.com` for city → lat/lon.
 - **Open-Meteo Marine** — `marine-api.open-meteo.com` (sea surface temperature, tides).
 - **Open-Meteo Air Quality** — `air-quality-api.open-meteo.com` (pollen + `european_aqi`
-  with a past day and 3-day hourly forecast → RIGHT NOW AQI card + AIR QUALITY chart).
+  with a past day and 3-day hourly forecast → RIGHT NOW AQI card + AIR QUALITY chart; as of
+  v3.15 also `pm10`/`nitrogen_dioxide`/`ozone`/`dust` for the AQI card's pollutant breakdown).
 - **Blitzortung.org** — live lightning strikes over websocket (`ws1/ws7/ws8.blitzortung.org`,
   LZW-decoded JSON) as a ⚡ toggle layer on the Radar map. Live-only (accumulates while the
   view is open), suspended when leaving the tab, attribution required, non-commercial use.
@@ -135,25 +150,36 @@ Roughly top-to-bottom:
 - `<head>` / CSS — theme variables, `.big` large-font rule, layout.
 - `<body>` markup — header controls (lang / theme / font / toggles), then `#dash` sections:
   Weather view: (severe-weather alert banner, when active) · RIGHT NOW · NEXT 24 HOURS ·
-  SEA TEMPERATURE · OUTLOOK · WEEKEND PLANS · GRILLING · BIOMETEO · MOON & TIDE ·
-  INTERESTING FACT. The MAP (full-screen, layered — see above) and INFO (about +
-  `CHANGELOG` array, bilingual version history) are their own views/tabs; shared footer
-  sits outside the sections. The RIGHT NOW cards include a TOMORROW card (range/icon,
-  vs today / vs normal / vs last year via `climo.ly.tomMax`) and end with the 🗺️ map card.
+  SEA TEMPERATURE · OUTLOOK · WEEKEND PLANS · GRILLING · BIOMETEO (comfort card +, as of v3.15,
+  a 72 h PRESSURE TREND chart — `drawPressure`/`presCh`, summary above/legend below like every
+  other chart) · MOON & TIDE · INTERESTING FACT. The MAP (full-screen, layered — see above) and
+  INFO (about + a `#infoFeeds` data-sources status panel, see below + `CHANGELOG` array,
+  bilingual version history) are their own views/tabs; shared footer sits outside the sections.
+  The RIGHT NOW cards include a TOMORROW card (range/icon, vs today / vs normal / vs last year
+  via `climo.ly.tomMax`, plus — as of v3.15 — rain % and wind) and end with the 🗺️ map card.
   Severe-weather alerts (`buildAlerts`/`D.alerts`) are derived client-side from Open-Meteo
-  (storm code / strong wind / heavy rain / big swing) — official DHMZ/Meteoalarm feeds are
+  (storm code / strong wind / heavy rain / big swing / extreme UV / dangerous heat / dangerous
+  cold, the last three added in v3.15) — official DHMZ/Meteoalarm feeds are
   CORS-blocked from the browser, so they'd need a Worker proxy. WEEKEND PLANS rates this & next
   weekend for hiking/biking/running using a forced 14-day lookahead (`D.daysFull`).
   The MAP section is click-to-forecast: tapping any point reverse-geocodes it (Nominatim) and
   loads that point's forecast via `onMapClick`/`pickPoint`. (The old fixed DHMZ-station list was
-  removed in v2.29.)
+  removed in v2.29.) The Hiking view (`renderHike`) scores on real hourly data (visibility/
+  freezing-level/gusts/snowfall from `D.hx`/`D.gustMax`) when the direct feed provides it —
+  fog/snow-line/gust cards and a 5th trail-score component — falling back to its older estimates
+  for the reduced AI-feed object. The `#infoFeeds` panel (`renderFeeds()`, called from
+  `renderInfo()` and every 60 s while the Info tab is open) lists one row per entry in `FEEDS`
+  (forecast/marine/air/climo/radar/lightning/ai): a coloured dot, live/failed/not-used-yet
+  status, last-update time and age, and any error text.
 - `<script>` — organized by `/* ---------- ... ---------- */` banners:
-  state/helpers · `T` translations · data sources (forecast / marine / air / climatology / AI) ·
+  state/helpers (incl. `FEEDS`/`feedMark()`, per-source health for the Info status panel) ·
+  `T` translations · data sources (forecast / marine / air / climatology / AI) ·
   orchestration (`loadData`, `fetchFor`, …) · recents/selection · rendering (`render`, `card`, …) ·
-  chart drawers (`drawHourly`, `drawSea`, `drawWeek`, `drawBio`, `drawGrill`, `drawMT`,
-  `drawBbqTimeline`, `drawBbqGrill`, `drawHikeComfort`, `drawHikeWeek`, `drawSwimChart`) ·
-  maps (`loadLeaflet` weather map, `drawSwimMap` inland pools) · view router
-  (`ROUTES`/`VIEWS`/`showView`/`renderActive`).
+  chart drawers (`drawHourly`, `drawSea`, `drawWeek`, `drawBio`, `drawPressure`, `drawGrill`,
+  `drawMT`, `drawBbqTimeline`, `drawBbqGrill`, `drawHikeComfort`, `drawHikeWeek`, `drawSwimChart`) ·
+  maps (`loadLeaflet` weather map incl. the `locateOnMap` 📍 my-location control, `drawSwimMap`
+  inland pools) · view router (`ROUTES`/`VIEWS`/`showView`/`renderActive`) · Info panel
+  (`renderInfo`, `renderFeeds`, `CHANGELOG`).
 
 Notable globals: `lang`, `theme`, `fontbig`, `RANGE`, comparison state (location A vs B),
 and feature toggles (`CONF`, `MOON`, `TIDE`, `PRES`, `BBQ`, `MP`). `MP` is a "Monty Python"

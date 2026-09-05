@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patrik's weather daily — v3.14</title>
+<title>Patrik's weather daily — v3.15</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="preconnect" href="https://api.open-meteo.com">
 <link rel="preconnect" href="https://archive-api.open-meteo.com">
@@ -352,11 +352,13 @@ body{padding:20px;transition:background .2s}
   <div class="viewhead" data-i="infoHead">ℹ️ About &amp; changelog</div>
   <p class="viewtag" id="infoTag"></p>
   <div id="infoAbout" class="card" style="margin:0 0 1.5rem;"></div>
+  <div class="hd" data-i="infoFeedsH">DATA SOURCES · STATUS</div>
+  <div id="infoFeeds" style="margin:0 0 1.5rem;"></div>
   <div class="hd" data-i="infoChangeH">VERSION HISTORY</div>
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.14 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · Weather Dashboard v3.15 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a></p>
 </div>
 </div>
 
@@ -367,7 +369,7 @@ const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
-const APPV='3.14';
+const APPV='3.15';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -539,7 +541,7 @@ const T={
   vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
   zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
   tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabSwim:"Swim",tabMap:"Map",tabInfo:"Info",tShort:"Patrik's weather",
-  infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",
+  infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",infoFeedsH:"DATA SOURCES · STATUS",
   infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
   h2b:"TODAY HOUR BY HOUR",hAqi:"AIR QUALITY",t24Day:"Today 00–24",t24Next:"Next 24 h",
   cTom:"Tomorrow",vsTod:"vs today",cMapCard:"Weather map",mapCardSub:"radar · lightning · layers",
@@ -568,7 +570,7 @@ const T={
   vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
   zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
   tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabSwim:"Kupanje",tabMap:"Karta",tabInfo:"Info",tShort:"Patrikova prognoza",
-  infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",
+  infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",infoFeedsH:"IZVORI PODATAKA \u00b7 STATUS",
   infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
   h2b:"DANAS PO SATIMA",hAqi:"KVALITETA ZRAKA",t24Day:"Danas 00–24",t24Next:"Sljedeća 24 h",
   cTom:"Sutra",vsTod:"vs danas",cMapCard:"Vremenska karta",mapCardSub:"radar · munje · slojevi",
@@ -1080,6 +1082,7 @@ function footChip(){
 function refreshFootChip(){ /* PERF-4: single interval, no per-render setInterval calls */
  const el=document.getElementById('foot');
  if(el&&D&&FOOT_BASE)el.textContent=FOOT_BASE+footChip();
+ if(active==='info')renderFeeds(); /* UX-1: keep ages ticking while the Info tab is open */
 }
 setInterval(refreshFootChip,60000);
 function showError(){
@@ -3290,6 +3293,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.15',d:'2026-09-05',en:'Hiking now scores on <b>real</b> hourly data instead of estimates whenever the direct feed has it: measured visibility (with a fog card), freezing-level height (snow-line card), wind gusts (new gust card feeding the wind score), and today’s snowfall — the map’s wind labels show gusts too. BIOMETEO gets a <b>72-hour pressure trend</b> chart (past day dashed, now marker). The AQI card now breaks down PM10/NO₂/O₃/dust and names the dominant pollutant. The Tomorrow card adds rain % and wind, and severe-weather alerts gain <b>extreme UV</b>, <b>dangerous heat</b> and <b>extreme cold</b> types. New: the Info tab shows a live <b>data-sources status</b> panel (per-feed live/failed/not-used-yet, last update time and age), and the map gained a <b>📍 my-location</b> control.',hr:'Planinarenje sada boduje na <b>stvarnim</b> satnim podacima umjesto procjena kad god ih izravni izvor ima: izmjerena vidljivost (kartica magle), visina snježne granice (kartica snježne granice), udari vjetra (nova kartica udara koja hrani ocjenu vjetra) i današnji snijeg — oznake vjetra na karti sada prikazuju i udare. BIOMETEO dobiva graf <b>trenda tlaka za 72 sata</b> (prošli dan isprekidano, oznaka „sad”). AQI kartica sada raščlanjuje PM10/NO₂/O₃/prašinu i imenuje prevladavajuću česticu. Kartica Sutra dobiva postotak kiše i vjetar, a upozorenja na opasno vrijeme dobivaju vrste <b>ekstremni UV</b>, <b>opasna vrućina</b> i <b>ekstremna hladnoća</b>. Novo: kartica Info prikazuje ploču <b>statusa izvora podataka</b> uživo (po izvoru uživo/greška/još nije korišteno, vrijeme zadnje nadopune i starost), a karta je dobila kontrolu <b>📍 moja lokacija</b>.'},
  {v:'3.14',d:'2026-09-05',en:'Faster, steadier start: the last forecast loads <b>instantly</b> from cache while a fresh one is fetched in the background, with an “updated X min ago” chip and an automatic refetch once it goes stale. The map now keeps at most <b>two radar frames</b> attached at a time, its data grid stays accurate at high zoom, a temperature-layer legend was added, and map/lightning failures show a retry with backoff; marine/air fetch failures no longer get cached as empty. Elsewhere: the BBQ weekend verdict and the Weather tab’s weekend plans now always describe the same weekend, the BBQ checklist and tab bar are keyboard-operable, a Croatian heading was fixed, a couple of rare null-comparison bugs were squashed, and Chart.js now falls back to a second CDN if the first is down.',hr:'Brži i stabilniji početak: zadnja prognoza učitava se <b>trenutno</b> iz predmemorije dok se u pozadini dohvaća nova, uz oznaku „ažurirano prije X min” i automatsko ponovno dohvaćanje čim podaci zastare. Karta sada drži najviše <b>dva radarska sloja</b> istovremeno, mreža podataka ostaje točna pri velikom zumu, dodana je legenda temperaturnog sloja, a greške karte/munja prikazuju ponovni pokušaj s odgodom; neuspjeli dohvat mora/zraka više se ne pamti kao prazan. Uz to: presuda za vikend na Roštilju i planovi za vikend na Vremenu sada uvijek govore o istom vikendu, lista za roštilj i traka kartica rade se i tipkovnicom, ispravljen je hrvatski naslov, uklonjeno je nekoliko rijetkih grešaka s null vrijednostima, a Chart.js sada ima rezervni CDN ako prvi ne radi.'},
  {v:'3.13',d:'2026-08-29',en:'Map basemap fixed: CARTO tiles started demanding an API key (watermarked “API KEY REQUIRED”), so the map now uses keyless <b>OpenStreetMap</b> tiles; the map’s dark mode inverts them in CSS. A free CARTO key can still be plugged in to restore the old look.',hr:'Popravljena podloga karte: CARTO pločice počele su tražiti API ključ (vodeni žig “API KEY REQUIRED”), pa karta sada koristi <b>OpenStreetMap</b> pločice bez ključa; tamni način karte invertira ih u CSS-u. Besplatni CARTO ključ i dalje se može upisati za stari izgled.'},
  {v:'3.12',d:'2026-08-20',en:'Temperature layer sharpened: denser data grid (9×6), heatmap colours now <b>stretch to the visible range</b> (small deltas = big colour shifts), and temp labels are bigger with theme-aware outlines — readable on dark and light basemaps.',hr:'Izoštren temperaturni sloj: gušća mreža (9×6), boje toplinske karte <b>rastežu se na vidljivi raspon</b> (male razlike = velike promjene boje), a oznake su veće s obrubom po temi — čitljive na tamnoj i svijetloj podlozi.'},
@@ -3318,6 +3322,35 @@ function renderInfo(){
  document.getElementById('infoLog').innerHTML=CHANGELOG.map(c=>
   '<div class="logrow"><div class="logv">v'+esc(c.v)+'</div><div class="logd">'+esc(c.d||'')+'</div><div class="logi">'+(hrv?c.hr:c.en)+'</div></div>'
  ).join('');
+ renderFeeds();
+}
+/* UX-1: FEEDS[name]={t,ok,err} status readout, one row per data source */
+const FEED_ROWS=[
+ ['forecast','Forecast (Open-Meteo)','Prognoza (Open-Meteo)'],
+ ['marine','Sea (Marine)','More (Marine)'],
+ ['air','Air quality & pollen','Kvaliteta zraka i pelud'],
+ ['climo','Climatology (archive)','Klimatologija (arhiv)'],
+ ['radar','Rain radar (RainViewer)','Radar kiše (RainViewer)'],
+ ['lightning','Lightning (Blitzortung)','Munje (Blitzortung)'],
+ ['ai','AI feed','AI izvor']
+];
+function renderFeeds(){
+ const el=document.getElementById('infoFeeds');if(!el)return;
+ const hrv=lang==='hr';
+ el.innerHTML=FEED_ROWS.map(function(r){
+  const name=r[0],f=FEEDS[name];
+  const col=!f?'var(--ts)':(f.ok?C.ok:C.bad);
+  const word=!f?(hrv?'još nije korišteno':'not used yet'):(f.ok?(hrv?'uživo':'live'):(hrv?'greška':'failed'));
+  const hhmm=f?new Date(f.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';
+  let detail='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+col+';margin-right:6px;vertical-align:middle;"></span>'+word;
+  if(f){
+   const mins=Math.max(0,Math.round((Date.now()-f.t)/60000));
+   detail+=' · '+(hrv?('prije '+mins+' min'):(mins+' min ago'));
+   if(name==='forecast'&&D&&D.fromCache)detail+=hrv?' (predmemorija)':' (cached)';
+   if(!f.ok&&f.err)detail+=' · '+esc(f.err);
+  }
+  return '<div class="logrow"><div class="logv">'+(hrv?r[2]:r[1])+'</div><div class="logd">'+hhmm+'</div><div class="logi">'+detail+'</div></div>';
+ }).join('');
 }
 
 /* ---------- view router ---------- */
