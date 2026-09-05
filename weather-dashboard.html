@@ -353,7 +353,7 @@ body{padding:20px;transition:background .2s}
     </div>
     <div id="gridCtl" style="display:none;">
       <span aria-hidden="true">⏱</span>
-      <input type="range" id="gridSlider" min="0" max="24" step="1" value="0" oninput="gridSeek(this.value)" aria-label="Grid data hour slider">
+      <input type="range" id="gridSlider" min="0" max="23" step="1" value="0" oninput="gridSeek(this.value)" aria-label="Grid data hour slider">
       <span id="gridTime" style="font-size:13px;font-weight:600;min-width:86px;"></span>
     </div>
     <div id="rainStripSec" style="margin:4px 0 0;">
@@ -2994,7 +2994,7 @@ function mapThemeToggle(){
 function renderMapPills(){
  const el=document.getElementById('mlyPills');if(!el)return;
  const hrv=lang==='hr';
- const defs=[['radar','🌧️','Radar'],['clouds','☁️',hrv?'Oblaci':'Clouds'],['temp','🌡️','Temp'],['wind','💨',hrv?'Vjetar':'Wind'],['rain','💧',hrv?'Kiša 48h':'Rain 48h'],['bolt','⚡',hrv?'Munje':'Lightning']];
+ const defs=[['radar','🌧️','Radar'],['clouds','☁️',hrv?'Oblaci':'Clouds'],['temp','🌡️','Temp'],['wind','💨',hrv?'Vjetar':'Wind'],['rain','💧',(typeof GRIDHR!=='undefined'&&GRIDHR>0)?(hrv?'Kiša do +24h':'Rain to +24h'):(hrv?'Kiša 48h':'Rain 48h')],['bolt','⚡',hrv?'Munje':'Lightning']];
  el.innerHTML=defs.map(d=>{
   const dim=(d[0]==='bolt'&&boFailed)?' dimmed':'';
   const title=(d[0]==='bolt'&&boFailed)?(hrv?'Munje nedostupne — klikni za ponovni pokušaj':'Lightning unavailable — click to retry'):'';
@@ -3299,6 +3299,7 @@ function updateGridCtl(){
 function gridSeek(v){
  GRIDHR=parseInt(v,10)||0;
  updateGridTimeLabel();
+ renderMapPills(); /* the rain pill re-labels while scrubbing (remaining to +24 h vs 48 h total) */
  if(gridLastList)gridDraw(gridLastList);
 }
 function tColScale(t){return t<0?'#4f7bd9':(t<8?'#2caaf0':(t<16?'#3DA35D':(t<24?'#E0A53C':(t<30?'#D85A30':(t<35?'#A32D2D':'#7a1fa2')))));}
