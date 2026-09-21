@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Patrik's weather daily — v3.16</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="manifest" href="manifest.json">
@@ -23,7 +23,10 @@ html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe
 body{padding:20px;transition:background .2s}
 #wrap{--bg:#ffffff;--surf:#f1efe8;--tp:#1a1a18;--ts:rgba(0,0,0,0.62);--bd:rgba(0,0,0,0.28);--cool:#084a8f;background:var(--bg);color:var(--tp);padding:16px;border-radius:12px;width:100%;max-width:900px;margin:0 auto;box-sizing:border-box}
 #wrap.dark{--bg:#262624;--surf:#33322f;--tp:#ffffff;--ts:rgba(255,255,255,0.72);--bd:rgba(255,255,255,0.22);--cool:#7cc4f5}
+/* layout steps: mobile <700px, mid 700-1099px, desktop >=1100px (see applyResponsive()) */
 #wrap.mobile{padding:14px}
+#wrap.mid{max-width:100%}
+#wrap.mobile,#wrap.mid{padding-bottom:calc(68px + env(safe-area-inset-bottom))} /* room for the fixed bottom tab bar */
 .card{background:var(--surf);border-radius:8px;padding:0.85rem 1rem;position:relative}
 .lab{font-size:13px;color:var(--ts)}
 .big-n,.card .big{font-size:24px;font-weight:500}
@@ -33,8 +36,13 @@ body{padding:20px;transition:background .2s}
 .dotA{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2caaf0;margin-right:5px;vertical-align:1px}
 .dotB{display:inline-block;width:8px;height:8px;border-radius:50%;background:#a64ce8;margin-right:5px;vertical-align:1px}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 2rem}
-#wrap.mobile .cards{grid-template-columns:1fr 1fr;gap:10px}
+#wrap.mobile .cards{grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:479px){#wrap.mobile .cards{grid-template-columns:1fr 1fr}}
+#wrap.mid .cards{grid-template-columns:repeat(4,1fr);gap:12px}
 #wrap.mobile .ttl{font-size:16px}
+/* mid: chart sections of the Weather view flow in two columns; each section (heading+summary+canvas+legend) is one grid item */
+#wrap.mid #wxGrid{display:grid;grid-template-columns:1fr 1fr;column-gap:24px;align-items:start}
+#wrap.mid #wxGrid>div{min-width:0} /* let grid items (chart sections) shrink below their canvas's intrinsic width */
 .hd{font-size:16px;font-weight:500;letter-spacing:0.08em;margin:0 0 0.75rem}
 .dark .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.92) saturate(0.7);}
 .dark .radarlayer .leaflet-tile{filter:none!important;}
@@ -47,7 +55,7 @@ body{padding:20px;transition:background .2s}
 #mapTop .lbtn,#mapTop .mly{pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.25);}
 #mapTop .lbtn{background:var(--bg);}
 #mapThemeB{margin-left:auto;}
-#mapBottom{position:absolute;left:10px;right:10px;bottom:22px;z-index:1100;max-width:680px;margin:0 auto;background:var(--bg);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(6px);border:0.5px solid var(--bd);border-radius:12px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+#mapBottom{position:absolute;left:10px;right:10px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:1100;max-width:680px;margin:0 auto;background:var(--bg);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(6px);border:0.5px solid var(--bd);border-radius:12px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3);}
 #radarCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 4px;}
 #radarSlider{flex:1;min-width:120px;accent-color:#2caaf0;}
 #gridCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 4px;}
@@ -71,7 +79,29 @@ body{padding:20px;transition:background .2s}
 .info:hover,.info:focus{border-color:var(--tp);color:var(--tp);}
 .info .tip{display:none;cursor:auto;position:absolute;bottom:135%;right:-4px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;width:min(320px,78vw);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--tp);z-index:60;text-align:left;font-weight:400;letter-spacing:0;text-transform:none;box-shadow:0 6px 18px rgba(0,0,0,0.18);white-space:normal;}
 .tipfloat{display:none;position:fixed;z-index:9999;border-radius:10px;padding:10px 12px;font-size:11.5px;line-height:1.55;text-align:left;font-weight:400;letter-spacing:0;text-transform:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,0.28);}
-#locIn{background:var(--surf);color:var(--tp);border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;width:130px}
+/* ---- location selector (#locSel pill + #locPanel search/list) ---- */
+.locsel{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:1;min-width:0;background:var(--surf);color:var(--tp);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:500;cursor:pointer;min-height:32px;box-sizing:border-box}
+.locsel:hover,.locsel:focus{border-color:var(--tp);outline:none}
+.locpilltxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.locchev{flex:0 0 auto;opacity:.7}
+.locpanel{position:relative;z-index:80;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:8px;margin:-8px 0 16px;box-shadow:0 8px 20px rgba(0,0,0,0.18);box-sizing:border-box}
+.locsearchrow{display:flex;gap:6px;align-items:center;margin:0 0 6px}
+.locsearch{flex:1;min-width:0;background:var(--surf);color:var(--tp);border:1px solid var(--bd);border-radius:8px;padding:7px 10px;font-size:13px;box-sizing:border-box}
+.loclist{list-style:none;margin:0;padding:0;max-height:280px;overflow-y:auto}
+.locitem{display:flex;align-items:center;gap:8px;padding:8px 6px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--tp)}
+.locitem:hover,.locitem:focus{background:var(--surf);outline:none}
+.locitem.sel{background:var(--surf)}
+.loccheck{flex:0 0 auto;width:18px;text-align:center;font-size:13px;color:var(--ts)}
+.locitem.sel .loccheck{color:var(--tp);font-weight:700}
+.locitemtxt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.loclab{color:var(--ts);font-size:11.5px}
+.locbadge{flex:0 0 auto;font-size:9.5px;font-weight:700;color:var(--bg);background:#2caaf0;border-radius:5px;padding:1px 5px}
+.locbadge-b{background:#a64ce8}
+.locx{flex:0 0 auto;background:transparent;border:none;color:var(--ts);font-size:13px;cursor:pointer;padding:2px 4px;border-radius:6px;line-height:1}
+.locx:hover{color:var(--tp);background:var(--bd)}
+.loccmp{flex:0 0 auto;background:transparent;border:1px solid var(--bd);color:var(--ts);font-size:11px;cursor:pointer;padding:3px 7px;border-radius:999px;line-height:1.2;white-space:nowrap}
+.loccmp:hover,.loccmp:focus{color:var(--tp);border-color:var(--tp);outline:none}
+.locnote{list-style:none;padding:8px 6px;font-size:12px;color:var(--ts)}
 .state{background:var(--surf);border-radius:8px;padding:1.5rem 1.25rem;margin:0 0 1rem}
 .state.center{text-align:center;padding:2rem 1rem}
 .pulse{height:8px;width:140px;margin:14px auto 0;border-radius:999px;background:linear-gradient(90deg,var(--bd),var(--surf),var(--bd));background-size:200% 100%;animation:sweep 1.2s linear infinite;opacity:.5}
@@ -84,6 +114,14 @@ body{padding:20px;transition:background .2s}
 #tabs .tab:hover{color:var(--tp);border-color:var(--tp)}
 #tabs .tab.on{background:var(--tp);color:var(--bg);border-color:var(--tp)}
 #tabs .tab .pk{font-size:11px;font-weight:600;opacity:.85}
+#tabs .tabic{display:none;font-size:19px;line-height:1}
+#tabs.navhide{display:none}
+/* mobile + mid: the SAME #tabs nav becomes a fixed, app-like bottom bar (desktop keeps the top tab-bar look above) */
+#wrap.mobile #tabs,#wrap.mid #tabs{position:fixed;left:0;right:0;bottom:0;z-index:900;margin:0;gap:0;flex-wrap:nowrap;background:var(--bg);border-top:1px solid var(--bd);padding:4px 4px calc(4px + env(safe-area-inset-bottom));box-sizing:border-box}
+#wrap.mobile #tabs .tab,#wrap.mid #tabs .tab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;border-top:2px solid transparent;border-radius:0;padding:6px 2px;min-height:48px;box-sizing:border-box;font-size:11px;position:relative;background:transparent;color:var(--ts)}
+#wrap.mobile #tabs .tab .tabic,#wrap.mid #tabs .tab .tabic{display:block}
+#wrap.mobile #tabs .tab.on,#wrap.mid #tabs .tab.on{background:transparent;color:var(--tp);border-top-color:var(--tp)}
+#wrap.mobile #tabs .tab .pk,#wrap.mid #tabs .tab .pk{position:absolute;top:2px;right:calc(50% - 26px);font-size:9px;font-weight:600;background:var(--surf);border-radius:6px;padding:0 3px;max-width:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .viewhead{font-size:19px;font-weight:600;letter-spacing:0.02em;margin:0 0 3px}
 .viewtag{font-size:12.5px;color:var(--ts);margin:0 0 18px;line-height:1.5}
 .gauge{height:7px;border-radius:999px;background:var(--bd);overflow:hidden;margin:5px 0 0}
@@ -95,26 +133,32 @@ body{padding:20px;transition:background .2s}
 .logi b{color:var(--tp);font-weight:500}
 .gauge>span{display:block;height:100%;border-radius:999px}
 .rsep{width:1px;height:18px;background:var(--bd);margin:0 4px}
-@media(max-width:520px){.cards{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
 <div id="wrap">
-<div style="display:flex;align-items:center;gap:12px;margin:0 0 1.25rem;flex-wrap:wrap;">
-  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-    <input id="locIn" value="Zagreb" aria-label="Location" onkeydown="if(event.key==='Enter')hardRefresh()">
-    <div class="hgrp">
-    <button class="lbtn" id="btn-en" onclick="setLang('en')">EN</button>
-    <button class="lbtn" id="btn-hr" onclick="setLang('hr')">HR</button>
-    </div>
-    <div class="hgrp" style="border-right:0;margin-right:0;padding-right:0;">
-    <button class="lbtn" id="btn-rf" onclick="hardRefresh()" aria-label="Refresh"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
-    <button class="lbtn" id="btn-geo" onclick="goGeo()" aria-label="Use my location" title="Forecast for my current (browser) location"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
-    <button class="lbtn" id="btn-theme" onclick="toggleTheme()" aria-label="Theme" style="border:none;"></button>
-    </div>
+<input type="hidden" id="locIn" value="Zagreb">
+<div id="hdrRow" style="display:flex;align-items:center;gap:8px;margin:0 0 0.6rem;flex-wrap:wrap;">
+  <div id="locSel" class="locsel" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="locList" aria-label="Location" tabindex="0" onclick="locOpen()" onkeydown="locPillKey(event)">
+    <span id="locPillTxt" class="locpilltxt">Zagreb</span>
+    <svg class="locchev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="hgrp">
+  <button class="lbtn" id="btn-en" onclick="setLang('en')">EN</button>
+  <button class="lbtn" id="btn-hr" onclick="setLang('hr')">HR</button>
+  </div>
+  <div class="hgrp" style="border-right:0;margin-right:0;padding-right:0;">
+  <button class="lbtn" id="btn-rf" onclick="hardRefresh()" aria-label="Refresh"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
+  <button class="lbtn" id="btn-theme" onclick="toggleTheme()" aria-label="Theme" style="border:none;"></button>
   </div>
 </div>
-<div class="rng" style="margin:-6px 0 16px;align-items:center;"><span id="locRow" style="display:contents;"></span></div>
+<div id="locPanel" class="locpanel hidden">
+  <div class="locsearchrow">
+    <input id="locSearch" class="locsearch" type="text" aria-label="Search a place" placeholder="Search a place…" oninput="locSearchInput(this.value)" onkeydown="locSearchKey(event)" autocomplete="off">
+    <button class="lbtn" id="locDoneBtn" onclick="locClose(true)">Done</button>
+  </div>
+  <ul id="locList" class="loclist" role="listbox" aria-multiselectable="true" aria-label="Locations"></ul>
+</div>
 
 <div id="loading" class="state center">
   <div data-i="loading" style="font-size:14px;">Fetching the live forecast…</div>
@@ -131,10 +175,10 @@ body{padding:20px;transition:background .2s}
 <div id="dash" class="hidden">
 <div id="alertBox" class="hidden" style="border-radius:12px;padding:0.6rem 1.1rem;margin:0 0 1.25rem;"></div>
 <nav id="tabs" role="tablist">
-  <a class="tab on" id="tab-weather" role="tab" href="#weather" data-view="weather" aria-controls="view-weather" tabindex="0"><span class="tablabel" data-i="tabWeather">Weather</span><span class="pk" id="pk-weather"></span></a>
-  <a class="tab" id="tab-bbq" role="tab" href="#bbq" data-view="bbq" aria-controls="view-bbq" tabindex="-1"><span class="tablabel" data-i="tabBbq">BBQ</span><span class="pk" id="pk-bbq"></span></a>
-  <a class="tab" id="tab-hike" role="tab" href="#hike" data-view="hike" aria-controls="view-hike" tabindex="-1"><span class="tablabel" data-i="tabHike">Hiking</span><span class="pk" id="pk-hike"></span></a>
-  <a class="tab" id="tab-map" role="tab" href="#map" data-view="map" aria-controls="view-map" tabindex="-1"><span class="tablabel" data-i="tabMap">Map</span><span class="pk" id="pk-map"></span></a>
+  <a class="tab on" id="tab-weather" role="tab" href="#weather" data-view="weather" aria-controls="view-weather" tabindex="0"><span class="tabic" aria-hidden="true">🌤️</span><span class="tablabel" data-i="tabWeather">Weather</span><span class="pk" id="pk-weather"></span></a>
+  <a class="tab" id="tab-map" role="tab" href="#map" data-view="map" aria-controls="view-map" tabindex="-1"><span class="tabic" aria-hidden="true">🗺️</span><span class="tablabel" data-i="tabMap">Map</span><span class="pk" id="pk-map"></span></a>
+  <a class="tab" id="tab-bbq" role="tab" href="#bbq" data-view="bbq" aria-controls="view-bbq" tabindex="-1"><span class="tabic" aria-hidden="true">🔥</span><span class="tablabel" data-i="tabBbq">BBQ</span><span class="pk" id="pk-bbq"></span></a>
+  <a class="tab" id="tab-hike" role="tab" href="#hike" data-view="hike" aria-controls="view-hike" tabindex="-1"><span class="tabic" aria-hidden="true">🥾</span><span class="tablabel" data-i="tabHike">Hiking</span><span class="pk" id="pk-hike"></span></a>
 </nav>
 <section id="view-weather" role="tabpanel" aria-labelledby="tab-weather">
 <div class="cards" id="nowCards"></div>
@@ -157,6 +201,7 @@ body{padding:20px;transition:background .2s}
   <p class="lab" id="recTxt" style="margin:0;line-height:1.6;"></p>
 </div>
 
+<div id="wxGrid">
 <div id="hrSec">
 <div class="hd" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span data-i="h2">NEXT 24 HOURS</span><button class="lbtn" id="btn-pr" onclick="togglePres()" aria-label="Air pressure overlay" title="Air pressure hPa" style="font-size:11px;padding:3px 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px" aria-hidden="true"><path d="M5 19a9 9 0 1 1 14 0"/><path d="M12 14l3.2-4.2"/><circle cx="12" cy="14" r="1.1" fill="currentColor"/></svg></button></div>
 <div id="hrwrap" style="position:relative;width:100%;height:260px;margin:0 0 6px;">
@@ -175,6 +220,7 @@ body{padding:20px;transition:background .2s}
 <div class="lab" id="seaLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 2rem;font-size:12px;"></div>
 </div>
 
+<div id="outlookSec">
 <div class="hd" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span><span data-i="h3">OUTLOOK</span><span id="h3note" class="lab" style="font-weight:400;letter-spacing:0;margin-left:8px;font-size:12px;"></span></span><button class="lbtn" id="btn-cf" onclick="toggleConf()" aria-label="Forecast confidence" title="Forecast confidence %" style="font-size:11px;padding:3px 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px" aria-hidden="true"><path d="M3 17C6 11 9 19 12 13s6-2 9-8" stroke-dasharray="2.5 3"/></svg></button></div>
 <p class="lab" id="wkSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
 <div class="rng">
@@ -199,6 +245,7 @@ body{padding:20px;transition:background .2s}
 <div id="weekendSec" class="hidden" style="background:var(--bg);border:0.5px solid var(--bd);border-radius:12px;padding:1rem 1.25rem;margin:0 0 2rem;">
   <div class="hd" data-i="wkH" style="margin-bottom:8px;">WEEKEND PLANS</div>
   <div class="lab" id="weekendTxt" style="line-height:1.7;color:var(--tp);"></div>
+</div>
 </div>
 
 <div id="bioSec" class="hidden">
@@ -243,6 +290,7 @@ body{padding:20px;transition:background .2s}
 <div id="factSec" class="hidden" style="background:var(--surf);border-radius:8px;padding:0.85rem 1rem;margin:0 0 0.5rem;">
   <div class="lab" style="letter-spacing:0.08em;font-weight:500;" data-i="h7">INTERESTING FACT</div>
   <p class="lab" id="factTxt" style="margin:6px 0 0;line-height:1.6;color:var(--tp);"></p>
+</div>
 </div>
 </section>
 
@@ -525,7 +573,7 @@ const T={
   capNote:"(direct feed tops out at 16 days)",
   best:"Best window",worst:"Wettest risk",dry:"dry all day",
   vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
-  zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
+  zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",locThis:"This location",locSearchPh:"Search a place…",locDone:"Done",locSelLbl:"Location search",moonLeg:"moon phase",tideLeg:"tide hi/lo (cm)",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",mapLoading:"Loading…",
   tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabMap:"Map",tabInfo:"Info",tShort:"Patrik's weather",
   infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",infoFeedsH:"DATA SOURCES · STATUS",infoBack:"← Back",infoLink:"Info & changelog",
   infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
@@ -554,7 +602,7 @@ const T={
   capNote:"(izravni izvor ide do 16 dana)",
   best:"Najbolji prozor",worst:"Najveći rizik kiše",dry:"suho cijeli dan",
   vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
-  zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
+  zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",locThis:"Ova lokacija",locSearchPh:"Traži mjesto…",locDone:"Gotovo",locSelLbl:"Pretraga lokacije",moonLeg:"mjesečeve mijene",tideLeg:"plima/oseka (cm)",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",mapLoading:"U\u010ditavam\u2026",
   tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabMap:"Karta",tabInfo:"Info",tShort:"Patrikova prognoza",
   infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",infoFeedsH:"IZVORI PODATAKA \u00b7 STATUS",infoBack:"\u2190 Natrag",infoLink:"Info i izmjene",
   infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
@@ -595,6 +643,7 @@ function esc(s){return String(s==null?'':s).replace(/[<>&]/g,'');}
 async function geocode(q){
  if(MAP_LOC&&q&&q.trim().toLowerCase()===MAP_LOC.name.toLowerCase())return MAP_LOC;
  if(GEO_LOC&&q&&q.trim().toLowerCase()===GEO_LOC.name.toLowerCase())return GEO_LOC;
+ if(q&&LOCHINT[q.trim().toLowerCase()])return LOCHINT[q.trim().toLowerCase()]; /* exact point picked from the location search */
  if(!q||q.trim().toLowerCase()===DEFAULT_LOC.name.toLowerCase())return DEFAULT_LOC;
  const city=q.split(',').pop().trim()||q;
  const r=await tfetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&name='+encodeURIComponent(city),8000);
@@ -1019,6 +1068,7 @@ async function loadData(){
  const locName=locA();
  document.getElementById('locIn').value=locName;
  if(selB&&selB.toLowerCase()===locName.toLowerCase()){selB=null;D2=null;}
+ locUpdatePill();
  const key=RANGE+"|"+locName.trim().toLowerCase();
  const mySeq=++loadSeq;
  lastErrs={direct:null,ai:null};
@@ -1064,7 +1114,7 @@ async function loadSecondary(){
   if(selB&&key===RANGE+"|"+selB.trim().toLowerCase()){D2=d;renderActive();}
  }catch(e){
   console.log('secondary location failed:',e);
-  selB=null;D2=null;markBtns();renderActive();
+  selB=null;D2=null;markBtns();locUpdatePill();renderActive();
  }
 }
 let FOOT_BASE=''; /* PERF-4: the static part of the footer line; footChip() appends the live "updated Xm ago" bit */
@@ -1105,24 +1155,178 @@ function addRecent(name){
  if(!name||name.toLowerCase()===DEFAULT_LOC.name.toLowerCase())return;
  recents=recents.filter(x=>x.toLowerCase()!==name.toLowerCase());
  recents.unshift(name);recents=recents.slice(0,5);
- saveRecents();renderRecents();
+ saveRecents();
+ if(locOpenFlag)locRenderList();
 }
-function renderRecents(){
- const cust=MAP_LOC?('<button class="lbtn locbtn" data-n="'+MAP_LOC.name.replace(/"/g,'&quot;')+'" onclick="toggleLoc(this.dataset.n)" title="Forecast point from map">\uD83D\uDCCD '+esc(MAP_LOC.name)+'</button>'):'';
- document.getElementById('locRow').innerHTML=cust+recents.map(n=>'<button class="lbtn locbtn" data-n="'+n.replace(/"/g,'&quot;')+'" onclick="toggleLoc(this.dataset.n)">'+esc(n)+'</button>').join('');
- markBtns();
-}
-function toggleLoc(n){
+
+/* ---------- Location selector (#locSel pill -> #locPanel search + checkbox multi-select, max 2) ----------
+   Selections are staged in locStageA/locStageB while the panel is open (initialised from the live
+   locA()/selB on open) and only applied \u2014 loadData()/loadSecondary() \u2014 when the panel closes, so
+   picking A then B doesn't trigger two forecast loads. */
+let locOpenFlag=false, locStageA=null, locStageB=null;
+let locSearchQ='', locSearchResults=[], locSearchT=null, locSearchBusy=false;
+function locUpdatePill(){
+ const el=document.getElementById('locPillTxt');if(!el)return;
  const a=locA();
- if(n.toLowerCase()===a.toLowerCase()){
-  if(selB){document.getElementById('locIn').value=selB;selB=null;D2=null;loadData();}
-  else markBtns();
-  return;
+ el.textContent=selB?(a+' + '+selB):a;
+}
+function locApplyLang(){
+ const s=document.getElementById('locSearch');if(s){s.placeholder=LBL.locSearchPh||'';s.setAttribute('aria-label',LBL.locSearchPh||'');}
+ const d=document.getElementById('locDoneBtn');if(d)d.textContent=LBL.locDone||'Done';
+ const sel=document.getElementById('locSel');if(sel)sel.setAttribute('aria-label',LBL.locSelLbl||'Location');
+ const l=document.getElementById('locList');if(l)l.setAttribute('aria-label',LBL.locSelLbl||'Location');
+ if(locOpenFlag)locRenderList();
+}
+function locOutside(e){
+ const panel=document.getElementById('locPanel'),pill=document.getElementById('locSel');
+ if(panel&&!panel.contains(e.target)&&pill&&!pill.contains(e.target))locClose(true);
+}
+function locEsc(e){if(e.key==='Escape'){e.preventDefault();locClose(true);}}
+function locOpen(){
+ if(locOpenFlag)return;
+ locOpenFlag=true;
+ locStageA=locA();locStageB=selB;
+ locSearchQ='';locSearchResults=[];
+ document.getElementById('locPanel').classList.remove('hidden');
+ document.getElementById('locSel').setAttribute('aria-expanded','true');
+ const s=document.getElementById('locSearch');if(s)s.value='';
+ locRenderList();
+ setTimeout(()=>{try{document.getElementById('locSearch').focus();}catch(e){}},0);
+ document.addEventListener('mousedown',locOutside,true);
+ document.addEventListener('keydown',locEsc,true);
+}
+function locClose(apply){
+ if(!locOpenFlag)return;
+ locOpenFlag=false;
+ document.getElementById('locPanel').classList.add('hidden');
+ document.getElementById('locSel').setAttribute('aria-expanded','false');
+ document.removeEventListener('mousedown',locOutside,true);
+ document.removeEventListener('keydown',locEsc,true);
+ if(apply&&locStageA){
+  const aChanged=locStageA.toLowerCase()!==locA().toLowerCase();
+  const bChanged=(locStageB||'').toLowerCase()!==(selB||'').toLowerCase();
+  document.getElementById('locIn').value=locStageA;
+  selB=locStageB;
+  if(selB)addRecent(selB);
+  if(aChanged)loadData();
+  else{
+   if(bChanged){if(selB)loadSecondary();else{D2=null;renderActive();}}
+   markBtns();
+  }
  }
- if(selB&&n.toLowerCase()===selB.toLowerCase()){selB=null;D2=null;markBtns();renderActive();return;}
- const aIsShortcut=recents.some(x=>x.toLowerCase()===a.toLowerCase())||(MAP_LOC&&MAP_LOC.name.toLowerCase()===a.toLowerCase());
- if(!aIsShortcut){document.getElementById('locIn').value=n;loadData();return;}
- selB=n;markBtns();loadSecondary();
+ locUpdatePill();
+ try{document.getElementById('locSel').focus();}catch(e){}
+}
+function locPillKey(e){
+ if(e.key==='Enter'||e.key===' '){e.preventDefault();locOpen();}
+}
+/* selection model, max 2: a tap on a row makes it the ONLY location (the common case: switch city) and
+   closes the panel; the row's "+ compare" button makes it the second location (B) -> comparison mode;
+   a tap on the selected B row removes it; a tap on the selected A row promotes B (when there is one). */
+let LOCHINT={};try{LOCHINT=JSON.parse(localStorage.getItem('wd_lochint')||'{}')||{};}catch(e){LOCHINT={};}
+function locHintSave(name){
+ const r=locSearchResults.find(x=>x.name.toLowerCase()===name.toLowerCase());
+ if(!r||r.lat==null)return;
+ LOCHINT[name.toLowerCase()]={name:name,lat:r.lat,lon:r.lon,station:r.label};
+ const ks=Object.keys(LOCHINT);if(ks.length>30)delete LOCHINT[ks[0]];
+ try{localStorage.setItem('wd_lochint',JSON.stringify(LOCHINT));}catch(e){}
+}
+function locPick(name){
+ if(!name)return;
+ const an=(locStageA||'').toLowerCase(),bn=(locStageB||'').toLowerCase(),nn=name.toLowerCase();
+ if(nn===an){if(locStageB){locStageA=locStageB;locStageB=null;}}
+ else if(nn===bn){locStageB=null;}
+ else{locHintSave(name);locStageA=name;locStageB=null;}
+ locClose(true);
+}
+function locCompare(name){
+ if(!name||name.toLowerCase()===(locStageA||'').toLowerCase())return;
+ locHintSave(name);locStageB=name;
+ locClose(true);
+}
+async function locSelectThis(cmpMode){
+ const g=await requestGeo();
+ if(g)GEO_LOC=g;
+ if(GEO_LOC){if(cmpMode)locCompare(GEO_LOC.name);else locPick(GEO_LOC.name);}
+ else locRenderList();
+}
+function locRemoveRecent(name){
+ recents=recents.filter(x=>x.toLowerCase()!==name.toLowerCase());
+ saveRecents();
+ locRenderList();
+}
+function locSearchInput(v){
+ locSearchQ=v;
+ clearTimeout(locSearchT);locSearchT=null;
+ if(!v||v.trim().length<2){locSearchResults=[];locRenderList();return;}
+ locSearchT=setTimeout(()=>{locSearchT=null;locDoSearch(v.trim());},300);
+ locRenderList();
+}
+async function locDoSearch(q){
+ locSearchBusy=true;
+ try{
+  const r=await tfetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q)+'&count=6&language='+lang,6000);
+  const j=await r.json();
+  if(locSearchQ.trim()!==q)return; /* stale response */
+  locSearchResults=(j.results||[]).map(g=>({name:g.name,lat:g.latitude,lon:g.longitude,label:[g.name,g.admin1,g.country].filter(Boolean).join(', ')}));
+ }catch(e){locSearchResults=[];}
+ locSearchBusy=false;
+ locRenderList();
+}
+function locSearchKey(e){
+ if(e.key==='ArrowDown'){e.preventDefault();const first=document.querySelector('#locList .locitem');if(first)first.focus();}
+ else if(e.key==='Enter'){
+  e.preventDefault();
+  const q=(locSearchQ||'').trim();
+  if(locSearchResults.length)locPick(locSearchResults[0].name);
+  else if(q.length>=2)locPick(titleCase(q)); /* search feed slow or unavailable: load the typed name directly */
+ }
+ else if(e.key==='Escape'){e.preventDefault();locClose(true);}
+}
+function locRenderList(){
+ const list=document.getElementById('locList');if(!list)return;
+ const hrv=lang==='hr';
+ const an=(locStageA||'').toLowerCase(),bn=(locStageB||'').toLowerCase();
+ const badge=nm=>{const l=nm.toLowerCase();return l===an?'<span class="locbadge">A</span>':(l===bn?'<span class="locbadge locbadge-b">B</span>':'');};
+ const cmpBtn=key=>'<button class="loccmp" type="button" data-cmp="'+key+'">+ '+(hrv?'usporedi':'compare')+'</button>';
+ const row=(name,label,removable)=>{
+  const sel=name.toLowerCase()===an||name.toLowerCase()===bn;
+  const dn=esc(name).replace(/"/g,'&quot;');
+  return '<li role="option" aria-selected="'+sel+'" class="locitem'+(sel?' sel':'')+'" data-n="'+dn+'" tabindex="-1">'+
+   '<span class="loccheck" aria-hidden="true">'+(sel?'✓':'')+'</span>'+
+   '<span class="locitemtxt">'+esc(label||name)+'</span>'+badge(name)+
+   (sel?'':cmpBtn(dn))+
+   (removable?('<button class="locx" type="button" aria-label="'+(hrv?'Ukloni':'Remove')+'" data-rm="'+dn+'">✕</button>'):'')+
+   '</li>';
+ };
+ const thisName=GEO_LOC?GEO_LOC.name:null;
+ const thisSel=!!(thisName&&(thisName.toLowerCase()===an||thisName.toLowerCase()===bn));
+ const q=(locSearchQ||'').trim().toLowerCase();
+ let html='';
+ /* while the user types, live results come first (the phone keyboard hides the lower rows) */
+ if(q.length>=2){
+  const seen={};
+  locSearchResults.forEach(r=>{const k=r.name.toLowerCase();if(seen[k])return;seen[k]=1;html+=row(r.name,r.label,false);});
+  if(!locSearchResults.length)html+='<li class="locnote" aria-hidden="true">'+((locSearchBusy||locSearchT)?(hrv?'Tražim…':'Searching…'):(hrv?'Nema rezultata — Enter učitava upisani naziv':'No results — Enter loads the typed name'))+'</li>';
+ }
+ html+='<li role="option" aria-selected="'+thisSel+'" class="locitem locthis'+(thisSel?' sel':'')+'" data-act="this" tabindex="-1">'+
+  '<span class="loccheck" aria-hidden="true">'+(thisSel?'✓':'📍')+'</span>'+
+  '<span class="locitemtxt">'+esc(LBL.locThis||'This location')+(thisName?' <span class="loclab">· '+esc(thisName)+'</span>':'')+'</span>'+(thisSel?badge(thisName):cmpBtn('__this__'))+'</li>';
+ if(MAP_LOC&&(q.length<2||MAP_LOC.name.toLowerCase().includes(q)))html+=row(MAP_LOC.name,'📍 '+MAP_LOC.name,false);
+ recents.forEach(n=>{if(MAP_LOC&&n.toLowerCase()===MAP_LOC.name.toLowerCase())return;if(q.length>=2&&!n.toLowerCase().includes(q))return;html+=row(n,n,true);});
+ list.innerHTML=html;
+ list.querySelectorAll('.locitem').forEach(li=>{
+  li.addEventListener('click',()=>{
+   if(li.dataset.act==='this'){locSelectThis(false);return;}
+   locPick(li.dataset.n);
+  });
+ });
+ list.querySelectorAll('.loccmp').forEach(b=>{
+  b.addEventListener('click',e=>{e.stopPropagation();if(b.dataset.cmp==='__this__')locSelectThis(true);else locCompare(b.dataset.cmp);});
+ });
+ list.querySelectorAll('.locx').forEach(b=>{
+  b.addEventListener('click',e=>{e.stopPropagation();locRemoveRecent(b.dataset.rm);});
+ });
 }
 
 /* ---------- Rendering ---------- */
@@ -1985,7 +2189,7 @@ function drawMT(tideOk){
 function applyTheme(t){theme=t;calc();document.getElementById('wrap').classList.toggle('dark',t==='dark');document.body.style.background=BG;const bt=document.getElementById('btn-theme');if(bt)bt.innerHTML=(t==='dark'?ICON_SUN:ICON_MOON);markBtns();if(D)renderActive();}
 function toggleTheme(){applyTheme(theme==='dark'?'light':'dark');}
 function applyTitles(){
- ['en','hr','theme','rf','geo','pr','cf','mp','vegan'].forEach(id=>{
+ ['en','hr','theme','rf','pr','cf','mp','vegan'].forEach(id=>{
   const el=document.getElementById('btn-'+id),t=LBL['tt_'+id];
   if(el&&t){el.title=t;el.setAttribute('aria-label',t);}
  });
@@ -1994,13 +2198,18 @@ function setLang(l){
  lang=l;LBL=T[l];
  document.querySelectorAll('[data-i]').forEach(el=>{const k=el.getAttribute('data-i');if(LBL[k])el.textContent=LBL[k];});
  applyTitles();
+ locApplyLang();
  markBtns();
  if(D)renderActive(); else if(lastErrs&&!document.getElementById('error').classList.contains('hidden'))showError();
 }
 function applyResponsive(){
- const want=window.innerWidth<560?'mobile':'desktop';
+ /* three layout steps: mobile <700px, mid 700-1099px, desktop >=1100px. every existing layout==='mobile'
+    check keeps meaning "narrow phone"; 'mid' falls through to the desktop branch of those ternaries. */
+ const w=window.innerWidth;
+ const want=w<700?'mobile':(w<1100?'mid':'desktop');
  if(layout===want)return;layout=want;
  document.getElementById('wrap').classList.toggle('mobile',want==='mobile');
+ document.getElementById('wrap').classList.toggle('mid',want==='mid');
  document.getElementById('wkwrap').style.height=want==='mobile'?'300px':'340px';
  document.getElementById('hrwrap').style.height=want==='mobile'?'220px':'260px';
  document.getElementById('seawrap').style.height=want==='mobile'?'170px':'200px';
@@ -2025,16 +2234,8 @@ function markBtns(){
   b.style.borderRadius='8px';b.style.padding='4px 10px';b.style.fontSize='12px';b.style.fontWeight='500';b.style.cursor='pointer';b.style.boxShadow='none';
  };
  Object.entries(states).forEach(([id,on])=>{const b=document.getElementById(id);if(b)paint(b,on);});
- const curr=locA().toLowerCase();
- document.querySelectorAll('.locbtn').forEach(b=>{
-  const nm=(b.dataset.n||'').toLowerCase();
-  const isA=nm===curr, isB=!!(selB&&nm===selB.toLowerCase());
-  paint(b,isA||isB);
-  if(isB)b.style.boxShadow='0 0 0 2px '+CMP.b;
-  if(isA&&selB)b.style.boxShadow='0 0 0 2px '+CMP.a;
- });
 }
-applyTheme(theme);setLang('en');renderRecents();applyResponsive();
+applyTheme(theme);setLang('en');locUpdatePill();applyResponsive();
 let _rt;window.addEventListener('resize',()=>{clearTimeout(_rt);_rt=setTimeout(applyResponsive,150);});
 function havKm(a,b,c,d){const R=6371,p=Math.PI/180;const x=(c-a)*p,y=(d-b)*p;const h=Math.sin(x/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
 let LEAF_STATE='idle';
@@ -2062,7 +2263,9 @@ function pickPoint(lat,lon,name){
  if(radarMapL){try{radarMapL.closePopup();}catch(e){}}
  selB=null;D2=null;
  document.getElementById('locIn').value=name;
- renderRecents();
+ locStageA=name;locStageB=null;
+ locUpdatePill();
+ if(locOpenFlag)locRenderList();
  location.hash='#weather';
  loadData();
  document.getElementById('wrap').scrollIntoView({behavior:'smooth'});
@@ -2101,14 +2304,6 @@ function requestGeo(){
   }catch(e){res(null);}
  });
 }
-async function goGeo(){
- const g=await requestGeo();
- if(!g)return;
- GEO_LOC=g;selB=null;D2=null;
- document.getElementById('locIn').value=g.name;
- loadData();
-}
-
 /* ---------- Info tooltip: viewport-clamped floating layer ---------- */
 (function(){
  let tip=null;
@@ -3309,6 +3504,7 @@ function updateTabs(){
 function showView(name){
  if(!VIEWS[name])name='weather';active=name;
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
+ document.getElementById('tabs').classList.toggle('navhide',name==='map'); /* the fixed bottom bar hides behind the full-screen map, which has its own ✕ */
  destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
  if(!D)return;
  setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}try{updateAlertBox();}catch(e){}updateTabs();},0);
@@ -3339,6 +3535,18 @@ document.getElementById('tabs').addEventListener('keydown',function(e){
  const t=tabs[i];
  location.hash='#'+t.dataset.view;
  t.focus();
+});
+/* arrow-key/roving navigation inside the location panel's option list */
+document.getElementById('locList').addEventListener('keydown',function(e){
+ const items=[...this.querySelectorAll('.locitem')];
+ if(!items.length)return;
+ let i=items.indexOf(document.activeElement);
+ if(e.key==='ArrowDown'){e.preventDefault();i=i<0?0:(i+1)%items.length;items[i].focus();}
+ else if(e.key==='ArrowUp'){e.preventDefault();i=i<0?items.length-1:(i-1+items.length)%items.length;items[i].focus();}
+ else if(e.key==='Home'){e.preventDefault();items[0].focus();}
+ else if(e.key==='End'){e.preventDefault();items[items.length-1].focus();}
+ else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(document.activeElement&&document.activeElement.classList.contains('locitem'))document.activeElement.click();}
+ else if(e.key==='Escape'){e.preventDefault();locClose(true);}
 });
 
 function initLoc(){
