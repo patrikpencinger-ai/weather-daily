@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Patrik's weather daily — v3.18</title>
+<title>Patrik's weather daily — v3.19</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#16243a">
@@ -112,7 +112,15 @@ body{padding:20px;transition:background .2s}
 #tabs .tab.on{background:var(--tp);color:var(--bg);border-color:var(--tp)}
 #tabs .tab .pk{font-size:11px;font-weight:600;opacity:.85}
 #tabs .tabic{display:none;line-height:0}
-#tabs.navhide{display:none}
+#tabs.onmap{display:none}
+#wrap.mobile #tabs.onmap,#wrap.mid #tabs.onmap{display:flex;z-index:1200}
+#wrap.mobile #mapClose,#wrap.mid #mapClose{display:none}
+#wrap.mid #mapBottom{bottom:calc(72px + env(safe-area-inset-bottom))}
+/* phones: the layer pills sit in one swipeable row right above the bottom bar (thumb reach) */
+#wrap.mobile #mlyPills{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));z-index:1150;flex-wrap:nowrap!important;overflow-x:auto;padding:7px 10px;gap:6px;background:var(--bg);background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(6px);border-top:0.5px solid var(--bd);scrollbar-width:none;box-sizing:border-box}
+#wrap.mobile #mlyPills::-webkit-scrollbar{display:none}
+#wrap.mobile #mlyPills .mly{flex:0 0 auto;white-space:nowrap;padding:8px 12px;font-size:13px;box-shadow:none}
+#wrap.mobile #mapBottom{bottom:calc(114px + env(safe-area-inset-bottom))}
 /* mobile + mid: the SAME #tabs nav becomes a fixed, app-like bottom bar (desktop keeps the top tab-bar look above) */
 #wrap.mobile #tabs,#wrap.mid #tabs{position:fixed;left:0;right:0;bottom:0;z-index:900;margin:0;gap:0;flex-wrap:nowrap;background:var(--bg);border-top:1px solid var(--bd);padding:4px 4px calc(4px + env(safe-area-inset-bottom));box-sizing:border-box}
 #wrap.mobile #tabs .tab,#wrap.mid #tabs .tab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;border-top:2px solid transparent;border-radius:0;padding:8px 2px;min-height:52px;box-sizing:border-box;font-size:11px;position:relative;background:transparent;color:var(--ts);opacity:.75}
@@ -383,7 +391,7 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.18 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.19 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
 </div>
 
@@ -396,7 +404,7 @@ const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
 const ICON_SUN='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 const ICON_MOON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-const APPV='3.18';
+const APPV='3.19';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -629,6 +637,7 @@ function tfetchP(url,opts,ms){let t;const ctrl=(typeof AbortController!=='undefi
 function hsl(h,s,l,a){return 'hsla('+h+','+s+'%,'+l+'%,'+(a==null?1:a)+')';}
 const confH=i=>Math.max(80,95-i);
 const confD=i=>Math.max(25,95-Math.round(i*4.5));
+function mmTxt(v){return v==null?'':((v>=10?Math.round(v):v.toFixed(1))+' mm');}
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,'');}
 
 /* ---------- Source 1: Open-Meteo forecast ---------- */
@@ -668,7 +677,7 @@ async function fetchOpenMeteo(loc,range){
  const hours=[];
  for(let k=0;k<8;k++){const i=nowIdx+k*3;if(i>=hl.time.length)break;
   hours.push({h:hl.time[i].slice(11,16),t:Math.round(hl.temperature_2m[i]),pp:Math.round(hl.precipitation_probability[i]??0),cond:WMO(hl.weather_code[i]),p:(hl.pressure_msl&&hl.pressure_msl[i]!=null)?Math.round(hl.pressure_msl[i]):null});}
- const fullDs=dl.time.slice(1).map((t,i)=>({dt:t,hi:Math.round(dl.temperature_2m_max[i+1]),lo:Math.round(dl.temperature_2m_min[i+1]),pp:Math.round(dl.precipitation_probability_max[i+1]??0),cond:WMO(dl.weather_code[i+1])}));
+ const fullDs=dl.time.slice(1).map((t,i)=>({dt:t,hi:Math.round(dl.temperature_2m_max[i+1]),lo:Math.round(dl.temperature_2m_min[i+1]),pp:Math.round(dl.precipitation_probability_max[i+1]??0),mm:(dl.precipitation_sum&&dl.precipitation_sum[i+1]!=null)?Math.round(dl.precipitation_sum[i+1]*10)/10:null,cond:WMO(dl.weather_code[i+1])}));
  let bi=0,wi=0;
  hours.forEach((h,i)=>{if(h.pp<hours[bi].pp||(h.pp===hours[bi].pp&&Math.abs(h.t-20)<Math.abs(hours[bi].t-20)))bi=i;if(h.pp>hours[wi].pp)wi=i;});
  const ppMax=fullDs[0]?fullDs[0].pp:0,wind=Math.round(cur.wind_speed_10m);
@@ -1412,8 +1421,9 @@ function buildWkSum(l){
  if(D.climo&&D.climo.byDay){const ds=W.map(x=>{const n=D.climo.byDay[x.dt.slice(5)];return n!=null?(x.hi-n):null;});an=meanArr(ds);}
  let t=W.length+(hrv?' d: ':'-day span ')+lo+'–'+hi+'°. ';
  t+=hrv?('Najtopliji '+dayLab(W[hiI].dt)+' ('+W[hiI].hi+'°)'):('Warmest '+dayLab(W[hiI].dt)+' ('+W[hiI].hi+'°)');
- t+=(W[ppI].pp??0)>=20?((hrv?', najkišovitiji ':', wettest ')+dayLab(W[ppI].dt)+' ('+W[ppI].pp+'%). '):'. ';
+ t+=(W[ppI].pp??0)>=20?((hrv?', najkišovitiji ':', wettest ')+dayLab(W[ppI].dt)+' ('+W[ppI].pp+'%'+(W[ppI].mm!=null?', '+mmTxt(W[ppI].mm):'')+'). '):'. ';
  t+=rainy?(rainy+(hrv?' kišnih dana. ':' rainy day(s). ')):(hrv?'Bez kišnih dana. ':'No rainy days. ');
+ {const mms=W.filter(x=>x.mm!=null);if(mms.length){const tot=mms.reduce((a,x)=>a+x.mm,0);if(tot>=0.1)t+=(hrv?'Ukupno oborina: ':'Total precipitation: ')+mmTxt(Math.round(tot*10)/10)+'. ';}}
  if(Math.abs(tr)>=1.5)t+=(hrv?('Trend: '+(tr>0?'zatopljenje ':'zahlađenje ')):'Trend: '+(tr>0?'warming ':'cooling '))+Math.abs(tr).toFixed(1)+'°. ';
  if(an!=null&&Math.abs(an)>=1)t+=(hrv?(sgn(an,'°',1)+' u odnosu na normalu 1991–2020.'):(sgn(an,'°',1)+' vs the 1991–2020 normal.'));
  return t.trim();
@@ -1730,7 +1740,7 @@ function render(){
     const ctxTom=tAnom(d1.hi-d0.hi)+' '+LBL.vsTod+
      (nm1!=null?('<br>'+tAnom(d1.hi-nm1,null,1)+' '+LBL.vsN+' ('+nm1.toFixed(1)+'°)'):'')+
      (lyT!=null?('<br>'+tAnom(d1.hi-lyT)+' '+LBL.vsLY+' ('+Math.round(lyT)+'°)'):'')+
-     '<br>💧 '+(d1.pp??'—')+'% · 💨 '+(d1.w??'—')+' km/h';
+     '<br>💧 '+(d1.pp??'—')+'%'+(d1.mm!=null?' · '+mmTxt(d1.mm):'')+' · 💨 '+(d1.w??'—')+' km/h';
     tomCard=card(LBL.cTom,(ICON[d1.cond]||'')+' '+d1.lo+'–'+d1.hi+'°','',ctxTom);
    }}
   let cardsHtml=
@@ -1742,7 +1752,7 @@ function render(){
    '<div class="ctx">'+ctxT+'</div></div>'+
    card(LBL.cMax,(d0.hi??"—")+"°","",ctxMax)+
    tomCard+
-   card(LBL.cP,(n.pp??d0.pp??"—")+"%","",ctxP)+
+   card(LBL.cP,(n.pp??d0.pp??"—")+"%",(d0&&d0.mm!=null)?((lang==='hr'?'očekivano danas: ':'expected today: ')+mmTxt(d0.mm)):"",ctxP)+
    card(LBL.cFL,(n.fl??"—")+"°","",ctxFL)+
    card(LBL.cH,(n.hum??"—")+"%","",ctxH)+
    card(LBL.cW,(n.wind??"—")+" km/h",n.wdir||"",ctxW);
@@ -1959,7 +1969,7 @@ function drawWeek(){
     if(c.dataset.yAxisID==='y5'){const t5=bbqTier(c.parsed.y);return LBL.cBbq+': '+c.parsed.y+'/100 '+BBQI[t5]+' '+bbqName(t5);}
     if(c.dataset.yAxisID==='y4')return c.parsed.y+' hPa';
     if(c.dataset.yAxisID==='y2')return LBL.conf+': '+c.parsed.y+' %';
-    if(c.dataset.yAxisID==='y1'){const nm=c.dataset.label==='ppB'?esc(D2&&(D2.loc||selB)):(c.dataset.label==='ppA'?esc(D.loc||locA()):'');return (nm?nm+' ':'')+c.parsed.y+' %';}
+    if(c.dataset.yAxisID==='y1'){const nm=c.dataset.label==='ppB'?esc(D2&&(D2.loc||selB)):(c.dataset.label==='ppA'?esc(D.loc||locA()):'');const sm=(c.dataset.label==='ppB'?W2v:Wv)[c.dataIndex];return (nm?nm+' ':'')+c.parsed.y+' %'+((sm&&sm.mm!=null)?' \u00b7 '+mmTxt(sm.mm):'');}
     const src=c.dataset.label==='rangeB'?W2v:Wv;const nm=c.dataset.label==='rangeB'?esc(D2&&(D2.loc||selB)):(c.dataset.label==='rangeA'?esc(D.loc||locA()):'');
     return (nm?nm+': ':'')+src[c.dataIndex].lo+'\u00B0 \u2026 '+src[c.dataIndex].hi+'\u00B0 '+(ICON[src[c.dataIndex].cond]||'');}}}},
    scales:{
@@ -2004,7 +2014,8 @@ function drawWeek(){
    });
    ctx.font=(M?'500 8px ':(dense?'500 8px ':'500 10px '))+'sans-serif';
    const pi=ch.data.datasets.findIndex(dd=>dd.label==='%');
-   if(pi>=0)ch.getDatasetMeta(pi).data.forEach((bar,i)=>{if((Wv[i].pp??0)>=5){ctx.fillStyle=halo;ctx.fillRect(bar.x-13,bar.y-13,26,11);ctx.fillStyle=C.sky;ctx.fillText(Wv[i].pp+'%',bar.x,bar.y-4);}});
+   if(pi>=0)ch.getDatasetMeta(pi).data.forEach((bar,i)=>{if((Wv[i].pp??0)>=5){ctx.fillStyle=halo;ctx.fillRect(bar.x-13,bar.y-13,26,11);ctx.fillStyle=C.sky;ctx.fillText(Wv[i].pp+'%',bar.x,bar.y-4);
+     if(Wv[i].mm!=null&&Wv[i].mm>=0.1){const mt=vdense?String(Wv[i].mm>=10?Math.round(Wv[i].mm):Wv[i].mm.toFixed(1)):mmTxt(Wv[i].mm);const mw=ctx.measureText(mt).width+4;ctx.fillStyle=halo;ctx.fillRect(bar.x-mw/2,bar.y-25,mw,11);ctx.fillStyle=theme==='dark'?'#9fd4f7':'#0b6aa8';ctx.fillText(mt,bar.x,bar.y-16);}}});
    ctx.restore();}}]
  });
 }
@@ -3426,6 +3437,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.19',d:'2026-10-05',en:'<b>Map</b>: the bottom icon bar stays visible on phones and foldables; on phones the <b>layer buttons</b> sit in one swipeable row at the bottom, within thumb reach. <b>Precipitation in mm per day</b> next to the rain chance: on the OUTLOOK chart and its summary (with the total), on the Tomorrow card and on the Chance of rain card.',hr:'<b>Karta</b>: donja traka s ikonama ostaje vidljiva na telefonu i preklopnom uređaju; na telefonu su <b>gumbi slojeva</b> u jednom redu na dnu, nadohvat palca. <b>Oborine u mm po danu</b> uz vjerojatnost kiše: na grafu IZGLEDI i u njegovom sažetku (s ukupnom količinom), na kartici Sutra i na kartici Vjerojatnost kiše.'},
  {v:'3.18',d:'2026-10-05',en:'Header: one <b>language toggle</b> button; the refresh button is gone (data refreshes by itself). <b>Cards</b> all have the same height; <b>AQI, PM2.5 and PM10</b> are separate cards; the map card is gone (use the Map link). Phone menu: <b>larger monochrome icons</b> without text. <b>HOUR BY HOUR</b> is one long strip — swipe it, or drag it with the mouse; the slider is gone. Foldables show <b>wide charts</b> in one column. The longest outlook is the real <b>16 days</b>. <b>Pressure</b> is shown by default, in white (dark slate in the light theme).',hr:'Zaglavlje: jedan gumb za <b>promjenu jezika</b>; tipka za osvježavanje je uklonjena (podaci se osvježavaju sami). <b>Kartice</b> su sve iste visine; <b>AQI, PM2.5 i PM10</b> su zasebne kartice; kartica karte je uklonjena (dovoljan je link Karta). Izbornik na telefonu: <b>veće jednobojne ikone</b> bez teksta. <b>SAT PO SAT</b> je jedna duga traka — povuci je prstom ili mišem; klizač je uklonjen. Na preklopnim uređajima <b>široki grafovi</b> u jednom stupcu. Najdulji raspon je stvarnih <b>16 dana</b>. <b>Tlak</b> je uključen od početka, bijele boje (tamnosiva u svijetloj temi).'},
  {v:'3.17',d:'2026-09-21',en:'App-like <b>bottom navigation</b> on phones and foldables (Weather, Map, BBQ, Hiking) — desktop keeps the top tabs. New <b>location selector</b>: a collapsible search with recent places, “This location”, and up to two selections — tap a place to switch, “+ compare” to add a second place; two selections start the comparison. Three layout steps: phone, foldable/tablet (two columns), desktop. Warnings now show as a detailed full-width banner at the top of every page — no warning button when there is nothing to warn about. Light/dark is now one sun/moon icon; large-font mode is removed (use the browser/system zoom). The pressure switch sits at the NEXT 24 HOURS chart, the confidence switch at the OUTLOOK chart, vegan switch on BBQ, Monty Python switch on Info. The HOUR BY HOUR strip is always the next 24 h with the 3-day slider, and icons are twice as large. The GRILLING chart moved to the BBQ page; the Swimming page is removed — sea temperature, tides, waves, swell and current stay on the Weather page for coastal places (also in comparison). The title moved to the footer, with Info &amp; changelog linked from there.',hr:'Aplikacijska <b>donja navigacija</b> na mobitelima i preklopnim uređajima (Vrijeme, Karta, Roštilj, Planinarenje) — desktop zadržava gornje kartice. Novi <b>izbornik lokacija</b>: sklopiva pretraga s nedavnim mjestima, „Ova lokacija” i do dva odabira — dodir na mjesto ga postavlja kao jedino, „+ usporedi” dodaje drugo mjesto; dva odabira pokreću usporedbu. Tri koraka rasporeda: mobitel, preklopni/tablet (dva stupca), desktop. Upozorenja se sada prikazuju kao detaljna traka preko cijele širine na vrhu svake stranice — nema gumba za upozorenje kad nema ničega za upozoriti. Svijetli/tamni način sada je jedna ikona sunca/mjeseca; način velikog fonta je uklonjen (koristite zum preglednika/sustava). Prekidač tlaka sada je uz graf SLJEDEĆIH 24 SATA, prekidač pouzdanosti uz IZGLED, prekidač vegan uz Roštilj, Monty Python prekidač na Info. Traka PO SATIMA uvijek prikazuje sljedećih 24 h s klizačem za 3 dana, a ikone su dvostruko veće. Graf ROŠTILJA preselio je na karticu Roštilj; kartica Kupanje je uklonjena — temperatura mora, plima, valovi, val i struja ostaju na kartici Vrijeme za obalna mjesta (i u usporedbi). Naslov je preseljen u podnožje, s poveznicom na Info i povijest verzija.'},
  {v:'3.16',d:'2026-09-05',en:'Header buttons are now grouped (display | data &amp; overlays | fun) with a bilingual tooltip on every one. Marine data adds <b>swell height/period</b> and <b>ocean current</b> — the coastal Swim view shows both. Hiking blends real <b>cloud layers</b> into its sky score and gains a <b>golden-hour</b> card. BBQ now shows a verdict for <b>both</b> upcoming weekends side by side. The map’s data-grid layers (temperature/wind/rain/clouds) got a <b>time-scrub slider</b> (now … +24h) that redraws instantly from the already-fetched data — no refetch while scrubbing — and loading/empty states across the map and other views now share one consistent card style. Biggest change: the app is now <b>installable</b> (Android/Chrome “Install app”, iOS “Add to Home Screen”) with a proper icon and an offline app shell — the page and its two library files load even with no signal, while forecasts still come from your last-synced data; live data is never cached.',hr:'Gumbi u zaglavlju sada su grupirani (prikaz | podaci i slojevi | zabava) i svaki ima dvojezičan opis pri lebdenju. Podaci o moru dobivaju <b>visinu/period valova</b> i <b>morsku struju</b> — obalni prikaz Kupanja prikazuje oboje. Planinarenje sada uračunava stvarne <b>slojeve oblaka</b> u ocjenu neba i dobiva karticu <b>zlatnog sata</b>. Roštilj sada prikazuje ocjenu za <b>oba</b> nadolazeća vikenda jedan pored drugog. Slojevi mreže podataka na karti (temperatura/vjetar/kiša/oblaci) dobili su <b>klizač vremena</b> (sad … +24 h) koji se odmah ponovno iscrtava iz već dohvaćenih podataka — bez ponovnog dohvata tijekom pomicanja — a stanja učitavanja/praznine na karti i drugim karticama sada dijele jedan dosljedan izgled kartice. Najveća promjena: aplikacija se sada može <b>instalirati</b> (Android/Chrome “Instaliraj aplikaciju”, iOS “Dodaj na početni zaslon”) s pravom ikonom i radi offline za samu ljusku — stranica i njezine dvije biblioteke učitavaju se i bez signala, dok prognoza i dalje dolazi iz zadnjeg sinkroniziranog stanja; podaci uživo se nikad ne predmemoriraju.'},
@@ -3511,7 +3523,7 @@ function updateTabs(){
 function showView(name){
  if(!VIEWS[name])name='weather';active=name;
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
- document.getElementById('tabs').classList.toggle('navhide',name==='map'); /* the fixed bottom bar hides behind the full-screen map, which has its own ✕ */
+ document.getElementById('tabs').classList.toggle('onmap',name==='map'); /* v3.19: the bar stays on the full-screen map; desktop hides the top tabs there */
  destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
  if(!D)return;
  setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}try{updateAlertBox();}catch(e){}updateTabs();},0);

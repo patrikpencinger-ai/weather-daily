@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~3,600 lines). Current version: **v3.18** (also in the
+(HTML + CSS + vanilla JS, ~3,600 lines). Current version: **v3.19** (also in the
 `APPV` JS constant, used for the dynamic `document.title` — bump all three together,
 plus add a `CHANGELOG` entry).
 
@@ -23,7 +23,7 @@ always go straight to the network, untouched, exactly as if the service worker d
 `tools/make-icons.js` is a dependency-free node script (hand-rolled PNG encoder: raw RGBA
 scanlines → `zlib.deflateSync` → PNG chunks with a hand-rolled CRC32) that regenerates the three
 icon PNGs; it's excluded from the deployed site via `.assetsignore` (`tools/`). **Bump `CACHE`
-in `sw.js`** (currently `wd-shell-v3.18`) whenever the shell's precache list or pinned CDN
+in `sw.js`** (currently `wd-shell-v3.19`) whenever the shell's precache list or pinned CDN
 versions change — the old cache is dropped on activate. The SW registers only on `https:` (never
 on `file://`, and it's a no-op if registration fails — the page works identically without it);
 its status is reported through the same `FEEDS`/`feedMark('pwa', …)` mechanism as every other
@@ -111,6 +111,11 @@ work happens in `weather-dashboard.html`.
 - OUTLOOK range pills: 3d / 7d / 14d / 16d (`btn-r16`) — 16 days is the real Open-Meteo maximum.
 - Pressure overlay is ON by default (`PRES=true`). `C.pres` is a theme-aware getter: near-white in
   the dark theme, dark slate in the light theme (never the old olive green).
+
+### v3.19 changes (these override older statements)
+
+- Map view: the bottom bar is NOT hidden any more. `showView()` sets `#tabs.onmap` on the map; desktop hides the top tabs there, mobile/mid keep the bar (z-index above the map) and hide the map ✕. On `mobile` only, `#mlyPills` (layer buttons) is a fixed swipeable row right above the bar and `#mapBottom` sits above that row.
+- Daily precipitation amount: `fullDs[].mm` (Open-Meteo `precipitation_sum`, mm/day), formatted by `mmTxt()`; shown on the OUTLOOK chart labels + tooltip + summary total, the Tomorrow card and the Chance of rain card.
 
 ## Running it
 
