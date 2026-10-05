@@ -115,6 +115,8 @@ body{padding:20px;transition:background .2s}
 #tabs.onmap{display:none}
 #wrap.mobile #tabs.onmap,#wrap.mid #tabs.onmap{display:flex;z-index:1200}
 #wrap.mobile #mapClose,#wrap.mid #mapClose{display:none}
+#wrap.mobile #view-map .leaflet-bottom.leaflet-right,#wrap.mid #view-map .leaflet-bottom.leaflet-right{bottom:auto;top:54px} /* zoom + locate: clear of the bottom panel */
+#wrap.mobile #view-map .leaflet-control-attribution,#wrap.mid #view-map .leaflet-control-attribution{display:none} /* attribution text is in the bottom panel */
 #wrap.mid #mapBottom{bottom:calc(72px + env(safe-area-inset-bottom))}
 /* phones: the layer pills sit in one swipeable row right above the bottom bar (thumb reach) */
 #wrap.mobile #mlyPills{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));z-index:1150;flex-wrap:nowrap!important;overflow-x:auto;padding:7px 10px;gap:6px;background:var(--bg);background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(6px);border-top:0.5px solid var(--bd);scrollbar-width:none;box-sizing:border-box}
