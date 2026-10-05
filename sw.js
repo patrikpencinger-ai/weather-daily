@@ -10,7 +10,7 @@
  * app's pinned CDN versions) needs to be refreshed — the old cache is
  * deleted on activate and everything is refetched.
  */
-const CACHE = 'wd-shell-v3.17';
+const CACHE = 'wd-shell-v3.18';
 
 const PRECACHE = [
   './weather-dashboard.html',

@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~3,600 lines). Current version: **v3.17** (also in the
+(HTML + CSS + vanilla JS, ~3,600 lines). Current version: **v3.18** (also in the
 `APPV` JS constant, used for the dynamic `document.title` — bump all three together,
 plus add a `CHANGELOG` entry).
 
@@ -23,7 +23,7 @@ always go straight to the network, untouched, exactly as if the service worker d
 `tools/make-icons.js` is a dependency-free node script (hand-rolled PNG encoder: raw RGBA
 scanlines → `zlib.deflateSync` → PNG chunks with a hand-rolled CRC32) that regenerates the three
 icon PNGs; it's excluded from the deployed site via `.assetsignore` (`tools/`). **Bump `CACHE`
-in `sw.js`** (currently `wd-shell-v3.17`) whenever the shell's precache list or pinned CDN
+in `sw.js`** (currently `wd-shell-v3.18`) whenever the shell's precache list or pinned CDN
 versions change — the old cache is dropped on activate. The SW registers only on `https:` (never
 on `file://`, and it's a no-op if registration fails — the page works identically without it);
 its status is reported through the same `FEEDS`/`feedMark('pwa', …)` mechanism as every other
@@ -89,6 +89,28 @@ opened directly in a browser or served as a static file. Keep it that way.
 `index.html` is **not** the app — it's a tiny redirect stub so the bare domain
 (e.g. `weather-daily.pages.dev/`) forwards to `weather-dashboard.html`. All real
 work happens in `weather-dashboard.html`.
+
+### v3.18 changes (these override older statements below)
+
+- Header controls are now: location pill (`#locSel`), ONE language toggle (`btn-lang`, `toggleLang()`,
+  shows the current language code) and the theme icon. `btn-en`/`btn-hr` and the refresh button
+  (`btn-rf`) are gone; `hardRefresh()` still exists but has no button — data refreshes through the
+  TTLs and the tab-visibility refetch.
+- `.cards` uses `grid-auto-rows:1fr`: every card in a grid has the same height.
+- Top cards: AQI, PM2.5 and PM10 are three separate cards (`aqiCardHtml()` + `pmCardHtml()`, bands
+  from the European AQI thresholds). The map launcher card is removed (the Map tab is the link).
+- Bottom bar (mobile + mid): 30 px monochrome inline-SVG icons (cloud-sun, map, steak, mountain),
+  no visible label and no peek badge; the label stays for screen readers (visually hidden).
+  Desktop top tabs keep text labels and peeks.
+- HOUR BY HOUR: no slider and no `TOFF`. `renderStripWindow()` renders every 3-hour point of
+  `D.h3ext` from now (about 4 days) into one horizontal `.dragx` strip: touch scrolls natively, a
+  delegated mouse-drag handler scrolls it with the mouse, arrow keys when focused. Any element with
+  class `dragx` gets this behaviour.
+- The `mid` layout step no longer uses two columns (`#wxGrid` is a plain wrapper): charts are
+  full width on foldables.
+- OUTLOOK range pills: 3d / 7d / 14d / 16d (`btn-r16`) — 16 days is the real Open-Meteo maximum.
+- Pressure overlay is ON by default (`PRES=true`). `C.pres` is a theme-aware getter: near-white in
+  the dark theme, dark slate in the light theme (never the old olive green).
 
 ## Running it
 

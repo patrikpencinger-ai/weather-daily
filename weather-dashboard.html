@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Patrik's weather daily — v3.17</title>
+<title>Patrik's weather daily — v3.18</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#16243a">
@@ -26,7 +26,7 @@ body{padding:20px;transition:background .2s}
 /* layout steps: mobile <700px, mid 700-1099px, desktop >=1100px (see applyResponsive()) */
 #wrap.mobile{padding:14px}
 #wrap.mid{max-width:100%}
-#wrap.mobile,#wrap.mid{padding-bottom:calc(68px + env(safe-area-inset-bottom))} /* room for the fixed bottom tab bar */
+#wrap.mobile,#wrap.mid{padding-bottom:calc(74px + env(safe-area-inset-bottom))} /* room for the fixed bottom tab bar */
 .card{background:var(--surf);border-radius:8px;padding:0.85rem 1rem;position:relative}
 .lab{font-size:13px;color:var(--ts)}
 .big-n,.card .big{font-size:24px;font-weight:500}
@@ -35,14 +35,11 @@ body{padding:20px;transition:background .2s}
 .ac{color:var(--cool);font-weight:500}
 .dotA{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2caaf0;margin-right:5px;vertical-align:1px}
 .dotB{display:inline-block;width:8px;height:8px;border-radius:50%;background:#a64ce8;margin-right:5px;vertical-align:1px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 2rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));grid-auto-rows:1fr;gap:12px;margin:0 0 2rem}
 #wrap.mobile .cards{grid-template-columns:1fr 1fr 1fr;gap:10px}
 @media(max-width:479px){#wrap.mobile .cards{grid-template-columns:1fr 1fr}}
 #wrap.mid .cards{grid-template-columns:repeat(4,1fr);gap:12px}
 #wrap.mobile .ttl{font-size:16px}
-/* mid: chart sections of the Weather view flow in two columns; each section (heading+summary+canvas+legend) is one grid item */
-#wrap.mid #wxGrid{display:grid;grid-template-columns:1fr 1fr;column-gap:24px;align-items:start}
-#wrap.mid #wxGrid>div{min-width:0} /* let grid items (chart sections) shrink below their canvas's intrinsic width */
 .hd{font-size:16px;font-weight:500;letter-spacing:0.08em;margin:0 0 0.75rem}
 .dark .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.92) saturate(0.7);}
 .dark .radarlayer .leaflet-tile{filter:none!important;}
@@ -114,14 +111,20 @@ body{padding:20px;transition:background .2s}
 #tabs .tab:hover{color:var(--tp);border-color:var(--tp)}
 #tabs .tab.on{background:var(--tp);color:var(--bg);border-color:var(--tp)}
 #tabs .tab .pk{font-size:11px;font-weight:600;opacity:.85}
-#tabs .tabic{display:none;font-size:19px;line-height:1}
+#tabs .tabic{display:none;line-height:0}
 #tabs.navhide{display:none}
 /* mobile + mid: the SAME #tabs nav becomes a fixed, app-like bottom bar (desktop keeps the top tab-bar look above) */
 #wrap.mobile #tabs,#wrap.mid #tabs{position:fixed;left:0;right:0;bottom:0;z-index:900;margin:0;gap:0;flex-wrap:nowrap;background:var(--bg);border-top:1px solid var(--bd);padding:4px 4px calc(4px + env(safe-area-inset-bottom));box-sizing:border-box}
-#wrap.mobile #tabs .tab,#wrap.mid #tabs .tab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;border-top:2px solid transparent;border-radius:0;padding:6px 2px;min-height:48px;box-sizing:border-box;font-size:11px;position:relative;background:transparent;color:var(--ts)}
+#wrap.mobile #tabs .tab,#wrap.mid #tabs .tab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;border-top:2px solid transparent;border-radius:0;padding:8px 2px;min-height:52px;box-sizing:border-box;font-size:11px;position:relative;background:transparent;color:var(--ts);opacity:.75}
 #wrap.mobile #tabs .tab .tabic,#wrap.mid #tabs .tab .tabic{display:block}
-#wrap.mobile #tabs .tab.on,#wrap.mid #tabs .tab.on{background:transparent;color:var(--tp);border-top-color:var(--tp)}
-#wrap.mobile #tabs .tab .pk,#wrap.mid #tabs .tab .pk{position:absolute;top:2px;right:calc(50% - 26px);font-size:9px;font-weight:600;background:var(--surf);border-radius:6px;padding:0 3px;max-width:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#wrap.mobile #tabs .tab.on,#wrap.mid #tabs .tab.on{background:transparent;color:var(--tp);border-top-color:var(--tp);opacity:1}
+#wrap.mobile #tabs .tab .pk,#wrap.mid #tabs .tab .pk{display:none}
+/* icon-only bar: the label stays in the accessibility tree (visually hidden), it is not shown */
+#wrap.mobile #tabs .tab .tablabel,#wrap.mid #tabs .tab .tablabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.dragx{overflow-x:auto;cursor:grab;user-select:none;-webkit-user-select:none;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+.dragx::-webkit-scrollbar{display:none}
+.dragx.dragging{cursor:grabbing}
+.dragx:focus-visible{outline:2px solid var(--tp);outline-offset:2px}
 .viewhead{font-size:19px;font-weight:600;letter-spacing:0.02em;margin:0 0 3px}
 .viewtag{font-size:12.5px;color:var(--ts);margin:0 0 18px;line-height:1.5}
 .gauge{height:7px;border-radius:999px;background:var(--bd);overflow:hidden;margin:5px 0 0}
@@ -143,14 +146,8 @@ body{padding:20px;transition:background .2s}
     <span id="locPillTxt" class="locpilltxt">Zagreb</span>
     <svg class="locchev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
   </div>
-  <div class="hgrp">
-  <button class="lbtn" id="btn-en" onclick="setLang('en')">EN</button>
-  <button class="lbtn" id="btn-hr" onclick="setLang('hr')">HR</button>
-  </div>
-  <div class="hgrp" style="border-right:0;margin-right:0;padding-right:0;">
-  <button class="lbtn" id="btn-rf" onclick="hardRefresh()" aria-label="Refresh"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
+  <button class="lbtn" id="btn-lang" onclick="toggleLang()" aria-label="Language" style="min-width:38px;font-weight:600;">EN</button>
   <button class="lbtn" id="btn-theme" onclick="toggleTheme()" aria-label="Theme" style="border:none;"></button>
-  </div>
 </div>
 <div id="locPanel" class="locpanel hidden">
   <div class="locsearchrow">
@@ -175,20 +172,16 @@ body{padding:20px;transition:background .2s}
 <div id="dash" class="hidden">
 <div id="alertBox" class="hidden" style="border-radius:12px;padding:0.6rem 1.1rem;margin:0 0 1.25rem;"></div>
 <nav id="tabs" role="tablist">
-  <a class="tab on" id="tab-weather" role="tab" href="#weather" data-view="weather" aria-controls="view-weather" tabindex="0"><span class="tabic" aria-hidden="true">🌤️</span><span class="tablabel" data-i="tabWeather">Weather</span><span class="pk" id="pk-weather"></span></a>
-  <a class="tab" id="tab-map" role="tab" href="#map" data-view="map" aria-controls="view-map" tabindex="-1"><span class="tabic" aria-hidden="true">🗺️</span><span class="tablabel" data-i="tabMap">Map</span><span class="pk" id="pk-map"></span></a>
-  <a class="tab" id="tab-bbq" role="tab" href="#bbq" data-view="bbq" aria-controls="view-bbq" tabindex="-1"><span class="tabic" aria-hidden="true">🔥</span><span class="tablabel" data-i="tabBbq">BBQ</span><span class="pk" id="pk-bbq"></span></a>
-  <a class="tab" id="tab-hike" role="tab" href="#hike" data-view="hike" aria-controls="view-hike" tabindex="-1"><span class="tabic" aria-hidden="true">🥾</span><span class="tablabel" data-i="tabHike">Hiking</span><span class="pk" id="pk-hike"></span></a>
+  <a class="tab on" id="tab-weather" role="tab" href="#weather" data-view="weather" aria-controls="view-weather" tabindex="0"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg></span><span class="tablabel" data-i="tabWeather">Weather</span><span class="pk" id="pk-weather"></span></a>
+  <a class="tab" id="tab-map" role="tab" href="#map" data-view="map" aria-controls="view-map" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg></span><span class="tablabel" data-i="tabMap">Map</span><span class="pk" id="pk-map"></span></a>
+  <a class="tab" id="tab-bbq" role="tab" href="#bbq" data-view="bbq" aria-controls="view-bbq" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.4 13.7A6.5 6.5 0 1 0 6.28 6.6c-1.1 3.13-.78 3.9-3.18 6.08A3 3 0 0 0 5 18c4 0 8.4-1.8 11.4-4.3"/><path d="m18.5 6 2.19 4.5a6.48 6.48 0 0 1-2.29 7.2C15.4 20.2 11 22 7 22a3 3 0 0 1-2.68-1.66L2.4 16.5"/><circle cx="12.5" cy="8.5" r="2.5"/></svg></span><span class="tablabel" data-i="tabBbq">BBQ</span><span class="pk" id="pk-bbq"></span></a>
+  <a class="tab" id="tab-hike" role="tab" href="#hike" data-view="hike" aria-controls="view-hike" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg></span><span class="tablabel" data-i="tabHike">Hiking</span><span class="pk" id="pk-hike"></span></a>
 </nav>
 <section id="view-weather" role="tabpanel" aria-labelledby="tab-weather">
 <div class="cards" id="nowCards"></div>
 
 <div id="todaySec" class="hidden" style="margin:0 0 2rem;">
 <div class="hd" data-i="h2b">HOUR BY HOUR</div>
-<div class="rng" id="todayCtl" style="margin:0 0 10px;align-items:center;">
-  <input type="range" id="t24Slider" min="0" max="48" step="3" value="0" oninput="setTOff(this.value)" style="flex:1;min-width:120px;accent-color:#2caaf0;" aria-label="Shift the 24-hour window up to three days ahead">
-  <span id="t24Lbl" class="lab" style="font-size:11.5px;font-weight:600;"></span>
-</div>
 <div class="card" id="todayStrip" style="padding:0.9rem 1rem;"></div>
 </div>
 
@@ -227,7 +220,7 @@ body{padding:20px;transition:background .2s}
   <button class="lbtn rbtn" id="btn-r3" onclick="setRange(3)">3d</button>
   <button class="lbtn rbtn" id="btn-r7" onclick="setRange(7)">7d</button>
   <button class="lbtn rbtn" id="btn-r14" onclick="setRange(14)">14d</button>
-  <button class="lbtn rbtn" id="btn-r30" onclick="setRange(30)">30d</button>
+  <button class="lbtn rbtn" id="btn-r16" onclick="setRange(16)">16d</button>
   <span class="rsep"></span>
   <button class="lbtn" id="btn-c0" onclick="setCMode(0)" title="Standard towers">STD</button>
   <button class="lbtn" id="btn-c1" onclick="setCMode(1)" title="Color by temperature within shown range">°C</button>
@@ -390,20 +383,20 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.17 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.18 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" defer></script>
 <script>
 (function(){if(typeof window.console==='undefined')window.console={};var noop=function(){};['log','info','warn','error','debug'].forEach(function(k){if(typeof console[k]!=='function')console[k]=console.log&&typeof console.log==='function'?console.log.bind(console):noop;});})();
-const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn:'#BA7517',bad:'#A32D2D',sea:'#0E7490',pres:'#6E8B3D',bbq:'#A0522D'};
+const C={hi:'#D85A30',lo:'#084a8f',sky:'#2caaf0',sun:'#E0A53C',ok:'#1D9E75',warn:'#BA7517',bad:'#A32D2D',sea:'#0E7490',get pres(){return (typeof theme!=='undefined'&&theme==='dark')?'#f4f4f0':'#3b3f5c';},bbq:'#A0522D'};
 const CMP={a:'#2caaf0',b:'#a64ce8'};
 const BIOE=['🙂','😐','☹️'];
 const ICON={sun:'☀️',partcloud:'⛅',cloud:'☁️',rain:'🌧️',storm:'⛈️',snow:'❄️',fog:'🌫️',wind:'💨'};
 const ICON_SUN='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 const ICON_MOON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-const APPV='3.17';
+const APPV='3.18';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -413,7 +406,7 @@ let recents=DEFAULT_RECENTS.slice();
 try{const s=localStorage.getItem('wd_recents');if(s){const a=JSON.parse(s);if(Array.isArray(a)&&a.length)recents=a.slice(0,5);}}catch(e){}
 function saveRecents(){try{localStorage.setItem('wd_recents',JSON.stringify(recents));}catch(e){}}
 let theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
-let layout='',lang='en',RANGE=7,CMODE=0,CONF=false,MOON=false,TIDE=false,PRES=false,BBQ=false;
+let layout='',lang='en',RANGE=7,CMODE=0,CONF=false,MOON=false,TIDE=false,PRES=true,BBQ=false;
 let GEO_LOC=null;
 let MAP_LOC=null,CUR_LOC=null,MAP_BUSY=false;
 const MOONS=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
@@ -590,7 +583,7 @@ const T={
   errDirect:"Direct feed (Open-Meteo): ",errAI:"AI feed (Claude): ",
   errTip:"Live data can't be fetched from a local file — iPhone/iPad Safari blocks network requests on file:// pages. Serve it over http(s) (e.g. GitHub Pages, Netlify, or a local web server) and open that link instead. On desktop, also check ad-blockers. The AI feed only works inside Claude.",
   aiOnly:"only available inside Claude",
-  tt_en:"English",tt_hr:"Croatian",tt_theme:"Toggle theme",tt_rf:"Refresh",tt_geo:"Forecast for my current (browser) location",tt_pr:"Air pressure hPa",tt_cf:"Forecast confidence %",tt_mp:"Monty Python mode",tt_vegan:"Vegan Inbound mode (BBQ)",
+  tt_lang:"Language: English — tap for Croatian",tt_theme:"Toggle theme",tt_rf:"Refresh",tt_geo:"Forecast for my current (browser) location",tt_pr:"Air pressure hPa",tt_cf:"Forecast confidence %",tt_mp:"Monty Python mode",tt_vegan:"Vegan Inbound mode (BBQ)",
   dows:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']},
  hr:{title:"PATRIKOVA DNEVNA PROGNOZA",h2:"SLJEDEĆA 24 SATA",h3:"IZGLEDI",h4:"TEMPERATURA MORA",
   loading:"Dohvaćam prognozu…",errTitle:"Prognoza se nije učitala",
@@ -619,12 +612,11 @@ const T={
   errDirect:"Izravni izvor (Open-Meteo): ",errAI:"AI izvor (Claude): ",
   errTip:"Uživo podaci ne mogu se dohvatiti iz lokalne datoteke — Safari na iPhoneu/iPadu blokira mrežne zahtjeve na file:// stranicama. Posluži je preko http(s) (npr. GitHub Pages, Netlify ili lokalni web server) i otvori tu poveznicu. Na računalu provjeri i blokatore oglasa. AI izvor radi samo unutar Claudea.",
   aiOnly:"dostupno samo unutar Claudea",
-  tt_en:"Engleski",tt_hr:"Hrvatski",tt_theme:"Promijeni temu",tt_rf:"Osvježi",tt_geo:"Prognoza za moju trenutnu (preglednikovu) lokaciju",tt_pr:"Tlak zraka hPa",tt_cf:"Pouzdanost prognoze %",tt_mp:"Monty Python način",tt_vegan:"Način 'Stiže vegan' (roštilj)",
+  tt_lang:"Jezik: hrvatski — dodirni za engleski",tt_theme:"Promijeni temu",tt_rf:"Osvježi",tt_geo:"Prognoza za moju trenutnu (preglednikovu) lokaciju",tt_pr:"Tlak zraka hPa",tt_cf:"Pouzdanost prognoze %",tt_mp:"Monty Python način",tt_vegan:"Način 'Stiže vegan' (roštilj)",
   dows:['Ned','Pon','Uto','Sri','Čet','Pet','Sub']}
 };
 let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, aqiCh=null, presCh=null, lastErrs=null;
 let BBQCRIT={time:true,temp:true,rain:true,wind:true,humid:true,storm:true}, bbqSeries=[], bbqPeak=null;
-let TOFF=0;
 let VEGAN=false, bbqCheck={};
 try{const s=localStorage.getItem('wd_bbqcheck');if(s)bbqCheck=JSON.parse(s)||{};}catch(e){}
 function cmp(){return !!(selB&&D2);}
@@ -1064,7 +1056,7 @@ async function refreshInBackground(locName,key,mySeq){ /* PERF-2/PERF-4: SWR / s
  }
 }
 async function loadData(){
- const btn=document.getElementById('btn-rf');btn.disabled=true;
+ const btn={}; /* the refresh button was removed in v3.18; data refreshes on its own (TTL + tab visibility) */
  const locName=locA();
  document.getElementById('locIn').value=locName;
  if(selB&&selB.toLowerCase()===locName.toLowerCase()){selB=null;D2=null;}
@@ -1766,7 +1758,6 @@ function render(){
   const bq=bbqScore(D);
   if(bq){const bt=bbqTier(bq.v);
    cardsHtml+='<div class="card"><div class="lab">'+LBL.cBbq+'<span class="info" tabindex="0" role="button" aria-label="BBQ score criteria">i<span class="tip">'+LBL.bbqInfo+(MP?'<br><br><i>And remember \u2014 nobody expects the evening shower.</i>':'')+'</span></span>'+'</div><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:24px;">'+BBQI[bt]+'</span><span class="big">'+bq.v+'</span><span class="lab" style="font-size:11px;">/100</span></div><div class="ctx">'+esc(bbqName(bt))+(bq.why?(' \u00B7 '+(LBL.bbqWhy[bq.why]||'')):'')+'</div></div>';}
-  cardsHtml+='<div class="card" onclick="location.hash=\'#map\'" onkeydown="if(event.key===\'Enter\')location.hash=\'#map\'" role="button" tabindex="0" aria-label="'+esc(LBL.cMapCard)+'" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:86px;"><div style="font-size:30px;line-height:1;">\uD83D\uDDFA\uFE0F</div><div class="lab" style="font-weight:600;">'+esc(LBL.cMapCard)+'</div><div class="ctx">'+esc(LBL.mapCardSub)+'</div></div>';
   document.getElementById('nowCards').innerHTML=cardsHtml;
  }
  updateAlertBox();
@@ -2190,13 +2181,15 @@ function drawMT(tideOk){
 function applyTheme(t){theme=t;calc();document.getElementById('wrap').classList.toggle('dark',t==='dark');document.body.style.background=BG;const bt=document.getElementById('btn-theme');if(bt)bt.innerHTML=(t==='dark'?ICON_SUN:ICON_MOON);markBtns();if(D)renderActive();}
 function toggleTheme(){applyTheme(theme==='dark'?'light':'dark');}
 function applyTitles(){
- ['en','hr','theme','rf','pr','cf','mp','vegan'].forEach(id=>{
+ ['lang','theme','pr','cf','mp','vegan'].forEach(id=>{
   const el=document.getElementById('btn-'+id),t=LBL['tt_'+id];
   if(el&&t){el.title=t;el.setAttribute('aria-label',t);}
  });
 }
+function toggleLang(){setLang(lang==='hr'?'en':'hr');}
 function setLang(l){
  lang=l;LBL=T[l];
+ {const lb=document.getElementById('btn-lang');if(lb)lb.textContent=l.toUpperCase();}
  document.querySelectorAll('[data-i]').forEach(el=>{const k=el.getAttribute('data-i');if(LBL[k])el.textContent=LBL[k];});
  applyTitles();
  locApplyLang();
@@ -2226,8 +2219,8 @@ function markBtns(){
  const Dk=theme==='dark';
  const actBg=Dk?'#e8e8e6':'#444441',actFg=Dk?'#262624':'#ffffff',inFg=Dk?'#e8e8e6':'#2c2c2a';
  const bd=Dk?'1px solid rgba(255,255,255,0.35)':'1px solid rgba(0,0,0,0.4)';
- const states={'btn-en':lang==='en','btn-hr':lang==='hr','btn-rf':false,'btn-cf':CONF,'btn-pr':PRES,'btn-mp':MP,'btn-bbq':BBQ,
-  'btn-r3':RANGE===3,'btn-r7':RANGE===7,'btn-r14':RANGE===14,'btn-r30':RANGE===30,
+ const states={'btn-cf':CONF,'btn-pr':PRES,'btn-mp':MP,'btn-bbq':BBQ,
+  'btn-r3':RANGE===3,'btn-r7':RANGE===7,'btn-r14':RANGE===14,'btn-r16':RANGE===16,
   'btn-c0':CMODE===0,'btn-c1':CMODE===1,'btn-c2':CMODE===2,'btn-moon':MOON,'btn-tide':TIDE,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7,
   'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7,'btn-vegan':VEGAN};
  const paint=(b,on)=>{
@@ -2719,67 +2712,68 @@ function drawHikeWeek(){
   wl.innerHTML=legSwatch(sq(C.ok),(hrv2?'dobro':'good')+' ≥66')+legSwatch(sq(C.warn),(hrv2?'osrednje':'okay')+' 40–65')+legSwatch(sq(C.bad),(hrv2?'slabo':'poor')+' <40');}
 }
 /* ---------- TODAY strip + AQI (v3.05) ---------- */
-function setTOff(v){TOFF=parseInt(v,10)||0;renderTodayStrip();}
-function syncT24Ctl(){
- var s=document.getElementById('t24Slider'),l=document.getElementById('t24Lbl');
- var nx=D&&D.h3ext&&D.h3ext.length;
- if(s)s.classList.toggle('hidden',!nx);
- if(l)l.classList.toggle('hidden',!nx);
-}
 function renderStripWindow(el){
  var hrv=lang==='hr';
  var ext=D.h3ext;
  var nowD=new Date();
- var nmin=nowD.getHours()*60+nowD.getMinutes();
  var base=Math.floor(nowD.getHours()/3)*3;
- var lastA=ext[ext.length-1].a;
- var maxStart=Math.max(0,lastA-24);
- var maxOff=Math.max(0,maxStart-base);
- if(TOFF>maxOff)TOFF=maxOff;
- var sl=document.getElementById('t24Slider');
- if(sl){sl.max=maxOff;sl.value=TOFF;}
- var start=Math.min(base+TOFF,maxStart);
- var pts=ext.filter(function(p){return p.a>=start&&p.a<=start+24;});
+ var pts=ext.filter(function(p){return p.a>=base;});
  if(pts.length<2){el.innerHTML='';return;}
- var s0=pts[0],s1=pts[pts.length-1];
- var lb=document.getElementById('t24Lbl');
- if(lb)lb.textContent=dayLab(s0.dt)+' '+s0.h+' → '+dayLab(s1.dt)+' '+s1.h;
  var hiW=null,loW=null,ppW=0;
- pts.forEach(function(p){if(p.t!=null){if(hiW==null||p.t>hiW)hiW=p.t;if(loW==null||p.t<loW)loW=p.t;}if(p.pp!=null&&p.pp>ppW)ppW=p.pp;});
- var containsNow=(TOFF===0);
- var flTxt=(containsNow&&D.now&&D.now.fl!=null)?(hrv?('Osjet '+Math.round(D.now.fl)+'°'):('Feels like '+Math.round(D.now.fl)+'°')):'';
+ pts.forEach(function(p){if(p.a>base+24)return;if(p.t!=null){if(hiW==null||p.t>hiW)hiW=p.t;if(loW==null||p.t<loW)loW=p.t;}if(p.pp!=null&&p.pp>ppW)ppW=p.pp;});
+ var flTxt=(D.now&&D.now.fl!=null)?(hrv?('Osjet '+Math.round(D.now.fl)+'\u00b0'):('Feels like '+Math.round(D.now.fl)+'\u00b0')):'';
  var points='';
  for(var i=0;i<pts.length;i++){
   var p=pts[i];
-  var dayChg=(i>0&&p.dt!==pts[i-1].dt);
-  points+='<div style="flex:1 0 auto;min-width:44px;text-align:center;">'+
+  var dayChg=(i===0||p.dt!==pts[i-1].dt);
+  points+='<div style="flex:0 0 auto;width:56px;text-align:center;'+(dayChg&&i>0?'border-left:1px solid var(--bd);':'')+'">'+
+   '<div style="font-size:9.5px;font-weight:700;color:var(--ts);height:13px;line-height:13px;">'+(dayChg?esc(dayLab(p.dt).split(' ')[0]):'')+'</div>'+
    '<div style="font-size:40px;line-height:1;">'+(ICON[p.cond]||'')+'</div>'+
-   '<div style="font-size:13px;font-weight:600;color:var(--tp);margin-top:3px;">'+(p.t==null?'--':p.t+'°')+'</div>'+
-   '<div style="font-size:8.5px;color:var(--ts);margin-top:2px;line-height:1.3;">'+p.h.slice(0,2)+'h'+(dayChg?('<br><b>'+esc(dayLab(p.dt).split(' ')[0])+'</b>'):'')+'</div>'+
+   '<div style="font-size:13px;font-weight:600;color:var(--tp);margin-top:3px;">'+(p.t==null?'--':p.t+'\u00b0')+'</div>'+
+   '<div style="font-size:10px;color:var(--ts);margin-top:2px;">'+p.h.slice(0,2)+'h</div>'+
+   ((p.pp!=null&&p.pp>=20)?('<div style="font-size:9.5px;color:#2caaf0;font-weight:600;">'+p.pp+'%</div>'):'<div style="height:12px;"></div>')+
    '</div>';
  }
- var frac=(nmin-start*60)/1440;
- var dot=(containsNow&&frac>=0&&frac<=1)?'<div style="margin-top:6px;"><div style="position:relative;height:3px;background:var(--bd);border-radius:999px;"><div style="position:absolute;top:50%;left:calc('+(frac*100).toFixed(2)+'% - 4px);transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:#7cb342;border:2px solid var(--bg);"></div></div></div>':'';
- var grpLbl=hrv?'Sljedeća 24 sata':'Next 24 hours';
+ var old=el.querySelector('.dragx'),keep=old?old.scrollLeft:0;
+ var grpLbl=hrv?'Prognoza po satima, povuci za dalje':'Hourly forecast, drag for more';
  el.innerHTML=
-  '<div role="group" aria-label="'+esc(grpLbl)+'" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">'+
-   '<div style="min-width:110px;">'+
-    '<div style="font-size:26px;font-weight:700;color:var(--tp);">'+(hiW==null?'--':hiW+'°')+'<span style="color:var(--ts);font-weight:400;"> / '+(loW==null?'--':loW+'°')+'</span></div>'+
+  '<div role="group" aria-label="'+esc(grpLbl)+'" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">'+
+   '<div style="min-width:104px;">'+
+    '<div class="lab" style="font-size:10.5px;">'+(hrv?'sljede\u0107a 24 h':'next 24 h')+'</div>'+
+    '<div style="font-size:26px;font-weight:700;color:var(--tp);">'+(hiW==null?'--':hiW+'\u00b0')+'<span style="color:var(--ts);font-weight:400;"> / '+(loW==null?'--':loW+'\u00b0')+'</span></div>'+
     (flTxt?('<div style="font-size:12px;color:var(--ts);margin-top:3px;">'+esc(flTxt)+'</div>'):'')+
-    '<div style="font-size:12px;color:var(--ts);margin-top:5px;">💧 '+Math.round(ppW)+'%</div>'+
+    '<div style="font-size:12px;color:var(--ts);margin-top:5px;">\uD83D\uDCA7 '+Math.round(ppW)+'%</div>'+
    '</div>'+
    '<div style="flex:1;min-width:220px;">'+
-    '<div style="overflow-x:auto;"><div style="display:flex;gap:2px;min-width:280px;">'+points+'</div></div>'+dot+
+    '<div class="dragx" tabindex="0"><div style="display:flex;gap:0;">'+points+'</div></div>'+
    '</div>'+
   '</div>';
+ var nw=el.querySelector('.dragx');if(nw&&keep)nw.scrollLeft=keep;
 }
 function renderTodayStrip(){
  var el=document.getElementById('todayStrip');
  if(!el)return;
- syncT24Ctl();
  if(D&&D.h3ext&&D.h3ext.length){renderStripWindow(el);return;}
  el.innerHTML='';
 }
+/* drag-to-scroll with the mouse for every .dragx strip (touch scrolls natively); delegated, so re-renders keep working */
+(function(){
+ var act=null,sx=0,sl=0,moved=false;
+ document.addEventListener('mousedown',function(e){
+  var t=e.target.closest&&e.target.closest('.dragx');if(!t||e.button!==0)return;
+  act=t;sx=e.pageX;sl=t.scrollLeft;moved=false;t.classList.add('dragging');
+ });
+ document.addEventListener('mousemove',function(e){
+  if(!act)return;var dx=e.pageX-sx;if(Math.abs(dx)>3)moved=true;
+  if(moved){act.scrollLeft=sl-dx;e.preventDefault();}
+ });
+ document.addEventListener('mouseup',function(){if(act){act.classList.remove('dragging');act=null;}});
+ document.addEventListener('keydown',function(e){
+  var t=document.activeElement;if(!t||!t.classList||!t.classList.contains('dragx'))return;
+  if(e.key==='ArrowRight'){t.scrollLeft+=112;e.preventDefault();}
+  else if(e.key==='ArrowLeft'){t.scrollLeft-=112;e.preventDefault();}
+ });
+})();
 
 const AQICOL=['#1D9E75','#7CB342','#BA7517','#C2632B','#A32D2D','#6b2fa8'];
 function aqiBand(v){if(v<20)return 0;if(v<40)return 1;if(v<60)return 2;if(v<80)return 3;if(v<100)return 4;return 5;}
@@ -2791,9 +2785,9 @@ function aqiName(i){
 function aqiPolLine(){
  var a=D.air&&D.air.aqi;if(!a||!a.pol)return '';
  var p=a.pol,hrv=lang==='hr';
- var thr={pm10:40,no2:90,o3:120,dust:50};
+ var thr={no2:90,o3:120,dust:50};
  var names={pm10:'PM10',no2:'NO₂',o3:'O₃',dust:hrv?'prašina':'dust'};
- var keys=['pm10','no2','o3','dust'].filter(function(k){return p[k]!=null;});
+ var keys=['no2','o3','dust'].filter(function(k){return p[k]!=null;});
  if(!keys.length)return '';
  var domK=keys[0];keys.forEach(function(k){if((p[k]/thr[k])>(p[domK]/thr[domK]))domK=k;});
  var lab=hrv?'prevladava':'dominant';
@@ -2804,7 +2798,6 @@ function aqiCardHtml(){
  if(!D.air||!D.air.aqi)return '';
  var a=D.air.aqi,hrv=lang==='hr',b=aqiBand(a.now),parts=[];
  if(a.yest!=null){var d=a.now-a.yest;parts.push((d>=0?'+':'')+d+(hrv?' vs jučer':' vs yesterday'));}
- if(a.pm25!=null)parts.push('PM2.5 '+a.pm25+' µg/m³');
  parts.push(b<=1?(hrv?'odlično za van':'great for outdoor plans'):
   b===2?(hrv?'osjetljivi neka polako':'sensitive groups take it easy'):
   (hrv?'ograniči napore vani':'limit strenuous outdoor time'));
@@ -2812,7 +2805,18 @@ function aqiCardHtml(){
   '<div style="display:flex;align-items:baseline;gap:8px;">'+
   '<span style="font-size:24px;font-weight:500;color:'+AQICOL[b]+'">'+a.now+'</span>'+
   '<span style="color:'+AQICOL[b]+';font-weight:500;">'+esc(aqiName(b))+'</span>'+
-  '</div><div class="ctx">'+esc(parts.join(' · '))+'</div>'+aqiPolLine()+'</div>';
+  '</div><div class="ctx">'+esc(parts.join(' · '))+'</div>'+aqiPolLine()+'</div>'+
+  pmCardHtml('PM2.5',a.pm25,[10,20,25,50,75])+pmCardHtml('PM10',a.pol?a.pol.pm10:null,[20,40,50,100,150]);
+}
+/* one card per particulate size; bands follow the European AQI thresholds (µg/m³) */
+function pmCardHtml(name,v,thr){
+ if(v==null)return '';
+ var b=0;while(b<thr.length&&v>=thr[b])b++;
+ return '<div class="card"><div class="lab">'+name+'</div>'+
+  '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">'+
+  '<span style="font-size:24px;font-weight:500;color:'+AQICOL[b]+'">'+v+'</span>'+
+  '<span class="lab" style="font-size:11px;">µg/m³</span></div>'+
+  '<div class="ctx" style="color:'+AQICOL[b]+';font-weight:500;">'+esc(aqiName(b))+'</div></div>';
 }
 function buildAqiSum(l){
  if(!D.air||!D.air.aqi)return '';
@@ -3422,6 +3426,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.18',d:'2026-10-05',en:'Header: one <b>language toggle</b> button; the refresh button is gone (data refreshes by itself). <b>Cards</b> all have the same height; <b>AQI, PM2.5 and PM10</b> are separate cards; the map card is gone (use the Map link). Phone menu: <b>larger monochrome icons</b> without text. <b>HOUR BY HOUR</b> is one long strip — swipe it, or drag it with the mouse; the slider is gone. Foldables show <b>wide charts</b> in one column. The longest outlook is the real <b>16 days</b>. <b>Pressure</b> is shown by default, in white (dark slate in the light theme).',hr:'Zaglavlje: jedan gumb za <b>promjenu jezika</b>; tipka za osvježavanje je uklonjena (podaci se osvježavaju sami). <b>Kartice</b> su sve iste visine; <b>AQI, PM2.5 i PM10</b> su zasebne kartice; kartica karte je uklonjena (dovoljan je link Karta). Izbornik na telefonu: <b>veće jednobojne ikone</b> bez teksta. <b>SAT PO SAT</b> je jedna duga traka — povuci je prstom ili mišem; klizač je uklonjen. Na preklopnim uređajima <b>široki grafovi</b> u jednom stupcu. Najdulji raspon je stvarnih <b>16 dana</b>. <b>Tlak</b> je uključen od početka, bijele boje (tamnosiva u svijetloj temi).'},
  {v:'3.17',d:'2026-09-21',en:'App-like <b>bottom navigation</b> on phones and foldables (Weather, Map, BBQ, Hiking) — desktop keeps the top tabs. New <b>location selector</b>: a collapsible search with recent places, “This location”, and up to two selections — tap a place to switch, “+ compare” to add a second place; two selections start the comparison. Three layout steps: phone, foldable/tablet (two columns), desktop. Warnings now show as a detailed full-width banner at the top of every page — no warning button when there is nothing to warn about. Light/dark is now one sun/moon icon; large-font mode is removed (use the browser/system zoom). The pressure switch sits at the NEXT 24 HOURS chart, the confidence switch at the OUTLOOK chart, vegan switch on BBQ, Monty Python switch on Info. The HOUR BY HOUR strip is always the next 24 h with the 3-day slider, and icons are twice as large. The GRILLING chart moved to the BBQ page; the Swimming page is removed — sea temperature, tides, waves, swell and current stay on the Weather page for coastal places (also in comparison). The title moved to the footer, with Info &amp; changelog linked from there.',hr:'Aplikacijska <b>donja navigacija</b> na mobitelima i preklopnim uređajima (Vrijeme, Karta, Roštilj, Planinarenje) — desktop zadržava gornje kartice. Novi <b>izbornik lokacija</b>: sklopiva pretraga s nedavnim mjestima, „Ova lokacija” i do dva odabira — dodir na mjesto ga postavlja kao jedino, „+ usporedi” dodaje drugo mjesto; dva odabira pokreću usporedbu. Tri koraka rasporeda: mobitel, preklopni/tablet (dva stupca), desktop. Upozorenja se sada prikazuju kao detaljna traka preko cijele širine na vrhu svake stranice — nema gumba za upozorenje kad nema ničega za upozoriti. Svijetli/tamni način sada je jedna ikona sunca/mjeseca; način velikog fonta je uklonjen (koristite zum preglednika/sustava). Prekidač tlaka sada je uz graf SLJEDEĆIH 24 SATA, prekidač pouzdanosti uz IZGLED, prekidač vegan uz Roštilj, Monty Python prekidač na Info. Traka PO SATIMA uvijek prikazuje sljedećih 24 h s klizačem za 3 dana, a ikone su dvostruko veće. Graf ROŠTILJA preselio je na karticu Roštilj; kartica Kupanje je uklonjena — temperatura mora, plima, valovi, val i struja ostaju na kartici Vrijeme za obalna mjesta (i u usporedbi). Naslov je preseljen u podnožje, s poveznicom na Info i povijest verzija.'},
  {v:'3.16',d:'2026-09-05',en:'Header buttons are now grouped (display | data &amp; overlays | fun) with a bilingual tooltip on every one. Marine data adds <b>swell height/period</b> and <b>ocean current</b> — the coastal Swim view shows both. Hiking blends real <b>cloud layers</b> into its sky score and gains a <b>golden-hour</b> card. BBQ now shows a verdict for <b>both</b> upcoming weekends side by side. The map’s data-grid layers (temperature/wind/rain/clouds) got a <b>time-scrub slider</b> (now … +24h) that redraws instantly from the already-fetched data — no refetch while scrubbing — and loading/empty states across the map and other views now share one consistent card style. Biggest change: the app is now <b>installable</b> (Android/Chrome “Install app”, iOS “Add to Home Screen”) with a proper icon and an offline app shell — the page and its two library files load even with no signal, while forecasts still come from your last-synced data; live data is never cached.',hr:'Gumbi u zaglavlju sada su grupirani (prikaz | podaci i slojevi | zabava) i svaki ima dvojezičan opis pri lebdenju. Podaci o moru dobivaju <b>visinu/period valova</b> i <b>morsku struju</b> — obalni prikaz Kupanja prikazuje oboje. Planinarenje sada uračunava stvarne <b>slojeve oblaka</b> u ocjenu neba i dobiva karticu <b>zlatnog sata</b>. Roštilj sada prikazuje ocjenu za <b>oba</b> nadolazeća vikenda jedan pored drugog. Slojevi mreže podataka na karti (temperatura/vjetar/kiša/oblaci) dobili su <b>klizač vremena</b> (sad … +24 h) koji se odmah ponovno iscrtava iz već dohvaćenih podataka — bez ponovnog dohvata tijekom pomicanja — a stanja učitavanja/praznine na karti i drugim karticama sada dijele jedan dosljedan izgled kartice. Najveća promjena: aplikacija se sada može <b>instalirati</b> (Android/Chrome “Instaliraj aplikaciju”, iOS “Dodaj na početni zaslon”) s pravom ikonom i radi offline za samu ljusku — stranica i njezine dvije biblioteke učitavaju se i bez signala, dok prognoza i dalje dolazi iz zadnjeg sinkroniziranog stanja; podaci uživo se nikad ne predmemoriraju.'},
  {v:'3.15',d:'2026-09-05',en:'Hiking now scores on <b>real</b> hourly data instead of estimates whenever the direct feed has it: measured visibility (with a fog card), freezing-level height (snow-line card), wind gusts (new gust card feeding the wind score), and today’s snowfall — the map’s wind labels show gusts too. BIOMETEO gets a <b>72-hour pressure trend</b> chart (past day dashed, now marker). The AQI card now breaks down PM10/NO₂/O₃/dust and names the dominant pollutant. The Tomorrow card adds rain % and wind, and severe-weather alerts gain <b>extreme UV</b>, <b>dangerous heat</b> and <b>extreme cold</b> types. New: the Info tab shows a live <b>data-sources status</b> panel (per-feed live/failed/not-used-yet, last update time and age), and the map gained a <b>📍 my-location</b> control.',hr:'Planinarenje sada boduje na <b>stvarnim</b> satnim podacima umjesto procjena kad god ih izravni izvor ima: izmjerena vidljivost (kartica magle), visina snježne granice (kartica snježne granice), udari vjetra (nova kartica udara koja hrani ocjenu vjetra) i današnji snijeg — oznake vjetra na karti sada prikazuju i udare. BIOMETEO dobiva graf <b>trenda tlaka za 72 sata</b> (prošli dan isprekidano, oznaka „sad”). AQI kartica sada raščlanjuje PM10/NO₂/O₃/prašinu i imenuje prevladavajuću česticu. Kartica Sutra dobiva postotak kiše i vjetar, a upozorenja na opasno vrijeme dobivaju vrste <b>ekstremni UV</b>, <b>opasna vrućina</b> i <b>ekstremna hladnoća</b>. Novo: kartica Info prikazuje ploču <b>statusa izvora podataka</b> uživo (po izvoru uživo/greška/još nije korišteno, vrijeme zadnje nadopune i starost), a karta je dobila kontrolu <b>📍 moja lokacija</b>.'},
