@@ -82,7 +82,6 @@ body{padding:20px;transition:background .2s}
 .grp .gbody{padding:12px 14px 4px}
 .grp .gbody .cards{margin:0 0 1rem}
 .grp .gbody .hd{font-size:14px}
-#wrap.mobile .rsep.ovsep{display:none} /* the overlay row wraps on phones: no dangling separator */
 .toprow.nostats{grid-template-columns:1fr!important}
 .wkw{margin:0 0 12px}.wkw:last-child{margin:0}
 .wkw .wkt{margin:0 0 3px}
@@ -122,9 +121,9 @@ body{padding:20px;transition:background .2s}
 .stpop b{font-size:13px}.stpop button{margin-top:6px;background:#2caaf0;color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
 .lbtn{background:transparent;color:var(--ts);border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;cursor:pointer}
 /* P1: touch targets - 36 px on desktop, 44 px on phones/foldables (padding only; font size is untouched) */
-.lbtn,.rbtn,.mly{min-height:36px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center}
+.lbtn,.mly{min-height:36px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center}
 .lbtn.hidden,.mly.hidden{display:none}
-#wrap.mobile .lbtn,#wrap.mid .lbtn,#wrap.mobile .rbtn,#wrap.mid .rbtn,#wrap.mobile .mly,#wrap.mid .mly{min-height:44px}
+#wrap.mobile .lbtn,#wrap.mid .lbtn,#wrap.mobile .mly,#wrap.mid .mly{min-height:44px}
 #wrap.mobile .locsel,#wrap.mid .locsel{min-height:44px}
 .lbtn:disabled{opacity:0.35;cursor:not-allowed;}
 @media (prefers-color-scheme:dark){body{background:#262624}}
@@ -208,6 +207,26 @@ body{padding:20px;transition:background .2s}
 .tlli{display:inline-flex;align-items:center;gap:5px}
 .tlsw{display:inline-block;width:12px;height:8px;border-radius:2px;flex:0 0 auto}
 .tlsr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* K2: story column next to the timeline (desktop 2/3 + 1/3, stacked below that), sticky now-bar */
+.tlrow{display:block}
+#wrap:not(.mobile):not(.mid) .tlrow:not(.notl){display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:0 20px;align-items:start}
+/* desktop: the story's blocks sit in the right third beside the timeline; the long weekend table takes the full row below both (no empty space under the timeline) */
+#wrap:not(.mobile):not(.mid) .tlrow:not(.notl) #story{display:contents}
+#wrap:not(.mobile):not(.mid) .tlrow:not(.notl) #tlSec{grid-column:1;grid-row:1 / span 3}
+#wrap:not(.mobile):not(.mid) .tlrow:not(.notl) #story>.storyblk{grid-column:2}
+#wrap:not(.mobile):not(.mid) .tlrow:not(.notl) #story>#weekendSec{grid-column:1 / -1;grid-row:4}
+#story{min-width:0}
+.storyblk{background:var(--bg);border:0.5px solid var(--bd);border-radius:12px;padding:0.8rem 1rem;margin:0 0 0.9rem;box-sizing:border-box}
+.storyblk.hidden{display:none}
+#story .hd{font-size:13px;margin:0 0 6px}
+.storylbl{font-size:13px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 6px}
+.tomrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;font-size:13px;line-height:1.5;margin:0 0 2px}
+.tomrow .tomic{font-size:20px;line-height:1}
+.tomrow b{font-size:15px;font-weight:600}
+#nowBarW{position:sticky;top:env(safe-area-inset-top,0px);height:0;z-index:850}
+#nowBar{position:absolute;top:0;left:0;right:0;height:36px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;margin:0;font:inherit;font-size:13px;font-weight:500;color:var(--tp);background:var(--bg);border:0;border-bottom:0.5px solid var(--bd);border-radius:0 0 10px 10px;box-shadow:0 3px 10px rgba(0,0,0,0.16);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#nowBar.hidden{display:none}
+#nowBar:focus-visible{outline:2px solid var(--tp);outline-offset:-2px}
 /* J2: PLANIRAJ - activity pills, day pills, the unified plan card and its hourly score bars */
 .actRow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .actRow .lbtn{gap:6px;font-size:13px}
@@ -251,7 +270,6 @@ body{padding:20px;transition:background .2s}
 .logi{flex:1;font-size:12.5px;line-height:1.55;color:var(--ts)}
 .logi b{color:var(--tp);font-weight:500}
 .gauge>span{display:block;height:100%;border-radius:999px}
-.rsep{width:1px;height:18px;background:var(--bd);margin:0 4px}
 </style>
 </head>
 <body>
@@ -286,6 +304,7 @@ body{padding:20px;transition:background .2s}
   <button class="lbtn" id="btn-retry" onclick="hardRefresh()" data-i="retry" style="margin-top:12px;">Try again</button>
 </div>
 
+<div id="nowBarW"><button type="button" id="nowBar" class="hidden" onclick="nowBarTop()"></button></div>
 <div id="dash" class="hidden">
 <div id="alertBox" class="hidden" style="border-radius:12px;padding:0.6rem 1.1rem;margin:0 0 1.25rem;"></div>
 <nav id="tabs" role="tablist">
@@ -300,6 +319,7 @@ body{padding:20px;transition:background .2s}
 <div id="stats" class="stats"></div>
 </div>
 
+<div class="tlrow" id="tlRow">
 <div id="tlSec" class="hidden" style="margin:0 0 2rem;">
 <div class="hd" data-i="tlTitle">TIMELINE</div>
 <p class="lab" id="tlSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
@@ -317,6 +337,7 @@ body{padding:20px;transition:background .2s}
   <button class="lbtn" id="btn-tll-air" onclick="tlSetLayer('air')" aria-pressed="false"><span aria-hidden="true">🍃</span><span data-i="tlL_air">Air</span></button>
   <button class="lbtn hidden" id="btn-tll-sea" onclick="tlSetLayer('sea')" aria-pressed="true"><span aria-hidden="true">🌊</span><span data-i="tlL_sea">Sea</span></button>
   <button class="lbtn" id="btn-tll-score" onclick="tlSetLayer('score')" aria-pressed="true"><span aria-hidden="true">🔥</span><span data-i="tlL_score">Scores</span></button>
+  <button class="lbtn hidden" id="btn-tll-norm" onclick="tlSetLayer('norm')" aria-pressed="false"><span aria-hidden="true">📏</span><span data-i="tlL_norm">Normal</span></button>
 </div>
 <div id="tlWrap" style="position:relative;width:100%;height:340px;margin:0 0 6px;">
   <canvas id="tlCanvas" tabindex="0" role="img" data-tt="ar_tl"></canvas>
@@ -326,12 +347,8 @@ body{padding:20px;transition:background .2s}
 <span id="tlLive" class="tlsr" role="status" aria-live="polite"></span>
 </div>
 
-<div id="todaySec" class="hidden" style="margin:0 0 2rem;">
-<div class="hd" data-i="h2b">HOUR BY HOUR</div>
-<div class="card" id="todayStrip" style="padding:0.9rem 1rem;"></div>
-</div>
-
-<div style="background:var(--bg);border:0.5px solid var(--bd);border-radius:12px;padding:1rem 1.25rem;margin:0 0 2rem;">
+<aside id="story" data-tt="ar_story">
+<div class="storyblk">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px" aria-hidden="true"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"/><circle cx="12" cy="12" r="4"/></svg>
     <span id="todayLbl" style="font-weight:500;font-size:15px;"></span>
@@ -339,47 +356,20 @@ body{padding:20px;transition:background .2s}
   </div>
   <p class="lab" id="recTxt" style="margin:0;line-height:1.6;"></p>
 </div>
-
-<div id="wxGrid">
-<div id="hrSec">
-<div class="hd" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span data-i="h2">NEXT 24 HOURS</span><button class="lbtn" id="btn-pr" onclick="togglePres()" aria-label="Air pressure overlay" title="Air pressure hPa" style="font-size:11px;padding:3px 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px" aria-hidden="true"><path d="M5 19a9 9 0 1 1 14 0"/><path d="M12 14l3.2-4.2"/><circle cx="12" cy="14" r="1.1" fill="currentColor"/></svg><span data-i="pillPres" style="margin-left:4px;">Pressure</span></button></div>
-<div id="hrwrap" style="position:relative;width:100%;height:260px;margin:0 0 6px;">
-  <canvas id="hourly" role="img" data-tt="ar_hourly"></canvas>
+<div class="storyblk hidden" id="tomBlk"></div>
+<div class="storyblk hidden" id="outlookSec">
+  <div class="hd"><span data-i="h3">OUTLOOK</span><span id="h3note" class="lab" style="font-weight:400;letter-spacing:0;margin-left:8px;font-size:12px;"></span></div>
+  <p class="lab" id="wkSum" style="margin:0;font-size:12.5px;line-height:1.5;"></p>
+  <p class="ctx hidden" id="wkNote" style="margin:6px 0 0;"></p>
 </div>
-<div class="lab" id="hrLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 2rem;font-size:12px;"></div>
-</div>
-
-<div id="outlookSec">
-<div class="hd"><span data-i="h3">OUTLOOK</span><span id="h3note" class="lab" style="font-weight:400;letter-spacing:0;margin-left:8px;font-size:12px;"></span></div>
-<p class="lab" id="wkSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
-<div class="rng">
-  <button class="lbtn rbtn" id="btn-r3" onclick="setRange(3)">3d</button>
-  <button class="lbtn rbtn" id="btn-r7" onclick="setRange(7)">7d</button>
-  <button class="lbtn rbtn" id="btn-r14" onclick="setRange(14)">14d</button>
-  <button class="lbtn rbtn" id="btn-r16" onclick="setRange(16)">16d</button>
-  <span class="rsep"></span>
-  <button class="lbtn" id="btn-c0" onclick="setCMode(0)" data-tt="tt_c0">STD</button>
-  <button class="lbtn" id="btn-c1" onclick="setCMode(1)" data-tt="tt_c1">°C</button>
-  <button class="lbtn" id="btn-c2" onclick="setCMode(2)" data-tt="tt_c2">Δ°</button>
-</div>
-<div class="rng">
-  <button class="lbtn" id="btn-moon" onclick="toggleMoon()" data-tt="tt_moon" data-i="pillMoon">🌙 Moon</button>
-  <button class="lbtn" id="btn-tide" onclick="toggleTide()" data-tt="tt_tide" data-i="pillTide">🌊 Tide</button>
-  <button class="lbtn" id="btn-bbq" onclick="toggleBbq()" data-tt="tt_bbq" data-i="pillBbq">🔥 BBQ</button>
-  <span class="rsep ovsep"></span>
-  <button class="lbtn" id="btn-cf" onclick="toggleConf()" aria-label="Forecast confidence" title="Forecast confidence %"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px" aria-hidden="true"><path d="M3 17C6 11 9 19 12 13s6-2 9-8" stroke-dasharray="2.5 3"/></svg><span data-i="pillConf" style="margin-left:4px;">Confidence</span></button>
-</div>
-<div id="wkwrap" style="position:relative;width:100%;height:340px;margin:0 0 6px;">
-  <canvas id="week" role="img" data-tt="ar_week"></canvas>
-</div>
-<div class="lab" id="wkLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
-
-<div id="weekendSec" class="hidden" style="background:var(--bg);border:0.5px solid var(--bd);border-radius:12px;padding:1rem 1.25rem;margin:0 0 2rem;">
+<div id="weekendSec" class="storyblk hidden">
   <div class="hd" data-i="wkH" style="margin-bottom:8px;">WEEKEND PLANS</div>
   <div class="lab" id="weekendTxt" style="line-height:1.7;color:var(--tp);"></div>
 </div>
+</aside>
 </div>
 
+<div id="wxGrid">
 <details class="grp" id="grp-air">
 <summary><span class="gt"><span class="gh" data-i="grpAir"></span><span class="gs" id="grpSum-air"></span></span></summary>
 <div class="gbody">
@@ -515,16 +505,6 @@ body{padding:20px;transition:background .2s}
     <div class="hd" data-i="hikeMetricsH">TODAY ON THE TRAIL</div>
     <p class="ctx hidden" id="hikeMetNote" style="margin:-6px 0 8px;"></p>
     <div class="cards" id="hikeCards" style="margin:0 0 1.75rem;"></div>
-    <div class="hd" data-i="hikeComfH">HOURLY COMFORT &amp; RAIN</div>
-    <p class="ctx hidden" id="hikeComfNote" style="margin:-6px 0 8px;"></p>
-    <p class="lab" id="hikeComfSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
-    <div id="hikecwrap" style="position:relative;width:100%;height:200px;margin:0 0 6px;"><canvas id="hikecomf" role="img" data-tt="ar_hikec"></canvas></div>
-    <div id="hikeComfEmpty" class="hidden" style="margin:0 0 6px;"></div>
-    <div class="lab" id="hikecLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.75rem;font-size:12px;"></div>
-    <div class="hd" data-i="hikeWeekH">7-DAY TRAIL SCORE</div>
-    <p class="lab" id="hikeWeekSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
-    <div id="hikewwrap" style="position:relative;width:100%;height:170px;margin:0 0 6px;"><canvas id="hikeweek" role="img" data-tt="ar_hikew"></canvas></div>
-    <div class="lab" id="hikewLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.75rem;font-size:12px;"></div>
     <div class="hd" data-i="hikeFunH">TRAIL NONSENSE</div>
     <div class="cards" id="hikeFun"></div>
   </div>
@@ -607,7 +587,8 @@ let recents=DEFAULT_RECENTS.slice();
 try{const s=localStorage.getItem('wd_recents');if(s){const a=JSON.parse(s);if(Array.isArray(a)&&a.length)recents=a.slice(0,5);}}catch(e){}
 function saveRecents(){try{localStorage.setItem('wd_recents',JSON.stringify(recents));}catch(e){}}
 let theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
-let layout='',lang='en',RANGE=7,CMODE=0,CONF=false,MOON=false,TIDE=false,PRES=true,BBQ=false;
+let layout='',lang='en';
+const FCDAYS=16; /* K2: the forecast always covers 16 days (the Open-Meteo maximum); the OUTLOOK range pills are gone */
 let GEO_LOC=null;
 let MAP_LOC=null,CUR_LOC=null,MAP_BUSY=false;
 const MOONS=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
@@ -631,7 +612,7 @@ function polLvl(v){return v<10?0:v<50?1:2;}
 let BRANGE='h';
 function setBRange(v){BRANGE=v;markBtns();if(D&&D.bio)drawBio();}
 let GRANGE='h';
-let TL={zoom:'h',layers:{temp:1,rain:1,wind:1,pres:0,uv:0,air:0,sea:1,score:1},x0:null,cursor:null}; /* K1: VREMENSKA OS state; only zoom + layers are remembered (wd_prefs.tl) */
+let TL={zoom:'h',layers:{temp:1,rain:1,wind:0,pres:0,uv:0,air:0,sea:0,score:1,norm:0},x0:null,cursor:null}; /* K1/K2: VREMENSKA OS state; default layers = temperature + rain + score; only zoom + layers are remembered (wd_prefs.tl) */
 let PLAN={act:'bbq',date:null}; /* J2: PLANIRAJ - chosen activity (remembered in wd_prefs.act) and day (never saved) */
 function setGRange(v){GRANGE=v;markBtns();if(D&&D.days)drawGrill();}
 function bioLvl(s){return s<=1?0:s<=3?1:2;}
@@ -646,9 +627,11 @@ function scoreBio(o){let s=0;const r=[];
 const PREFS_KEY='wd_prefs';
 let PREFS_LIVE=false; /* false during boot so reading the saved prefs never rewrites them */
 let GROUPS={air:false,cmp:false,sea:false,bio:false}; /* P1: open state of the four collapsible groups on the Weather view (closed by default), remembered in wd_prefs.groups */
+/* K2: the CONF / MOON / TIDE / PRES / BBQ / CMODE switches left with the OUTLOOK + NEXT 24 HOURS charts and are no longer written. An old stored PRES is
+   migrated once into the timeline's pressure layer (loadPrefs) and disappears with the next save; the other stale keys are simply ignored. */
 function savePrefs(){ /* I2: language, theme and the switches survive a reload (MP is deliberately not saved) */
  if(!PREFS_LIVE)return;
- try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,CONF:CONF,MOON:MOON,TIDE:TIDE,PRES:PRES,BBQ:BBQ,CMODE:CMODE,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS,tl:{zoom:TL.zoom,layers:TL.layers}}));}catch(e){}
+ try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS,tl:{zoom:TL.zoom,layers:TL.layers}}));}catch(e){}
 }
 function loadPrefs(){
  let p=null;
@@ -659,26 +642,16 @@ function loadPrefs(){
  }
  if(p.lang==='hr'||p.lang==='en')lang=p.lang;
  if(p.theme==='dark'||p.theme==='light')theme=p.theme;
- if(typeof p.CONF==='boolean')CONF=p.CONF;
- if(typeof p.MOON==='boolean')MOON=p.MOON;
- if(typeof p.TIDE==='boolean')TIDE=p.TIDE;
- if(typeof p.PRES==='boolean')PRES=p.PRES;
- if(typeof p.BBQ==='boolean')BBQ=p.BBQ;
  if(typeof p.VEGAN==='boolean')VEGAN=p.VEGAN;
  if(typeof p.act==='string'&&ACTS[p.act])PLAN.act=p.act;
- if(p.CMODE===0||p.CMODE===1||p.CMODE===2)CMODE=p.CMODE;
  if(p.groups&&typeof p.groups==='object'){['air','cmp','sea','bio'].forEach(k=>{if(typeof p.groups[k]==='boolean')GROUPS[k]=p.groups[k];});}
  if(p.tl&&typeof p.tl==='object'){
   if(['h','3','d'].indexOf(p.tl.zoom)>=0)TL.zoom=p.tl.zoom;
   if(p.tl.layers&&typeof p.tl.layers==='object'){Object.keys(TL.layers).forEach(k=>{if(p.tl.layers[k]===0||p.tl.layers[k]===1||typeof p.tl.layers[k]==='boolean')TL.layers[k]=p.tl.layers[k]?1:0;});}
  }
+ /* K2 migration: the removed pressure overlay (PRES) becomes the timeline's pressure layer, once - only when no timeline pressure choice was stored */
+ if(typeof p.PRES==='boolean'&&!(p.tl&&p.tl.layers&&typeof p.tl.layers==='object'&&p.tl.layers.pres!=null))TL.layers.pres=p.PRES?1:0;
 }
-function toggleConf(){CONF=!CONF;markBtns();savePrefs();if(D)renderActive();}
-/* the moon / tide charts live inside the BIO and SEA groups: switching the overlay on opens its group and brings the chart into view */
-function toggleMoon(){MOON=!MOON;markBtns();savePrefs();if(MOON)openGroup('bio');if(D)renderActive();if(MOON)scrollToEl(document.getElementById('moonSec'));}
-function toggleTide(){TIDE=!TIDE;markBtns();savePrefs();if(TIDE&&D&&D.sea&&D.sea.tide&&D.sea.tide.length)openGroup('sea');if(D)renderActive();if(TIDE)scrollToEl(document.getElementById('tideSec'));}
-function togglePres(){PRES=!PRES;markBtns();savePrefs();if(D)renderActive();}
-function toggleBbq(){BBQ=!BBQ;markBtns();savePrefs();if(D)renderActive();}
 let MP=false;
 function toggleMP(){MP=!MP;markBtns();if(D)renderActive();}
 function toggleVegan(){VEGAN=!VEGAN;markBtns();savePrefs();if(D)renderActive();}
@@ -941,96 +914,90 @@ calc();
 const bgPlug={id:'bg',beforeDraw(c){const x=c.ctx;x.save();x.globalCompositeOperation='destination-over';x.fillStyle=BG;x.fillRect(0,0,c.width,c.height);x.restore();}};
 
 const T={
- en:{title:"PATRIK'S WEATHER DAILY",h2:"NEXT 24 HOURS",h3:"OUTLOOK",h4:"SEA TEMPERATURE",
+ en:{title:"PATRIK'S WEATHER DAILY",h3:"OUTLOOK",h4:"SEA TEMPERATURE",
   loading:"Fetching the live forecast…",errTitle:"Couldn't load the forecast",
-  lgT:"Temperature °C",lgP:"Precip chance %",lgHi:"High",lgLo:"Low",
-  lgC:"Forecast confidence %",anomVs:"vs normal",
   cMax:"Daily max",cFL:"Feels like",cH:"Humidity",cW:"Wind",cP:"Chance of rain",cS:"Sea temp",
   badges:{g:"Green light",y:"Caution",r:"Stay flexible"},
   longNote:"Beyond ~10 days this is trend-level guidance — confidence drops with distance.",
-  capNote:"(direct feed tops out at 16 days)",
   best:"Best window",worst:"Wettest risk",dry:"dry all day",
   vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
-  zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",locThis:"This location",locSearchPh:"Search a place…",locDone:"Done",locSelLbl:"Location search",moonLeg:"moon phase",tideHi:"High tide",tideLo:"Low tide",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",wkB:"WEEKENDS",mapLoading:"Loading…",
-  grpAir:"AIR",grpCmp:"COMPARISONS",grpSea:"SEA",grpBio:"BIO, PRESSURE & MOON",pillMoon:"🌙 Moon",pillTide:"🌊 Tide",pillBbq:"🔥 BBQ",pillConf:"Confidence",pillPres:"Pressure",cRain:"Rain",stAir:"Air",heroToday:"today",heroLbl:"Current weather",
+  zeroRain:"0% precip across the whole range",myLoc:"My location",locThis:"This location",locSearchPh:"Search a place…",locDone:"Done",locSelLbl:"Location search",moonLeg:"moon phase",tideHi:"High tide",tideLo:"Low tide",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",wkB:"WEEKENDS",mapLoading:"Loading…",
+  grpAir:"AIR",grpCmp:"COMPARISONS",grpSea:"SEA",grpBio:"BIO, PRESSURE & MOON",cRain:"Rain",stAir:"Air",heroToday:"today",heroLbl:"Current weather",
   tabNow:"NOW",tabPlan:"PLAN",tabMap:"MAP",tabInfo:"Info",tShort:"Patrik's weather",
   planHead:"PLAN",planNote:"Shown for today",dayToday:"Today",dayTomorrow:"Tomorrow",planBest:"Best",planOver:"Done for today — best was",planNoHr:"Hourly data is still loading — the plan appears in a moment.",planNoAi:"The planner needs the direct Open-Meteo feed — the reduced AI feed has no hourly data.",planNoDay:"No hourly forecast for this day.",planBars:"Score by hour",tt_actRow:"Pick an activity",tt_dayRow:"Pick a day",bikeTag:"Wind decides everything — pick the hours between the gusts.",runTag:"Cool, dry and daylight beat everything else.",seaTag:"Sea temperature, waves and tide for the day you pick.",
   infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",infoFeedsH:"DATA SOURCES · STATUS",infoBack:"← Back",infoLink:"Info & changelog",
   infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
-  h2b:"HOUR BY HOUR",hAqi:"AIR QUALITY",
+  hAqi:"AIR QUALITY",
   cTom:"Tomorrow",vsTod:"vs today",
   bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
   bbqPrepH:"PREP TIMELINE",bbqGrillH:"TODAY'S GRILL SCORE BY HOUR",bbqNonsense:"THE NONSENSE NUMBERS",bbqCheckH:"PIT CHECKLIST",
   bbqCritL:"Score = what you tick. Prime time is 12–18h (peak 14h); untick a factor to ignore it (grill at 9am if you must).",
   critTime:"Time of day",critTemp:"Temperature",critRain:"Rain",critWind:"Wind",critHumid:"Humidity",critStorm:"Storm",
   hikeTag:"Trails within ~20 km — read the light, dodge the rain, mind the altitude.",
-  hikeMetricsH:"TODAY ON THE TRAIL",hikeComfH:"HOURLY COMFORT & RAIN",hikeWeekH:"7-DAY TRAIL SCORE",hikeFunH:"TRAIL NONSENSE",
+  hikeMetricsH:"TODAY ON THE TRAIL",hikeFunH:"TRAIL NONSENSE",
   cBbq:"BBQ score",bioInfo:"<b>What it measures.</b> How hard today's weather leans on the weather-sensitive \u2014 a load score built from the same data the charts show.<br><br><b>Pressure.</b> A 24-hour swing over 4 hPa adds a point; over 8 hPa adds two. Fronts announce themselves in your sinuses first.<br><br><b>Heat &amp; cold.</b> Feels-like of 27\u00B0+ adds one, 30\u00B0+ two; \u22125\u00B0 or below adds one. Sultry air (humidity \u226585% when warm) adds another.<br><br><b>Wind &amp; storms.</b> Wind of 40+ km/h adds one; a thunderstorm adds two. A day swinging more than 14\u00B0 between low and high adds one more.<br><br><b>The smileys.</b> 0\u20131 \u2192 \uD83D\uDE42 favorable; 2\u20133 \u2192 \uD83D\uDE10 moderately unfavorable; 4+ \u2192 \u2639\uFE0F unfavorable. Triggers are listed on the card \u2014 so you know whether to blame the front, the heat, or simply Monday.",bbqTiers:['Grill god conditions','Prime grilling','Decent grilling','For the brave','Extinguisher weather'],bbqWhy:{rain:'rain risk',hot:'too hot',cold:'too cold',wind:'windy',bio:'biometeo',hum:'sultry',storm:'thunderstorm'},actName:{bbq:'BBQ',hike:'Hiking',bike:'Biking',run:'Running',sea:'Sea'},actTier:['great','good','okay','poor'],actWhy:{rain:'rain',hot:'too hot',cold:'too cold',wind:'wind',storm:'storm',night:'night',fog:'fog',uv:'strong UV',waves:'waves',coldsea:'cold sea',humid:'muggy',time:'late hour'},cBio:"Biometeo",cPres:"Pressure",presTrend:['Rising','Steady','Falling'],lgPr:"Pressure hPa",bioLevels:['Favorable','Moderately unfavorable','Unfavorable'],bioR:{rPress:'pressure swing',rHeat:'heat',rCold:'cold',rHum:'sultry',rWind:'wind',rStorm:'storm',rSwing:'temp swing'},aRun:'Running',aHike:'Hiking',runGo:'good — best ~',runCare:'easy does it (heat/biometeo) — if so ~',hikeGood:'good day',hikeRain:'rain risk — plan windows',uvNote:'high UV midday, protect',moonNames:['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent'],
   normFoot:"normal: ERA5 "+NORM_LBL+" ±"+WIN+"d",
   errDirect:"Direct feed (Open-Meteo): ",errAI:"AI feed (Claude): ",
   errTip:"Live data can't be fetched from a local file — iPhone/iPad Safari blocks network requests on file:// pages. Serve it over http(s) (e.g. GitHub Pages, Netlify, or a local web server) and open that link instead. On desktop, also check ad-blockers. The AI feed only works inside Claude.",
   aiOnly:"only available inside Claude",
-  tt_lang:"Language: English — tap for Croatian",tt_theme:"Toggle theme",tt_pr:"Air pressure hPa",tt_cf:"Forecast confidence %",tt_mp:"Monty Python mode",tt_vegan:"Vegan Inbound mode (BBQ)",
+  tt_lang:"Language: English — tap for Croatian",tt_theme:"Toggle theme",tt_mp:"Monty Python mode",tt_vegan:"Vegan Inbound mode (BBQ)",
   retry:"Try again",cmpNote:"Comparing {A} and {B}: cards, next 24 hours, sea and outlook. Other sections show {A} only.",onlyA:"only {A}",secFail:"Second location failed: {B}",
   unavail:"unavailable",srcSea:"sea",srcAir:"air",srcClimo:"normals",srcBest:"Open-Meteo \u00B7 best match model",uvMax:"max",
-  tt_c0:"Standard towers",tt_c1:"Color by temperature within shown range",tt_c2:"Color by anomaly vs 1991\u20132020 normal for each date",tt_moon:"Moon phases",tt_tide:"Tide hi/lo (single coastal location)",tt_bbq:"BBQ score line (single location)",
   tt_mapClose:"Close the map",tt_mapTheme:"Map light/dark basemap",tt_radarPrev:"Previous radar frame",tt_radarPlay:"Play/pause radar animation",tt_radarNext:"Next radar frame",tt_radarSlider:"Radar time slider",tt_gridSlider:"Grid data hour slider (temperature/wind/rain/clouds)",
-  ar_hourly:"Hourly temperature with precipitation chance and forecast confidence; two lines when comparing locations",ar_sea:"Daily sea surface temperature forecast",ar_week:"Daily temperature range bars with precipitation chance and forecast confidence; paired bars when comparing locations",
+  ar_sea:"Daily sea surface temperature forecast",
   ar_bio:"Biometeorological load forecast as colored bars: green favorable, amber moderately unfavorable, red unfavorable",ar_pres:"Sea-level pressure over the past day and next two days",ar_aqi:"European air-quality index for the next 48 hours as colored bars",
   ar_mt:"Moon illumination with phase icons",ar_tide:"Daily tide high and low levels",ar_bbqtl:"BBQ prep timeline back-timed from the best grill hour",ar_bbqgr:"Hourly grilling score 9am to 10pm with tier icons",
-  ar_grill:"Grilling score forecast (today\'s grilling hours or upcoming days) as colored bars with tier icons",ar_hikec:"Hourly feels-like temperature and rain chance",ar_hikew:"Seven day trail score",
+  ar_grill:"Grilling score forecast (today\'s grilling hours or upcoming days) as colored bars with tier icons",
   ar_radarBox:"Full-screen weather map with radar, lightning, temperature, wind, rain and cloud layers",ar_rainStrip:"Rain expected in the next two hours in 15-minute steps",ar_heatLeg:"Temperature layer colour legend",
   ar_bioInfo:"Biometeo criteria",
-  tlTitle:"TIMELINE",tlZ_h:"Hours",tlZ_3:"3 h",tlZ_d:"Days",tlL_temp:"Temp",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV",tlL_air:"Air",tlL_sea:"Sea",tlL_score:"Scores",
+  tlTitle:"TIMELINE",tlZ_h:"Hours",tlZ_3:"3 h",tlZ_d:"Days",tlL_temp:"Temp",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV",tlL_air:"Air",tlL_sea:"Sea",tlL_score:"Scores",tlL_norm:"Normal",
   tlZoomAria:"Timeline zoom",tlLayersAria:"Timeline layers",
+  ar_story:"Today, tomorrow, outlook and weekend in words",nowBarAria:"Back to the top, current weather",
   ar_tl:"Timeline from now to the end of the forecast with temperature, rain, wind and other layers; drag or use the arrow keys to move, plus and minus to zoom, Home for now",
   dows:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']},
- hr:{title:"PATRIKOVA DNEVNA PROGNOZA",h2:"SLJEDEĆA 24 SATA",h3:"IZGLEDI",h4:"TEMPERATURA MORA",
+ hr:{title:"PATRIKOVA DNEVNA PROGNOZA",h3:"IZGLEDI",h4:"TEMPERATURA MORA",
   loading:"Dohvaćam prognozu…",errTitle:"Prognoza se nije učitala",
-  lgT:"Temperatura °C",lgP:"Vjerojatnost oborina %",lgHi:"Najviša",lgLo:"Najniža",
-  lgC:"Pouzdanost prognoze %",anomVs:"vs normala",
   cMax:"Dnevni maksimum",cFL:"Osjet",cH:"Vlažnost",cW:"Vjetar",cP:"Vjerojatnost kiše",cS:"More",
   badges:{g:"Zeleno svjetlo",y:"Oprez",r:"Budi fleksibilan"},
   longNote:"Nakon ~10 dana ovo je prognoza trenda — pouzdanost pada s udaljenošću.",
-  capNote:"(izravni izvor ide do 16 dana)",
   best:"Najbolji prozor",worst:"Najveći rizik kiše",dry:"suho cijeli dan",
   vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
-  zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",locThis:"Ova lokacija",locSearchPh:"Traži mjesto…",locDone:"Gotovo",locSelLbl:"Pretraga lokacije",moonLeg:"mjesečeve mijene",tideHi:"Plima",tideLo:"Oseka",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",wkB:"VIKENDI",
-  grpAir:"ZRAK",grpCmp:"USPOREDBE",grpSea:"MORE",grpBio:"BIO, TLAK I MJESEC",pillMoon:"🌙 Mjesec",pillTide:"🌊 Plima",pillBbq:"🔥 Roštilj",pillConf:"Pouzdanost",pillPres:"Tlak",cRain:"Kiša",stAir:"Zrak",heroToday:"danas",heroLbl:"Trenutno vrijeme",mapLoading:"U\u010ditavam\u2026",
+  zeroRain:"0% oborina u cijelom rasponu",myLoc:"Moja lokacija",locThis:"Ova lokacija",locSearchPh:"Traži mjesto…",locDone:"Gotovo",locSelLbl:"Pretraga lokacije",moonLeg:"mjesečeve mijene",tideHi:"Plima",tideLo:"Oseka",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",wkB:"VIKENDI",
+  grpAir:"ZRAK",grpCmp:"USPOREDBE",grpSea:"MORE",grpBio:"BIO, TLAK I MJESEC",cRain:"Kiša",stAir:"Zrak",heroToday:"danas",heroLbl:"Trenutno vrijeme",mapLoading:"U\u010ditavam\u2026",
   tabNow:"SADA",tabPlan:"PLANIRAJ",tabMap:"KARTA",tabInfo:"Info",tShort:"Patrikova prognoza",
   planHead:"PLANIRAJ",planNote:"Prikaz za danas",dayToday:"Danas",dayTomorrow:"Sutra",planBest:"Najbolje",planOver:"Danas gotovo — najbolje je bilo",planNoHr:"Satni podaci se još učitavaju — plan se pojavljuje za trenutak.",planNoAi:"Planiranje treba izravni Open-Meteo izvor — ograničeni AI izvor nema satne podatke.",planNoDay:"Nema satne prognoze za ovaj dan.",planBars:"Ocjena po satu",tt_actRow:"Odaberi aktivnost",tt_dayRow:"Odaberi dan",bikeTag:"Vjetar odlučuje sve — biraj sate između udara.",runTag:"Svježe, suho i dnevno svjetlo pobjeđuju sve ostalo.",seaTag:"Temperatura mora, valovi i plima za dan koji odabereš.",
   infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",infoFeedsH:"IZVORI PODATAKA \u00b7 STATUS",infoBack:"\u2190 Natrag",infoLink:"Info i izmjene",
   infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
-  h2b:"SAT PO SAT",hAqi:"KVALITETA ZRAKA",
+  hAqi:"KVALITETA ZRAKA",
   cTom:"Sutra",vsTod:"vs danas",
   bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
   bbqPrepH:"VREMENSKA CRTA PRIPREME",bbqGrillH:"DANA\u0160NJI RO\u0160TILJ INDEKS PO SATIMA",bbqNonsense:"BROJKE BEZ VEZE",bbqCheckH:"LISTA ZA RO\u0160TILJ",
   bbqCritL:"Indeks = \u0161to ozna\u010di\u0161. Zlatno doba je 12\u201318 h (vrh 14 h); odzna\u010di faktor da ga zanemari\u0161 (ro\u0161tilj u 9 ujutro ako ba\u0161 mora\u0161).",
   critTime:"Doba dana",critTemp:"Temperatura",critRain:"Ki\u0161a",critWind:"Vjetar",critHumid:"Sparina",critStorm:"Nevrijeme",
   hikeTag:"Staze unutar ~20 km \u2014 uhvati svjetlo, izbjegni ki\u0161u, pazi na visinu.",
-  hikeMetricsH:"DANAS NA STAZI",hikeComfH:"UGODA I KI\u0160A PO SATU",hikeWeekH:"INDEKS STAZE \u2014 7 DANA",hikeFunH:"STAZA BEZ VEZE",
+  hikeMetricsH:"DANAS NA STAZI",hikeFunH:"STAZA BEZ VEZE",
   cBbq:"Ro\u0161tilj indeks",bioInfo:"<b>\u0160to mjeri.</b> Koliko dana\u0161nje vrijeme pritisak stavlja na meteoropate \u2014 indeks optere\u0107enja iz istih podataka koje vidite na grafovima.<br><br><b>Tlak.</b> Promjena ve\u0107a od 4 hPa u 24 h donosi bod; preko 8 hPa dva. Fronte se najprije najave u sinusima.<br><br><b>Vru\u0107ina i hladno\u0107a.</b> Osje\u0107aj od 27\u00B0+ donosi bod, 30\u00B0+ dva; \u22125\u00B0 ili ni\u017ee jo\u0161 jedan. Sparina (vlaga \u226585% uz toplo) dodaje bod.<br><br><b>Vjetar i nevrijeme.</b> Vjetar od 40+ km/h donosi bod; grmljavina dva. Dan koji se nji\u0161e vi\u0161e od 14\u00B0 izme\u0111u minimuma i maksimuma jo\u0161 jedan.<br><br><b>Smajli\u0107i.</b> 0\u20131 \u2192 \uD83D\uDE42 povoljno; 2\u20133 \u2192 \uD83D\uDE10 umjereno nepovoljno; 4+ \u2192 \u2639\uFE0F nepovoljno. Okida\u010di su navedeni na kartici \u2014 da znate krivite li frontu, vru\u0107inu ili jednostavno ponedjeljak.",bbqTiers:['Bo\u017eanski ro\u0161tilj','Odli\u010dno za ro\u0161tilj','Sasvim solidno','Za hrabre','Vrijeme za aparat'],bbqWhy:{rain:'rizik ki\u0161e',hot:'prevru\u0107e',cold:'prehladno',wind:'vjetrovito',bio:'biometeo',hum:'sparina',storm:'grmljavina'},actName:{bbq:'Roštilj',hike:'Planinarenje',bike:'Biciklizam',run:'Trčanje',sea:'More'},actTier:['odlično','dobro','osrednje','slabo'],actWhy:{rain:'kiša',hot:'prevruće',cold:'prehladno',wind:'vjetar',storm:'oluja',night:'noć',fog:'magla',uv:'jak UV',waves:'valovi',coldsea:'hladno more',humid:'sparina',time:'kasno'},cBio:"Biometeo",cPres:"Tlak zraka",presTrend:['Raste','Stabilno','Pada'],lgPr:"Tlak hPa",bioLevels:['Povoljno','Umjereno nepovoljno','Nepovoljno'],bioR:{rPress:'promjena tlaka',rHeat:'vrućina',rCold:'hladnoća',rHum:'sparina',rWind:'vjetar',rStorm:'nevrijeme',rSwing:'kolebanje temp.'},aRun:'Trčanje',aHike:'Planinarenje',runGo:'dobro — najbolje ~',runCare:'polako (vrućina/biometeo) — ako ideš ~',hikeGood:'dobar dan',hikeRain:'rizik kiše — planiraj prozore',uvNote:'jak UV oko podneva, zaštita',moonNames:['Mlađak','Rastući srp','Prva četvrt','Rastući mjesec','Puni mjesec','Opadajući mjesec','Zadnja četvrt','Opadajući srp'],
   normFoot:"normala: ERA5 "+NORM_LBL+" ±"+WIN+"d",
   errDirect:"Izravni izvor (Open-Meteo): ",errAI:"AI izvor (Claude): ",
   errTip:"Uživo podaci ne mogu se dohvatiti iz lokalne datoteke — Safari na iPhoneu/iPadu blokira mrežne zahtjeve na file:// stranicama. Posluži je preko http(s) (npr. GitHub Pages, Netlify ili lokalni web server) i otvori tu poveznicu. Na računalu provjeri i blokatore oglasa. AI izvor radi samo unutar Claudea.",
   aiOnly:"dostupno samo unutar Claudea",
-  tt_lang:"Jezik: hrvatski — dodirni za engleski",tt_theme:"Promijeni temu",tt_pr:"Tlak zraka hPa",tt_cf:"Pouzdanost prognoze %",tt_mp:"Monty Python način",tt_vegan:"Način 'Stiže vegan' (roštilj)",
+  tt_lang:"Jezik: hrvatski — dodirni za engleski",tt_theme:"Promijeni temu",tt_mp:"Monty Python način",tt_vegan:"Način 'Stiže vegan' (roštilj)",
   retry:"Pokušaj ponovno",cmpNote:"Usporedba {A} i {B}: kartice, sljedeća 24 sata, more i izgledi. Ostali odjeljci prikazuju samo {A}.",onlyA:"samo {A}",secFail:"Druga lokacija nije učitana: {B}",
   unavail:"nedostupno",srcSea:"more",srcAir:"zrak",srcClimo:"klima",srcBest:"Open-Meteo \u00B7 najbolji model",uvMax:"maks",
-  tt_c0:"Standardni stupci",tt_c1:"Boja prema temperaturi unutar prikazanog raspona",tt_c2:"Boja prema odstupanju od normale 1991\u20132020 za svaki datum",tt_moon:"Mjesečeve mijene",tt_tide:"Plima i oseka (jedna obalna lokacija)",tt_bbq:"Linija ocjene za roštilj (jedna lokacija)",
   tt_mapClose:"Zatvori kartu",tt_mapTheme:"Svijetla/tamna podloga karte",tt_radarPrev:"Prethodni radarski kadar",tt_radarPlay:"Pokreni/pauziraj radarsku animaciju",tt_radarNext:"Sljedeći radarski kadar",tt_radarSlider:"Klizač vremena radara",tt_gridSlider:"Klizač sata mrežnih podataka (temperatura/vjetar/kiša/oblaci)",
-  ar_hourly:"Satna temperatura s vjerojatnošću oborina i pouzdanošću prognoze; dvije linije pri usporedbi lokacija",ar_sea:"Dnevna prognoza temperature površine mora",ar_week:"Dnevni rasponi temperature u stupcima s vjerojatnošću oborina i pouzdanošću prognoze; uparani stupci pri usporedbi lokacija",
+  ar_sea:"Dnevna prognoza temperature površine mora",
   ar_bio:"Prognoza biometeorološkog opterećenja u obojenim stupcima: zeleno povoljno, jantarno umjereno nepovoljno, crveno nepovoljno",ar_pres:"Tlak zraka na razini mora tijekom prošlog dana i sljedeća dva dana",ar_aqi:"Europski indeks kvalitete zraka za sljedeća 48 sati u obojenim stupcima",
   ar_mt:"Osvijetljenost Mjeseca s ikonama mijena",ar_tide:"Dnevne razine plime i oseke",ar_bbqtl:"Vremenska crta priprema za roštilj, računata unatrag od najboljeg sata za roštilj",ar_bbqgr:"Satna ocjena roštilja od 9 do 22 sata s ikonama razina",
-  ar_grill:"Prognoza ocjene roštilja (današnji sati za roštilj ili nadolazeći dani) u obojenim stupcima s ikonama razina",ar_hikec:"Satna osjetna temperatura i vjerojatnost kiše",ar_hikew:"Sedmodnevna ocjena staze",
+  ar_grill:"Prognoza ocjene roštilja (današnji sati za roštilj ili nadolazeći dani) u obojenim stupcima s ikonama razina",
   ar_radarBox:"Vremenska karta preko cijelog zaslona s radarom, munjama te slojevima temperature, vjetra, kiše i oblaka",ar_rainStrip:"Očekivana kiša u sljedeća dva sata u koracima od 15 minuta",ar_heatLeg:"Legenda boja sloja temperature",
   ar_bioInfo:"Kriteriji biometeorologije",
-  tlTitle:"VREMENSKA OS",tlZ_h:"Sati",tlZ_3:"3 h",tlZ_d:"Dani",tlL_temp:"Temp",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV",tlL_air:"Zrak",tlL_sea:"More",tlL_score:"Ocjene",
+  tlTitle:"VREMENSKA OS",tlZ_h:"Sati",tlZ_3:"3 h",tlZ_d:"Dani",tlL_temp:"Temp",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV",tlL_air:"Zrak",tlL_sea:"More",tlL_score:"Ocjene",tlL_norm:"Normala",
   tlZoomAria:"Zoom vremenske osi",tlLayersAria:"Slojevi vremenske osi",
+  ar_story:"Danas, sutra, izgledi i vikend riječima",nowBarAria:"Natrag na vrh, trenutno vrijeme",
   ar_tl:"Vremenska os od sada do kraja prognoze s temperaturom, kišom, vjetrom i drugim slojevima; povucite ili koristite strelice za pomicanje, plus i minus za zoom, Home za sada",
   dows:['Ned','Pon','Uto','Sri','Čet','Pet','Sub']}
 };
-let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, tideCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, aqiCh=null, presCh=null, lastErrs=null;
+let LBL=T.en, D=null, D2=null, seaCh=null, mtCh=null, tideCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, aqiCh=null, presCh=null, lastErrs=null;
 let BBQCRIT={time:true,temp:true,rain:true,wind:true,humid:true,storm:true}, bbqSeries=[], bbqPeak=null;
 let VEGAN=false, bbqCheck={};
 try{const s=localStorage.getItem('wd_bbqcheck');if(s)bbqCheck=JSON.parse(s)||{};}catch(e){}
@@ -1041,8 +1008,6 @@ const WMO=c=>{if(c===0)return'sun';if(c<=2)return'partcloud';if(c===3)return'clo
 const COMPASS=d=>['N','NE','E','SE','S','SW','W','NW'][Math.round(((d%360)+360)%360/45)%8];
 function tfetch(url,ms){let t;const timer=new Promise((_,rej)=>{t=setTimeout(()=>rej(new Error('timeout '+ms+'ms')),ms);});return Promise.race([fetch(url),timer]).finally(()=>clearTimeout(t));}
 function tfetchP(url,opts,ms){let t;const ctrl=(typeof AbortController!=='undefined')?new AbortController():null;const o=ctrl?Object.assign({},opts,{signal:ctrl.signal}):opts;const timer=new Promise((_,rej)=>{t=setTimeout(()=>{if(ctrl){try{ctrl.abort();}catch(e){}}rej(new Error('timeout '+ms+'ms'));},ms);});return Promise.race([fetch(url,o),timer]).finally(()=>clearTimeout(t));}
-function hsl(h,s,l,a){return 'hsla('+h+','+s+'%,'+l+'%,'+(a==null?1:a)+')';}
-const confH=i=>Math.max(80,95-i);
 const confD=i=>Math.max(25,95-Math.round(i*4.5));
 function mmTxt(v){return v==null?'':((v>=10?Math.round(v):v.toFixed(1))+' mm');}
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,'');}
@@ -1450,7 +1415,7 @@ function readWdLast(locName,key){
   const o=JSON.parse(raw);
   if(!o||!o.D||o.D.mode==='ai'||!o.key||!o.loc)return null;
   if(o.v!==APPV)return null; /* I1: snapshots from another app version are never rendered by this code */
-  if(o.key.split('|')[0]!==key.split('|')[0])return null; /* RANGE must match */
+  if(o.key.split('|')[0]!==key.split('|')[0])return null; /* the forecast span (FCDAYS) must match */
   if(o.loc.trim().toLowerCase()!==locName.trim().toLowerCase())return null;
   if(o.D.hrc){const c=o.D.hrc;o.D.hr=c.ts.map((_,i)=>hrRow(c,i));delete o.D.hrc;} /* J1: back to row objects */
   delete o.D.hrc; /* a stray hrc (e.g. null) must never reach the renderers */
@@ -1463,11 +1428,11 @@ async function fetchAIMarked(locName,range){ /* UX-1: wraps fetchAI with feed bo
 }
 async function fetchFor(locName,key,getCur){
  if(IN_CLAUDE){
-  try{return await fetchAIMarked(locName,RANGE);}
+  try{return await fetchAIMarked(locName,FCDAYS);}
   catch(eA){console.log('AI feed failed, trying direct feed:',eA);return await runDirect(locName,key,getCur);}
  }else{
   try{return await runDirect(locName,key,getCur);}
-  catch(eD){if(getCur===getA)lastErrs.direct=eD.message||String(eD);console.log('direct feed unavailable — using AI feed');return await fetchAIMarked(locName,RANGE);}
+  catch(eD){if(getCur===getA)lastErrs.direct=eD.message||String(eD);console.log('direct feed unavailable — using AI feed');return await fetchAIMarked(locName,FCDAYS);}
  }
 }
 function getA(){return D;}
@@ -1478,7 +1443,7 @@ async function runDirect(locName,key,getCur){
  const cp=ensureClimo(loc);
  const mp=ensureMarine(loc);
  const ap=ensureAir(loc);
- const d=await fetchOpenMeteo(loc,RANGE);
+ const d=await fetchOpenMeteo(loc,FCDAYS);
  feedMark('forecast',true);
  if(getCur===getA)saveLast(key,locName,d);
  cp.then(cl=>{d.climo=cl;cache[key]=d;if(getCur===getA)saveLast(key,locName,d);if(getCur()===d)scheduleRender();}).catch(e=>{console.log('normals unavailable:',e);noteSrcFail(d,'climo','climo');if(getCur()===d)scheduleRender();});
@@ -1508,7 +1473,7 @@ async function loadData(){
  document.getElementById('locIn').value=locName;
  if(selB&&selB.toLowerCase()===locName.toLowerCase()){selB=null;D2=null;}
  locUpdatePill();
- const key=RANGE+"|"+locName.trim().toLowerCase();
+ const key=FCDAYS+"|"+locName.trim().toLowerCase();
  const mySeq=++loadSeq;
  lastErrs={direct:null,ai:null};
  lastRefreshFailed=false;
@@ -1527,7 +1492,7 @@ async function loadData(){
   loadSecondary();
   return;
  }
- document.getElementById('loadingSub').textContent=RANGE+"d · "+locName;
+ document.getElementById('loadingSub').textContent=FCDAYS+"d · "+locName;
  show('loading');
  try{
   const d=await fetchFor(locName,key,getA);
@@ -1548,12 +1513,12 @@ async function loadData(){
 async function loadSecondary(){
  FOOT_NOTE=null;
  if(!selB){D2=null;return;}
- const key=RANGE+"|"+selB.trim().toLowerCase();
+ const key=FCDAYS+"|"+selB.trim().toLowerCase();
  if(cache[key]){D2=cache[key];renderActive();return;}
  try{
   const d=await fetchFor(selB,key,getB);
   cache[key]=d;
-  if(selB&&key===RANGE+"|"+selB.trim().toLowerCase()){D2=d;renderActive();}
+  if(selB&&key===FCDAYS+"|"+selB.trim().toLowerCase()){D2=d;renderActive();}
  }catch(e){
   console.log('secondary location failed:',e);
   FOOT_NOTE=selB; /* I2: tell the user, in the footer chip, which place did not load */
@@ -1599,12 +1564,10 @@ function showError(){
  show('error');
 }
 function hardRefresh(){
- const a=RANGE+"|"+locA().trim().toLowerCase();delete cache[a];
- if(selB)delete cache[RANGE+"|"+selB.trim().toLowerCase()];
+ const a=FCDAYS+"|"+locA().trim().toLowerCase();delete cache[a];
+ if(selB)delete cache[FCDAYS+"|"+selB.trim().toLowerCase()];
  loadData();
 }
-function setRange(r){RANGE=r;markBtns();loadData();}
-function setCMode(m){CMODE=m;markBtns();savePrefs();if(D)renderActive();}
 function show(id){for(const s of ['loading','error','dash'])document.getElementById(s).classList.toggle('hidden',s!==id);}
 
 /* ---------- Recents / selection ---------- */
@@ -1810,25 +1773,6 @@ function cardCmp(lab,vA,vB){
   '<div style="font-size:19px;font-weight:500;"><span class="dotB"></span>'+(vB==null?'—':vB)+'</div></div>';
 }
 function dayLab(iso){const d=new Date(iso+"T12:00");return LBL.dows[d.getDay()]+' '+d.getDate();}
-function defaultTower(){return theme==='dark'?'rgba(44,170,240,0.45)':'rgba(8,74,143,0.35)';}
-function towerColorsFor(W,data,shared){
- if(CMODE===1){
-  const hs=W.map(x=>x.hi);
-  const mn=shared?shared.mn:Math.min(...hs), mx=shared?shared.mx:Math.max(...hs);
-  const sp=(mx-mn)||1;
-  return W.map(x=>{const f=(x.hi-mn)/sp;return hsl(210-200*f,62,theme==='dark'?55:46,0.8);});
- }
- if(CMODE===2&&data&&data.climo&&data.climo.byDay){
-  return W.map(x=>{
-   const nm=data.climo.byDay[x.dt.slice(5)];
-   if(nm==null)return defaultTower();
-   const dlt=Math.max(-5,Math.min(5,x.hi-nm));
-   const h=dlt<0?150+60*(-dlt/5):150-142*(dlt/5);
-   return hsl(h,60,theme==='dark'?55:44,0.85);
-  });
- }
- return null;
-}
 function legSwatch(html,label){return '<span style="display:flex;align-items:center;gap:4px;">'+html+'<span>'+label+'</span></span>';}
 function buildAdvice(d,l){
  const L=T[l];
@@ -2125,45 +2069,11 @@ function buildLegends(){
  const nameA=esc(D&&D.loc||locA()), nameB=isC?esc(D2.loc||selB):'';
  const lineSw=c=>'<span style="width:14px;height:0;border-top:3px solid '+c+';"></span>';
  const dashSw=c=>'<span style="width:14px;height:0;border-top:2px dashed '+c+';"></span>';
- const towerSw=c=>'<span style="width:6px;height:13px;border-radius:2px;background:'+c+';align-self:flex-end;"></span>';
  const sqSw=c=>'<span style="width:10px;height:10px;border-radius:2px;background:'+c+';"></span>';
- const confSw='<span style="width:14px;height:0;border-top:2px dotted #8a8a8a;"></span>';
- const confLeg=CONF?legSwatch(confSw,LBL.lgC):'';
- const modeLeg=CMODE===2?
-  '<span style="display:flex;align-items:center;gap:4px;">'+sqSw('hsl(210,60%,44%)')+'\u22125\u00B0 '+sqSw('hsl(150,60%,40%)')+'0\u00B0 '+sqSw('hsl(8,60%,46%)')+'+5\u00B0 <span>'+LBL.anomVs+'</span></span>'
-  :(CMODE===1?'<span style="display:flex;align-items:center;gap:4px;">'+sqSw('hsl(210,62%,46%)')+'\u2192'+sqSw('hsl(10,62%,46%)')+'<span>'+LBL.relLeg+'</span></span>':'');
- const hZA=!!(D&&D.hours&&D.hours.length>0&&D.hours.every(x=>(x.pp??0)===0));
- const hZB=!!(isC&&D2.hours&&D2.hours.length>0&&D2.hours.every(x=>(x.pp??0)===0));
- if(isC){
-  const idA=CMODE>0?'<span style="width:10px;height:10px;border-radius:2px;border:2px solid '+CMP.a+';box-sizing:border-box;"></span>':sqSw('rgba(44,170,240,0.6)');
-  const idB=CMODE>0?'<span style="width:10px;height:10px;border-radius:2px;border:2px solid '+CMP.b+';box-sizing:border-box;"></span>':sqSw('rgba(166,76,232,0.6)');
-  document.getElementById('hrLeg').innerHTML=
-   legSwatch(lineSw(CMP.a),nameA+' \u00B0C')+legSwatch(lineSw(CMP.b),nameB+' \u00B0C')+
-   (hZA?'':legSwatch(dashSw(CMP.a),nameA+' '+LBL.lgP))+(hZB?'':legSwatch(dashSw(CMP.b),nameB+' '+LBL.lgP))+
-   confLeg;
-  document.getElementById('wkLeg').innerHTML=
-   legSwatch(idA,nameA+' '+LBL.lgHi+'/'+LBL.lgLo)+
-   legSwatch(idB,nameB+' '+LBL.lgHi+'/'+LBL.lgLo)+
-   legSwatch(dashSw(CMP.a),nameA+' '+LBL.lgP)+legSwatch(dashSw(CMP.b),nameB+' '+LBL.lgP)+
-   confLeg+modeLeg;
-  document.getElementById('seaLeg').innerHTML=
-   ((D&&D.sea)?legSwatch(lineSw(CMP.a),nameA):'')+((D2&&D2.sea)?legSwatch(lineSw(CMP.b),nameB):'');
- }else{
-  const prH=PRES&&D&&D.hours&&D.hours.some(x=>x.p!=null);
-  const prW=PRES&&D&&D.days&&D.days.some(x=>x.p!=null);
-  const presLegH=prH?legSwatch(lineSw(C.pres),LBL.lgPr):'';
-  const presLegW=prW?legSwatch(lineSw(C.pres),LBL.lgPr):'';
-  const bbqLegW=(BBQ&&D&&D.days&&D.days.length)?legSwatch(lineSw(C.bbq)+'<span style="font-size:12px;margin-left:2px">🔥</span>',LBL.cBbq):'';
-  document.getElementById('hrLeg').innerHTML=
-   legSwatch(lineSw(C.hi),LBL.lgT)+(hZA?'':legSwatch(towerSw(C.sky),LBL.lgP))+presLegH+confLeg;
-  document.getElementById('wkLeg').innerHTML=
-   legSwatch(sqSw(C.hi),LBL.lgHi)+legSwatch(sqSw(theme==='dark'?'#7cc4f5':C.lo),LBL.lgLo)+legSwatch(towerSw(C.sky),LBL.lgP)+presLegW+bbqLegW+confLeg+modeLeg;
-  document.getElementById('seaLeg').innerHTML=legSwatch(lineSw(C.sea),'SST \u00B0C');
- }
- let mt='';
- if(MOON)mt+=legSwatch(lineSw(C.sun),LBL.moonIllLeg)+legSwatch('<span style="font-size:13px;">\uD83C\uDF19</span>',LBL.moonLeg);
- const mtl=document.getElementById('mtLeg');if(mtl)mtl.innerHTML=mt;
- const tdl=document.getElementById('tideLeg');if(tdl)tdl.innerHTML=(TIDE&&D&&D.sea&&D.sea.tide&&D.sea.tide.length)?(legSwatch(lineSw(C.sea),LBL.tideHi+' (cm)')+legSwatch(dashSw(C.sea+'99'),LBL.tideLo+' (cm)')):'';
+ /* K2: the NEXT 24 HOURS / OUTLOOK legends left with their charts - the timeline draws its own (tlLegend) */
+ document.getElementById('seaLeg').innerHTML=isC?(((D&&D.sea)?legSwatch(lineSw(CMP.a),nameA):'')+((D2&&D2.sea)?legSwatch(lineSw(CMP.b),nameB):'')):legSwatch(lineSw(C.sea),'SST \u00B0C');
+ const mtl=document.getElementById('mtLeg');if(mtl)mtl.innerHTML=legSwatch(lineSw(C.sun),LBL.moonIllLeg)+legSwatch('<span style="font-size:13px;">\uD83C\uDF19</span>',LBL.moonLeg);
+ const tdl=document.getElementById('tideLeg');if(tdl)tdl.innerHTML=(D&&D.sea&&D.sea.tide&&D.sea.tide.length)?(legSwatch(lineSw(C.sea),LBL.tideHi+' (cm)')+legSwatch(dashSw(C.sea+'99'),LBL.tideLo+' (cm)')):'';
  const bl=document.getElementById('bioLeg');
  if(bl)bl.innerHTML=[0,1,2].map(i=>legSwatch(sqSw([C.ok,C.warn,C.bad][i])+'<span style="font-size:12px;margin-left:2px">'+BIOE[i]+'</span>',bioName(i))).join('');
  const grl=document.getElementById('grLeg');
@@ -2253,11 +2163,9 @@ function scrollToEl(e){
 function grpEl(k){return document.getElementById('grp-'+k);}
 function grpOpen(k){const e=grpEl(k);return !!(e&&e.open);}
 function openGroup(k){const e=grpEl(k);if(e&&!e.open)e.open=true;} /* the toggle listener saves the state and draws the group's charts */
-/* stat chip tap: wind -> NEXT 24 HOURS, UV -> OUTLOOK, air -> group AIR, pressure -> group BIO, PRESSURE & MOON */
+/* stat chip tap: wind / UV -> the timeline with that layer switched on (K2), air -> group AIR, pressure -> group BIO, PRESSURE & MOON */
 function statGo(k){
- const hr=document.getElementById('hrSec'),ol=document.getElementById('outlookSec');
- if(k==='wind')scrollToEl((hr&&hr.getClientRects().length)?hr:ol);
- else if(k==='uv')scrollToEl(ol);
+ if(k==='wind'||k==='uv'){if(!TL.layers[k])tlSetLayer(k);scrollToEl(document.getElementById('tlSec'));}
  else if(k==='air'){openGroup('air');scrollToEl(grpEl('air'));}
  else if(k==='pres'){openGroup('bio');scrollToEl(grpEl('bio'));}
 }
@@ -2336,11 +2244,10 @@ function renderGroups(){
  const airAny=!!((D.air&&(D.air.aqi||D.air.dom))||(isC&&D2.air&&(D2.air.aqi||D2.air.dom)));
  const hasSea=!!(D.sea||(isC&&D2.sea));
  const canTide=!!(D.sea&&D.sea.tide&&D.sea.tide.length);
- const tb=document.getElementById('btn-tide');if(tb)tb.disabled=!canTide;
  const aqiShow=!!(D.air&&D.air.aqi&&D.air.aqi.series&&D.air.aqi.series.length);
  const bioShow=!!(D.bio&&D.bio.h&&D.bio.h.length);
  const presShow=!!(D.presH&&D.presH.length>=6);
- GSHOW={aqi:aqiShow,sea:hasSea,tide:canTide&&TIDE,bio:bioShow,pres:presShow,moon:!!MOON};
+ GSHOW={aqi:aqiShow,sea:hasSea,tide:canTide,bio:bioShow,pres:presShow,moon:true}; /* K2: the tide / moon charts no longer wait for an overlay switch - they sit in their (collapsed) group */
  hide('grp-air',!airAny);hide('grp-sea',!hasSea);
  hide('seaSec',!GSHOW.sea);hide('tideSec',!GSHOW.tide);hide('aqiSec',!GSHOW.aqi);hide('bioSec',!GSHOW.bio);hide('presBlk',!GSHOW.pres);hide('moonSec',!GSHOW.moon);
  if(aqiShow)document.getElementById('aqiSum').textContent=buildAqiSum(lang);
@@ -2387,10 +2294,57 @@ function updateFoot(){
  const isC=cmp();
  const av=D.climo&&D.climo.avg;
  const now=new Date();
- FOOT_BASE=(lang==='hr'?"Prognoza: ":"Forecast: ")+esc(D.loc||locA())+(isC?(' + '+esc(D2.loc||selB)):'')+" · "+(D.srcKey?(LBL[D.srcKey]||""):(D.src||""))+((D.mode==='direct'&&RANGE>16)?(' '+LBL.capNote):'')+((!isC&&av)?(" · "+LBL.normFoot):"")+" · "+(lang==='hr'?"osvježeno ":"refreshed ")+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+ FOOT_BASE=(lang==='hr'?"Prognoza: ":"Forecast: ")+esc(D.loc||locA())+(isC?(' + '+esc(D2.loc||selB)):'')+" · "+(D.srcKey?(LBL[D.srcKey]||""):(D.src||""))+((!isC&&av)?(" · "+LBL.normFoot):"")+" · "+(lang==='hr'?"osvježeno ":"refreshed ")+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
  document.getElementById('foot').textContent=FOOT_BASE+footChip();
  footRetryUpdate();
 }
+
+/* K2: the TOMORROW line of the story column: the data the old Tomorrow card showed (the card itself stays in group COMPARISONS) */
+function renderTomorrow(){
+ const el=document.getElementById('tomBlk');if(!el)return;
+ const isC=cmp();
+ const line=(d,dot)=>{
+  const x=dayOf(d,1);if(x.hi==null||x.lo==null)return'';
+  return '<div class="tomrow">'+(dot?'<span class="'+dot+'"></span>':'')+'<span class="tomic" aria-hidden="true">'+(ICON[x.cond]||'')+'</span><b>'+x.lo+'\u2013'+x.hi+'\u00B0</b>'+
+   '<span>\uD83D\uDCA7 '+(x.pp!=null?x.pp:'\u2014')+' %'+(x.mm!=null?' \u00B7 '+mmTxt(x.mm):'')+'</span><span>\uD83D\uDCA8 '+(x.w!=null?x.w:'\u2014')+' km/h</span></div>';
+ };
+ const h=isC?(line(D,'dotA')+line(D2,'dotB')):line(D,'');
+ el.classList.toggle('hidden',!h);
+ el.innerHTML=h?('<div class="storylbl">'+esc(LBL.cTom)+'</div>'+h):'';
+}
+/* K2: sticky now-bar - the current conditions while the hero is scrolled out of view (tap = back to the top); never shown on the map, PLAN or Info */
+let HERO_OUT=false;
+function nowBarTop(){let sm='smooth';try{if(matchMedia('(prefers-reduced-motion: reduce)').matches)sm='auto';}catch(x){}window.scrollTo({top:0,behavior:sm});}
+function updateNowBar(){
+ const b=document.getElementById('nowBar');if(!b)return;
+ const show=!!(HERO_OUT&&active==='now'&&D);
+ b.classList.toggle('hidden',!show);
+ if(!show)return;
+ const hrv=lang==='hr',isC=cmp();
+ let txt;
+ if(isC){
+  const one=d=>{const n=d.now||{};return esc(d.loc||'')+' '+(n.t!=null?n.t+'\u00B0':'\u2014');};
+  txt=one(D)+' \u00B7 '+one(D2);
+ }else{
+  const n=D.now||{},x=dayOf(D,0),p=[];
+  p.push(esc(D.loc||locA()));
+  if(n.t!=null)p.push(n.t+'\u00B0');
+  if(n.fl!=null)p.push((hrv?'osjet ':'feels ')+n.fl+'\u00B0');
+  if(x.lo!=null&&x.hi!=null)p.push(x.lo+'\u2013'+x.hi+'\u00B0');
+  txt=(iconFor(Object.assign({},n,{night:nightOf(D)}))+' ').trim()+' '+p.join(' \u00B7 ');
+ }
+ b.textContent=txt;
+ b.setAttribute('aria-label',LBL.nowBarAria+': '+txt);
+}
+(function(){
+ const hero=document.getElementById('hero');if(!hero)return;
+ const set=out=>{if(out!==HERO_OUT){HERO_OUT=out;try{updateNowBar();}catch(e){}}};
+ if('IntersectionObserver' in window){
+  try{new IntersectionObserver(es=>{const e=es[es.length-1];set(!e.isIntersecting&&e.boundingClientRect.height>0&&e.boundingClientRect.bottom<=0);},{threshold:0}).observe(hero);return;}catch(x){}
+ }
+ const chk=()=>{const r=hero.getBoundingClientRect();set(r.height>0&&r.bottom<=0);};
+ addEventListener('scroll',chk,{passive:true});addEventListener('resize',chk);
+})();
 
 function render(){
  if(!D)return;
@@ -2404,13 +2358,9 @@ function render(){
    else{cn.textContent='';cn.classList.add('hidden');}}}
  updateAlertBox();
  try{tlRender();}catch(e){console.log('tlRender',e);}
- const tShow=D.h3ext&&D.h3ext.length;
- document.getElementById('todaySec').classList.toggle('hidden',!tShow);
- if(tShow)renderTodayStrip();
- const hasHours=D.hours&&D.hours.length>0;
- document.getElementById('hrSec').classList.toggle('hidden',!hasHours);
- if(hasHours)drawHourly();
- drawWeek();
+ {const tr=document.getElementById('tlRow');if(tr)tr.classList.toggle('notl',!tlOk());} /* no timeline (AI-mode data): the story column takes the full width */
+ try{renderTomorrow();}catch(e){console.log('renderTomorrow',e);}
+ try{updateNowBar();}catch(e){console.log('updateNowBar',e);}
  /* charts inside the four groups: each drawer skips itself while its group is closed; opening a group draws them (drawGroupCharts) */
  if(GSHOW.sea)drawSea();else if(seaCh){seaCh.destroy();seaCh=null;}
  if(GSHOW.tide)drawTide();else if(tideCh){tideCh.destroy();tideCh=null;}
@@ -2424,7 +2374,8 @@ function render(){
  const zA=D.days&&D.days.length>0&&D.days.every(x=>(x.pp??0)===0);
  const zB=!isC||(D2.days&&D2.days.length>0&&D2.days.every(x=>(x.pp??0)===0));
  document.getElementById('h3note').textContent=(zA&&zB)?('· '+LBL.zeroRain):'';
- document.getElementById('wkSum').textContent=buildWkSum(lang);
+ {const ws=buildWkSum(lang);document.getElementById('wkSum').textContent=ws;document.getElementById('outlookSec').classList.toggle('hidden',!ws);
+  const wn=document.getElementById('wkNote'),lg=!!(wkShow&&D.days.length>10&&!isC);if(wn){wn.textContent=lg?LBL.longNote:'';wn.classList.toggle('hidden',!lg);}}
  const h7el=document.querySelector('[data-i="h7"]');
  if(h7el)h7el.textContent=MP?'AND NOW FOR SOMETHING COMPLETELY DIFFERENT':LBL.h7;
  const fct=buildFact(D,lang);
@@ -2441,72 +2392,9 @@ function render(){
   b.style.display='';b.textContent=v.txt;b.style.color=v.col;b.style.background=v.col+'26';
   const adv=buildAdvice(D,lang);
   const bbl=buildBbqLine(lang);
-  document.getElementById('recTxt').innerHTML=esc((D.rec&&D.rec[lang])||"")+(adv.ex?('<br>'+esc(adv.ex)):'')+'<br>'+adv.act+(bbl?('<br>'+esc(bbl)):'')+(RANGE>10?('<br>'+esc(LBL.longNote)):'');
+  document.getElementById('recTxt').innerHTML=esc((D.rec&&D.rec[lang])||"")+(adv.ex?('<br>'+esc(adv.ex)):'')+'<br>'+adv.act+(bbl?('<br>'+esc(bbl)):'');
  }
  updateFoot();
-}
-
-function drawHourly(){
- if(hourlyCh){hourlyCh.destroy();hourlyCh=null;}
- const H=D.hours||[];
- const isC=cmp()&&D2.hours&&D2.hours.length>0;
- const H2=isC?D2.hours:null;
- const zA=H.length>0&&H.every(x=>(x.pp??0)===0);
- const zB=isC?H2.every(x=>(x.pp??0)===0):true;
- const showPP=isC?(!zA||!zB):!zA;
- const conf=H.map((x,i)=>confH(i));
- const ds=[];
- if(isC){
-  ds.push({type:'line',label:esc(D.loc||locA()),data:H.map(x=>x.t),borderColor:CMP.a,backgroundColor:CMP.a,yAxisID:'y',tension:0.35,borderWidth:3,pointRadius:3,pointBorderColor:ptb,pointBorderWidth:1,order:1});
-  ds.push({type:'line',label:esc(D2.loc||selB),data:H2.map(x=>x.t),borderColor:CMP.b,backgroundColor:CMP.b,yAxisID:'y',tension:0.35,borderWidth:3,pointRadius:3,pointBorderColor:ptb,pointBorderWidth:1,order:1});
-  if(!zA)ds.push({type:'line',label:'ppA',data:H.map(x=>x.pp),borderColor:CMP.a,borderDash:[6,4],borderWidth:2,pointRadius:0,tension:0.3,yAxisID:'y1',order:6});
-  if(!zB)ds.push({type:'line',label:'ppB',data:H2.map(x=>x.pp),borderColor:CMP.b,borderDash:[6,4],borderWidth:2,pointRadius:0,tension:0.3,yAxisID:'y1',order:6});
- }else{
-  ds.push({type:'line',label:'\u00B0C',data:H.map(x=>x.t),borderColor:C.hi,backgroundColor:C.hi,yAxisID:'y',tension:0.35,borderWidth:3,pointRadius:4,pointBorderColor:ptb,pointBorderWidth:1.5,order:1});
-  if(!zA)ds.push({type:'bar',label:'%',data:H.map(x=>x.pp),backgroundColor:C.sky+'B3',borderRadius:3,barPercentage:0.45,yAxisID:'y1',order:10});
- }
- const hasP=!isC&&PRES&&H.some(x=>x.p!=null);
- if(hasP)ds.push({type:'line',label:'pres',data:H.map(x=>x.p),borderColor:C.pres,backgroundColor:C.pres,borderWidth:2,pointRadius:2,pointBorderColor:ptb,pointBorderWidth:1,tension:0.3,spanGaps:true,yAxisID:'y4',order:3});
- if(CONF)ds.push({type:'line',label:'conf',data:conf,borderColor:txt,borderDash:[2,4],borderWidth:1.5,pointRadius:0,tension:0.3,yAxisID:'y2',order:2});
- hourlyCh=new Chart(document.getElementById('hourly'),{
-  data:{labels:H.map(x=>x.h),datasets:ds},
-  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:46}},
-   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
-    if(c.dataset.yAxisID==='y4')return c.parsed.y+' hPa';
-    if(c.dataset.yAxisID==='y2')return LBL.conf+': '+c.parsed.y+' %';
-    if(c.dataset.yAxisID==='y1')return (c.dataset.label==='ppB'?esc(D2&&(D2.loc||selB)):(c.dataset.label==='ppA'?esc(D.loc||locA()):''))+' '+c.parsed.y+' %';
-    return c.dataset.label+': '+c.parsed.y+' °C';}}}},
-   scales:{
-    x:{grid:{display:false},ticks:{color:txt,font:{size:layout==='mobile'?9:11}}},
-    y:{position:'left',grace:'12%',grid:{color:grid},ticks:{color:txt,callback:v=>Math.round(v)+'\u00B0'}},
-    y1:{position:'right',display:showPP,min:0,max:400,grid:{drawOnChartArea:false},ticks:{color:txt,stepSize:50,callback:v=>(v===0||v===50||v===100)?v+'%':''}},
-    y2:{display:false,min:0,max:115},
-    y4:{position:'right',display:hasP,grace:'25%',grid:{drawOnChartArea:false},ticks:{color:C.pres,maxTicksLimit:4,callback:v=>Math.round(v)}}
-   }},
-  plugins:[bgPlug,{id:'tlab',afterDatasetsDraw(ch){
-   const{ctx}=ch;ctx.save();ctx.textAlign='center';
-   const M=layout==='mobile';
-   if(!isC){
-    ctx.font=(M?'12px ':'15px ')+'sans-serif';ctx.textBaseline='top';
-    ch.getDatasetMeta(0).data.forEach((pt,i)=>{if(H[i].cond)ctx.fillText(iconFor(H[i]),pt.x,6);});
-    ctx.textBaseline='alphabetic';
-    ctx.font=(M?'500 9px ':'500 11px ')+'sans-serif';
-    ch.getDatasetMeta(0).data.forEach((pt,i)=>{ctx.fillStyle=halo;ctx.fillRect(pt.x-12,pt.y-24,24,13);ctx.fillStyle=strong;ctx.fillText(H[i].t+'\u00B0',pt.x,pt.y-13);});
-    const pi=ch.data.datasets.findIndex(dd=>dd.label==='%');
-    if(pi>=0){ctx.font=(M?'500 8px ':'500 10px ')+'sans-serif';
-     ch.getDatasetMeta(pi).data.forEach((bar,i)=>{if((H[i].pp??0)>=5){ctx.fillStyle=halo;ctx.fillRect(bar.x-13,bar.y-13,26,11);ctx.fillStyle=C.sky;ctx.fillText(H[i].pp+'%',bar.x,bar.y-4);}});}
-   }else{
-    ctx.font=(M?'500 9px ':'500 10px ')+'sans-serif';
-    ch.getDatasetMeta(0).data.forEach((pt,i)=>{ctx.fillStyle=halo;ctx.fillRect(pt.x-12,pt.y-22,24,12);ctx.fillStyle=CMP.a;ctx.fillText(H[i].t+'\u00B0',pt.x,pt.y-12);});
-    ch.getDatasetMeta(1).data.forEach((pt,i)=>{ctx.fillStyle=halo;ctx.fillRect(pt.x-12,pt.y+9,24,12);ctx.fillStyle=CMP.b;ctx.fillText(H2[i].t+'\u00B0',pt.x,pt.y+19);});
-   }
-   if(CONF){
-    const ci=ch.data.datasets.findIndex(dd=>dd.label==='conf');
-    if(ci>=0){ctx.font=(M?'500 8px ':'500 9px ')+'sans-serif';
-     ch.getDatasetMeta(ci).data.forEach((pt,i)=>{ctx.fillStyle=halo;ctx.fillRect(pt.x-11,pt.y-6,22,12);ctx.fillStyle=txt;ctx.fillText(conf[i]+'%',pt.x,pt.y+3.5);});}
-   }
-   ctx.restore();}}]
- });
 }
 
 function drawSea(){
@@ -2539,95 +2427,6 @@ function drawSea(){
      ctx.fillStyle=halo;ctx.fillRect(pt.x-14,up?pt.y-24:pt.y+9,28,13);
      ctx.fillStyle=d.lblc||strong;ctx.fillText(v+'°',pt.x,up?pt.y-13:pt.y+19);});
    });
-   ctx.restore();}}]
- });
-}
-
-function drawWeek(){
- if(weekCh){weekCh.destroy();weekCh=null;}
- const W=D.days||[];
- const isC=cmp()&&D2.days&&D2.days.length>0;
- const W2=isC?D2.days:null;
- const L=isC?Math.min(W.length,W2.length):W.length;
- const Wv=W.slice(0,L), W2v=isC?W2.slice(0,L):null;
- const dense=L>10, vdense=L>16;
- const conf=Wv.map((x,i)=>confD(i));
- const ds=[];
- if(isC){
-  const allHi=Wv.map(x=>x.hi).concat(W2v.map(x=>x.hi));
-  const shared={mn:Math.min.apply(null,allHi),mx:Math.max.apply(null,allHi)};
-  const colsA=towerColorsFor(Wv,D,shared)||'rgba(44,170,240,0.5)';
-  const colsB=towerColorsFor(W2v,D2,shared)||'rgba(166,76,232,0.5)';
-  const bw=CMODE>0?1.5:0;
-  ds.push({type:'bar',label:'rangeA',data:Wv.map(x=>[x.lo,x.hi]),backgroundColor:colsA,borderColor:CMP.a,borderWidth:bw,borderRadius:dense?3:5,borderSkipped:false,yAxisID:'y',order:10,barPercentage:dense?0.85:0.7});
-  ds.push({type:'bar',label:'rangeB',data:W2v.map(x=>[x.lo,x.hi]),backgroundColor:colsB,borderColor:CMP.b,borderWidth:bw,borderRadius:dense?3:5,borderSkipped:false,yAxisID:'y',order:10,barPercentage:dense?0.85:0.7});
-  ds.push({type:'line',label:'ppA',data:Wv.map(x=>x.pp),borderColor:CMP.a,borderDash:[6,4],borderWidth:2,pointRadius:0,tension:0.3,yAxisID:'y1',order:6});
-  ds.push({type:'line',label:'ppB',data:W2v.map(x=>x.pp),borderColor:CMP.b,borderDash:[6,4],borderWidth:2,pointRadius:0,tension:0.3,yAxisID:'y1',order:6});
- }else{
-  ds.push({type:'bar',label:'range',data:Wv.map(x=>[x.lo,x.hi]),backgroundColor:(towerColorsFor(Wv,D)||defaultTower()),borderRadius:dense?3:6,borderSkipped:false,yAxisID:'y',order:10,barPercentage:dense?0.7:0.55});
-  ds.push({type:'bar',label:'%',data:Wv.map(x=>x.pp),backgroundColor:C.sky+'B3',borderRadius:3,grouped:false,barPercentage:dense?0.5:0.28,yAxisID:'y1',order:5});
- }
- const bbqArr=(!isC&&BBQ)?bbqDayArr(D,Wv):null;
- const hasB=!!(bbqArr&&bbqArr.some(v=>v!=null));
- if(hasB)ds.push({type:'line',label:'bbq',data:bbqArr,borderColor:C.bbq,backgroundColor:C.bbq,borderWidth:2,pointRadius:2.5,pointBorderColor:ptb,pointBorderWidth:1,tension:0.3,spanGaps:true,yAxisID:'y5',order:3});
- const hasP=!isC&&PRES&&Wv.some(x=>x.p!=null);
- if(hasP)ds.push({type:'line',label:'pres',data:Wv.map(x=>x.p),borderColor:C.pres,backgroundColor:C.pres,borderWidth:2,pointRadius:2,pointBorderColor:ptb,pointBorderWidth:1,tension:0.3,spanGaps:true,yAxisID:'y4',order:3});
- if(CONF)ds.push({type:'line',label:'conf',data:conf,borderColor:txt,borderDash:[2,4],borderWidth:1.5,pointRadius:0,tension:0.3,yAxisID:'y2',order:2});
- const padTop=isC?(dense?18:30):34;
- weekCh=new Chart(document.getElementById('week'),{
-  data:{labels:Wv.map(x=>vdense?String(new Date(x.dt+"T12:00").getDate()):dayLab(x.dt)),datasets:ds},
-  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:padTop}},
-   plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>dayLab(Wv[c[0].dataIndex].dt),label:c=>{
-    if(c.dataset.yAxisID==='y5'){const t5=bbqTier(c.parsed.y);return LBL.cBbq+': '+c.parsed.y+'/100 '+BBQI[t5]+' '+bbqName(t5);}
-    if(c.dataset.yAxisID==='y4')return c.parsed.y+' hPa';
-    if(c.dataset.yAxisID==='y2')return LBL.conf+': '+c.parsed.y+' %';
-    if(c.dataset.yAxisID==='y1'){const nm=c.dataset.label==='ppB'?esc(D2&&(D2.loc||selB)):(c.dataset.label==='ppA'?esc(D.loc||locA()):'');const sm=(c.dataset.label==='ppB'?W2v:Wv)[c.dataIndex];return (nm?nm+' ':'')+c.parsed.y+' %'+((sm&&sm.mm!=null)?' \u00b7 '+mmTxt(sm.mm):'');}
-    const src=c.dataset.label==='rangeB'?W2v:Wv;const nm=c.dataset.label==='rangeB'?esc(D2&&(D2.loc||selB)):(c.dataset.label==='rangeA'?esc(D.loc||locA()):'');
-    return (nm?nm+': ':'')+src[c.dataIndex].lo+'\u00B0 \u2026 '+src[c.dataIndex].hi+'\u00B0 '+(ICON[src[c.dataIndex].cond]||'');}}}},
-   scales:{
-    x:{grid:{display:false},ticks:{autoSkip:vdense,color:txt,font:{size:layout==='mobile'?8:(dense?9:11)}}},
-    y:{grace:'15%',grid:{color:grid},ticks:{color:txt,callback:v=>Math.round(v)+'\u00B0'}},
-    y1:{position:'right',min:0,max:400,grid:{drawOnChartArea:false},ticks:{color:txt,stepSize:50,callback:v=>(v===0||v===50||v===100)?v+'%':''}},
-    y2:{display:false,min:0,max:115},
-    y4:{position:'right',display:hasP,grace:'25%',grid:{drawOnChartArea:false},ticks:{color:C.pres,maxTicksLimit:4,callback:v=>Math.round(v)}},
-    y5:{display:false,min:0,max:235}
-   }},
-  plugins:[bgPlug,{id:'wlab',afterDatasetsDraw(ch){
-   const{ctx}=ch;ctx.save();ctx.textAlign='center';
-   const M=layout==='mobile';
-   const step=vdense?2:1;
-   if(!isC){
-    ctx.textBaseline='top';
-    ctx.font=(M?(vdense?'10px ':'12px '):(dense?'12px ':'15px '))+'sans-serif';
-    ch.getDatasetMeta(0).data.forEach((bar,i)=>{if(i%step!==0)return;ctx.fillText(ICON[Wv[i].cond]||'',bar.x,8);});
-    ctx.textBaseline='alphabetic';
-   }
-   if(hasB){
-    const bi=ch.data.datasets.findIndex(dd=>dd.label==='bbq');
-    if(bi>=0){const bst=vdense?2:1;
-     ch.getDatasetMeta(bi).data.forEach((pt,i)=>{const v=bbqArr[i];if(v==null||i%bst!==0)return;
-      ctx.font=(M?'13px ':'16px ')+'sans-serif';
-      ctx.fillText(BBQI[bbqTier(v)],pt.x,pt.y-10);
-      ctx.font=(M?'600 8px ':'600 9px ')+'sans-serif';
-      ctx.fillStyle=halo;ctx.fillRect(pt.x-11,pt.y+5,22,11);
-      ctx.fillStyle=C.bbq;ctx.fillText(v,pt.x,pt.y+13);});}
-   }
-   if(CONF){
-    const ci=ch.data.datasets.findIndex(dd=>dd.label==='conf');
-    if(ci>=0){const cs=vdense?3:(dense?2:1);ctx.font=(M?'500 8px ':'500 9px ')+'sans-serif';
-     ch.getDatasetMeta(ci).data.forEach((pt,i)=>{if(i%cs!==0)return;ctx.fillStyle=halo;ctx.fillRect(pt.x-11,pt.y-6,22,12);ctx.fillStyle=txt;ctx.fillText(conf[i]+'%',pt.x,pt.y+3.5);});}
-   }
-   if(vdense||isC){ctx.restore();return;}
-   ch.getDatasetMeta(0).data.forEach((bar,i)=>{
-    const yHi=ch.scales.y.getPixelForValue(Wv[i].hi),yLo=ch.scales.y.getPixelForValue(Wv[i].lo);
-    ctx.font=(M?'500 8px ':(dense?'500 9px ':'500 11px '))+'sans-serif';
-    ctx.fillStyle=C.hi;ctx.fillText(Wv[i].hi+'\u00B0',bar.x,yHi-7);
-    ctx.fillStyle=theme==='dark'?'#7cc4f5':C.lo;ctx.fillText(Wv[i].lo+'\u00B0',bar.x,yLo+12);
-   });
-   ctx.font=(M?'500 8px ':(dense?'500 8px ':'500 10px '))+'sans-serif';
-   const pi=ch.data.datasets.findIndex(dd=>dd.label==='%');
-   if(pi>=0)ch.getDatasetMeta(pi).data.forEach((bar,i)=>{const hasPp=(Wv[i].pp??0)>=5;if(hasPp){ctx.fillStyle=halo;ctx.fillRect(bar.x-13,bar.y-13,26,11);ctx.fillStyle=C.sky;ctx.fillText(Wv[i].pp+'%',bar.x,bar.y-4);}
-     if(Wv[i].mm!=null&&Wv[i].mm>=0.1){const dy=hasPp?0:9;const mt=vdense?String(Wv[i].mm>=10?Math.round(Wv[i].mm):Wv[i].mm.toFixed(1)):mmTxt(Wv[i].mm);const mw=ctx.measureText(mt).width+4;ctx.fillStyle=halo;ctx.fillRect(bar.x-mw/2,bar.y-25+dy,mw,11);ctx.fillStyle=theme==='dark'?'#9fd4f7':'#0b6aa8';ctx.fillText(mt,bar.x,bar.y-16+dy);}});
    ctx.restore();}}]
  });
 }
@@ -2831,7 +2630,7 @@ function drawTide(){
 function applyTheme(t){theme=t;calc();document.getElementById('wrap').classList.toggle('dark',t==='dark');document.body.style.background=BG;const bt=document.getElementById('btn-theme');if(bt)bt.innerHTML=(t==='dark'?ICON_SUN:ICON_MOON);markBtns();savePrefs();if(D)renderActive();}
 function toggleTheme(){applyTheme(theme==='dark'?'light':'dark');}
 function applyTitles(){
- ['lang','theme','pr','cf','mp','vegan'].forEach(id=>{
+ ['lang','theme','mp','vegan'].forEach(id=>{
   const el=document.getElementById('btn-'+id),t=LBL['tt_'+id];
   if(el&&t){el.title=t;el.setAttribute('aria-label',t);}
  });
@@ -2858,8 +2657,8 @@ function setLang(l){
    timestamp. Zoom: 'h' hourly, '3' every 3 h, 'd' daily. Only zoom + layers are remembered (wd_prefs.tl). Hidden for AI-mode data. */
 const TLZ=['h','3','d'];
 const TLPX={h:[34,26],'3':[12,9],d:[3.2,2.6]}; /* px per hour: [desktop/mid, mobile] */
-const TLLAYERS=['temp','rain','wind','pres','uv','air','sea','score'];
-const TLIC={temp:'🌡️',rain:'🌧️',wind:'💨',pres:'📈',uv:'☀️',air:'🍃',sea:'🌊'};
+const TLLAYERS=['temp','rain','wind','pres','uv','air','sea','score','norm'];
+const TLIC={temp:'🌡️',rain:'🌧️',wind:'💨',pres:'📈',uv:'☀️',air:'🍃',sea:'🌊',norm:'📏'};
 const TLC={hr:null,hr2:null,dd:null,tm:null,tm2:null,ag:null,tLo:0,tHi:1,pLo:1000,pHi:1020,air:[],airSrc:undefined,airHr:null,scD:null,scK:'',scH:null,rs:null,ds:null,act:'bbq',raf:0,to:0,sum:null,pm:0,xm:0,W:0,H:0};
 let tlRO=false; /* is the readout box open */
 let tlPtr=null;
@@ -2870,13 +2669,14 @@ function tlNearest(m){const tm=TLC.tm,n=tm.length;let i=tlLb(tm,m);if(i>=n)i=n-1
 function tlPpm(){return TLPX[TL.zoom][layout==='mobile'?1:0]/60;}
 function tlPrep(){
  const hr2=(cmp()&&D2&&D2.hr&&D2.hr.length)?D2.hr:null;
- if(TLC.hr===D.hr&&TLC.hr2===hr2&&TLC.dd===D.daysFull&&TLC.tm)return;
- TLC.hr=D.hr;TLC.hr2=hr2;TLC.dd=D.daysFull;
+ const nmOn=!!(TL.layers.norm&&TL.zoom==='d'&&D.climo&&D.climo.byDay); /* K2: the normals widen the temperature range only while they are drawn */
+ if(TLC.hr===D.hr&&TLC.hr2===hr2&&TLC.dd===D.daysFull&&TLC.tm&&TLC.nm===nmOn)return;
+ TLC.hr=D.hr;TLC.hr2=hr2;TLC.dd=D.daysFull;TLC.nm=nmOn;
  const hr=D.hr,n=hr.length,tm=new Float64Array(n);
  let tl=1e9,th=-1e9,pl=1e9,ph=-1e9;
  const tmx=v=>{if(v!=null&&isFinite(v)){if(v<tl)tl=v;if(v>th)th=v;}};
  for(let i=0;i<n;i++){const r=hr[i];tm[i]=tsMin(r.ts);tmx(r.t);tmx(r.fl);if(r.p!=null){if(r.p<pl)pl=r.p;if(r.p>ph)ph=r.p;}}
- (D.daysFull||[]).forEach(d=>{tmx(d.hi);tmx(d.lo);});
+ (D.daysFull||[]).forEach(d=>{tmx(d.hi);tmx(d.lo);if(nmOn)tmx(D.climo.byDay[d.dt.slice(5)]);});
  if(hr2){TLC.tm2=Float64Array.from(hr2,r=>tsMin(r.ts));hr2.forEach(r=>tmx(r.t));if(D2.daysFull)D2.daysFull.forEach(d=>{tmx(d.hi);tmx(d.lo);});}else TLC.tm2=null;
  if(tl>th){tl=0;th=10;}
  TLC.tLo=Math.floor(tl)-1;TLC.tHi=Math.ceil(th)+1;
@@ -3003,6 +2803,8 @@ function tlReadoutLines(){ /* -> {title, lines:[[icon,text]]} for the cursor col
   if(La.uv&&ag.uv!=null)out.push([TLIC.uv,'UV '+tlN(ag.uv,1)]);
   if(La.air){let mx=null;tlAir().forEach(a=>{if(tlStr(a.m).slice(0,10)===dt&&(mx==null||a.v>mx))mx=a.v;});if(mx!=null){out.push([TLIC.air,'AQI '+mx+' · '+aqiName(aqiBand(mx))]);}}
   if(La.sea&&D.sea){const s=sst(dt);if(s!=null)out.push([TLIC.sea,tlN(s,1)+'°']);}
+  if(La.norm&&D.climo&&D.climo.byDay){const nv=D.climo.byDay[dt.slice(5)];if(nv!=null)out.push([TLIC.norm,(hrv?'normala ':'normal ')+tlN(nv,1)+'° ('+sgn(dd.hi-nv,'°',1)+')']);}
+  out.push([moonIcon(dt),moonName(dt)+' · '+Math.round(moonIllum(dt))+' %']); /* K2: replaces the removed Moon overlay */
   if(La.score){const sd=TLC.ds&&TLC.ds[dt];if(sd)out.push(scoreLine(sd.v,' · '+planWinTxt(sd)));}
   return{title:dayLab(dt)+' '+(ICON[dd.cond]||''),lines:out};
  }
@@ -3071,7 +2873,7 @@ function tlSummary(xm,mR,nowM){
 function tlSyncUi(){
  const sea=!!(D&&D.sea&&D.sea.days&&D.sea.days.length);
  TLZ.forEach(z=>{const b=document.getElementById('btn-tlz-'+z);if(b)b.setAttribute('aria-pressed',TL.zoom===z?'true':'false');});
- TLLAYERS.forEach(k=>{const b=document.getElementById('btn-tll-'+k);if(!b)return;b.setAttribute('aria-pressed',TL.layers[k]?'true':'false');if(k==='sea')b.classList.toggle('hidden',!sea);});
+ TLLAYERS.forEach(k=>{const b=document.getElementById('btn-tll-'+k);if(!b)return;b.setAttribute('aria-pressed',TL.layers[k]?'true':'false');if(k==='sea')b.classList.toggle('hidden',!sea);if(k==='norm')b.classList.toggle('hidden',!(TL.zoom==='d'&&D&&D.climo&&D.climo.byDay));});
  const sb=document.getElementById('btn-tll-score');
  if(sb&&D){const act=D.hr?planAct():PLAN.act;sb.innerHTML='<span aria-hidden="true">'+(ACTICON[act]||'')+'</span><span>'+esc(LBL.actName?LBL.actName[act]:'')+'</span>';}
 }
@@ -3089,6 +2891,8 @@ function tlLegend(){
  if(La.uv)h.push(sw('background:'+AQICOL[1]+';border-radius:50%','UV'));
  if(La.air)h.push(sw('background:'+AQICOL[2],hrv?'zrak (EAQI)':'air (EAQI)'));
  if(La.sea&&D.sea)h.push(sw('background:'+C.sea,hrv?'more °C':'sea °C'));
+ if(TL.zoom==='d'&&La.temp&&!isC)h.push(sw('background:'+C.hi+'33',hrv?'pouzdanost (od 8. dana)':'confidence band (day 8+)'));
+ if(TL.zoom==='d'&&La.norm&&D.climo&&D.climo.byDay)h.push(sw('border-top:2px dotted '+txt+';background:none',(hrv?'normala ':'normal ')+NORM_LBL+(hrv?' (maks.)':' (max)')));
  if(La.score){const act=planAct();h.push('<span class="tlli">'+(ACTICON[act]||'')+' '+esc(LBL.actName[act])+' '+ACTCOL.map((c,i)=>'<i class="tlsw" style="background:'+c+'" title="'+esc(LBL.actTier[i])+'"></i>').join('')+'</span>');}
  el.innerHTML=h.join('');
 }
@@ -3242,6 +3046,11 @@ function tlDraw(){
      });};
     drawBars(D.daysFull||[],isC?-12:0,isC?CMP.a:C.hi,false,false);
     if(isC&&D2.daysFull)drawBars(D2.daysFull,12,CMP.b,true,true);
+    if(La.norm&&D.climo&&D.climo.byDay){ /* K2: climatology normal of the daily maximum, dotted */
+     ctx.lineWidth=1.8;ctx.strokeStyle=strong;ctx.setLineDash([2,4]);ctx.beginPath();let nst=false;
+     (D.daysFull||[]).forEach(d=>{const nv=D.climo.byDay[d.dt.slice(5)];if(nv==null){nst=false;return;}const nx=X(tsMin(d.dt+'T12:00')),ny=yTemp(nv);if(!nst){ctx.moveTo(nx,ny);nst=true;}else ctx.lineTo(nx,ny);});
+     ctx.stroke();ctx.setLineDash([]);
+    }
    }else{
     if(!isC&&z==='h'){ctx.lineWidth=1.3;ctx.strokeStyle=C.hi+'99';ctx.setLineDash([2,3]);smooth(hr,r=>r.fl,i=>tm[i]);ctx.setLineDash([]);}
     if(isC){
@@ -3364,7 +3173,7 @@ function tlDraw(){
  if(on.uv)chip('☀ UV',lane.uv[0]+(lane.uv[1]>12?1:0));
  if(on.air)chip('AQI',lane.air[0]+(lane.air[1]>12?1:0));
  if(on.sea)chip('🌊 °C',lane.sea[0]+1);
- if(on.score){const act=planAct();chip((ACTICON[act]||'')+' /100',lane.score[0]+(lane.score[1]>12?1:0));}
+ if(on.score){const act=planAct();chip((ACTICON[act]||'')+' '+(LBL.actName?LBL.actName[act]:''),lane.score[0]+(lane.score[1]>12?1:0));}
  /* ---- text updates ---- */
  const sum=tlSummary(xm,mR,nowM);
  if(sum!==TLC.sum){TLC.sum=sum;const se=document.getElementById('tlSum');if(se)se.textContent=sum;}
@@ -3430,15 +3239,13 @@ function applyResponsive(){
  if(layout===want)return;layout=want;
  document.getElementById('wrap').classList.toggle('mobile',want==='mobile');
  document.getElementById('wrap').classList.toggle('mid',want==='mid');
- document.getElementById('wkwrap').style.height=want==='mobile'?'300px':'340px';
- document.getElementById('hrwrap').style.height=want==='mobile'?'220px':'260px';
  {const tw=document.getElementById('tlWrap');if(tw)tw.style.height=want==='mobile'?'250px':(want==='mid'?'300px':'340px');} /* K1: timeline height per layout step */
  document.getElementById('seawrap').style.height=want==='mobile'?'170px':'200px';
  document.getElementById('mtwrap').style.height=want==='mobile'?'160px':'190px';
  document.getElementById('tidewrap').style.height=want==='mobile'?'160px':'190px';
  document.getElementById('biowrap').style.height=want==='mobile'?'150px':'170px';
  document.getElementById('grwrap').style.height=want==='mobile'?'160px':'180px';
- const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],hikecwrap:['170px','200px'],hikewwrap:['150px','170px'],aqiwrap:['150px','170px'],preswrap:['150px','170px']};
+ const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],aqiwrap:['150px','170px'],preswrap:['150px','170px']};
  for(const id in vw){const e=document.getElementById(id);if(e)e.style.height=want==='mobile'?vw[id][0]:vw[id][1];}
  if(D)renderActive();
  markBtns();
@@ -3447,9 +3254,7 @@ function markBtns(){
  const Dk=theme==='dark';
  const actBg=Dk?'#e8e8e6':'#444441',actFg=Dk?'#262624':'#ffffff',inFg=Dk?'#e8e8e6':'#2c2c2a';
  const bd=Dk?'1px solid rgba(255,255,255,0.35)':'1px solid rgba(0,0,0,0.4)';
- const states={'btn-cf':CONF,'btn-pr':PRES,'btn-mp':MP,'btn-bbq':BBQ,
-  'btn-r3':RANGE===3,'btn-r7':RANGE===7,'btn-r14':RANGE===14,'btn-r16':RANGE===16,
-  'btn-c0':CMODE===0,'btn-c1':CMODE===1,'btn-c2':CMODE===2,'btn-moon':MOON,'btn-tide':TIDE,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7,
+ const states={'btn-mp':MP,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7,
   'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7,'btn-vegan':VEGAN};
  ACTORDER.forEach(k=>{states['btn-act-'+k]=(planAct()===k);}); /* J2: the PLANIRAJ activity pills */
  ['h','3','d'].forEach(z=>{states['btn-tlz-'+z]=(TL.zoom===z);}); /* K1: timeline zoom + layer pills */
@@ -3756,7 +3561,7 @@ function renderPlanSections(){
  const sec=act==='bbq'?'bbq':(act==='hike'?'hike':'cards');
  ['bbq','hike','cards'].forEach(k=>{const e=document.getElementById('ps-'+k);if(e)e.classList.toggle('hidden',k!==sec);});
  if(act==='bbq'){planNote('bbqtlNote',!isT);planNote('bbqgrNote',!isT);renderBbqSections();}
- else if(act==='hike'){planNote('hikeMetNote',!isT);planNote('hikeComfNote',!isT);renderHikeSections();}
+ else if(act==='hike'){planNote('hikeMetNote',!isT);renderHikeSections();}
  else renderCondCards(act,date);
 }
 function renderPlan(){
@@ -3765,7 +3570,6 @@ function renderPlan(){
  const hrv=lang==='hr',act=planAct();
  /* charts of the activity sections that are not showing must not stay alive */
  if(act!=='bbq'){[bbqTlCh,bbqGrillCh,grillCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});bbqTlCh=bbqGrillCh=grillCh=null;}
- if(act!=='hike'){[hikeCh,hikeWeekCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hikeCh=hikeWeekCh=null;}
  const vg=document.getElementById('btn-vegan');if(vg)vg.classList.toggle('hidden',act!=='bbq');
  const tags={bbq:VEGAN?(hrv?'Biljni alarm aktiviran. Salata moli za dobar char, panceta neka pričeka.':'Plant-based panic engaged. The lettuce prays for a good char; the pork belly can wait.'):LBL.bbqTag,hike:LBL.hikeTag,bike:LBL.bikeTag,run:LBL.runTag,sea:LBL.seaTag};
  const tg=document.getElementById('planTag');if(tg)tg.textContent=tags[act]||'';
@@ -3993,105 +3797,8 @@ function renderHikeSections(){
   card('🎨 '+(hrv?'Inspiracija oblaka':'Cloud-shape inspiration'),'','',(hrv?'Nebo kaže: ':'Sky says: ')+cloudTxt+(hrv?'. Lezi na vrhu i raspravljaj na što liči.':'. Lie back at the summit and argue about what it looks like.'))
  ];
  document.getElementById('hikeFun').innerHTML=fun.join('');
- document.getElementById('hikeComfSum').textContent=raw.length?(hrv?'Osjet temperature (linija) i šansa kiše (stupci) kroz dan.':'Feels-like (line) and rain chance (bars) through the day.'):'';
- drawHikeComfort();drawHikeWeek();
 }
-function drawHikeComfort(){
- if(hikeCh){hikeCh.destroy();hikeCh=null;}
- const raw=D.grillRaw||[];
- const hrv0=lang==='hr';
- const wrapEl=document.getElementById('hikecwrap'), emptyEl=document.getElementById('hikeComfEmpty');
- if(!raw.length){
-  const l0=document.getElementById('hikecLeg');if(l0)l0.innerHTML='';
-  if(wrapEl)wrapEl.classList.add('hidden');
-  if(emptyEl){emptyEl.classList.remove('hidden');emptyEl.innerHTML=emptyCard(hrv0?'Satni graf nedostupan':'Hourly chart unavailable',hrv0?'Satni graf zahtijeva izravni izvor podataka (AI izvor ga ne nudi).':'The hourly chart needs the direct data feed (not available on the AI feed).','warn');}
-  return;
- }
- if(wrapEl)wrapEl.classList.remove('hidden');
- if(emptyEl){emptyEl.classList.add('hidden');emptyEl.innerHTML='';}
- const hrv=lang==='hr', M=layout==='mobile';
- const labels=raw.map(o=>o.hh), fl=raw.map(o=>Math.round(o.fl!=null?o.fl:o.t)), pp=raw.map(o=>o.pp||0);
- hikeCh=new Chart(document.getElementById('hikecomf'),{
-  data:{labels:labels,datasets:[
-   {type:'bar',label:'pp',data:pp,backgroundColor:C.sky+'B3',borderRadius:3,yAxisID:'y1',order:10},
-   {type:'line',label:'fl',data:fl,borderColor:C.hi,backgroundColor:C.hi,borderWidth:3,pointRadius:3,pointBorderColor:ptb,pointBorderWidth:1,tension:0.35,yAxisID:'y',order:1}
-  ]},
-  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
-   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label==='pp'?(c.parsed.y+'% '+(hrv?'kiše':'rain')):(c.parsed.y+'° '+(hrv?'osjet':'feels-like'))}}},
-   scales:{x:{grid:{display:false},ticks:{autoSkip:true,maxTicksLimit:M?7:14,color:txt,font:{size:M?8:9}}},
-    y:{position:'left',grace:'20%',grid:{color:grid},ticks:{color:txt,callback:v=>Math.round(v)+'°'}},
-    y1:{position:'right',min:0,max:100,grid:{drawOnChartArea:false},ticks:{color:txt,stepSize:25,callback:v=>v+'%'}}}},
-  plugins:[bgPlug]
- });
- const leg=document.getElementById('hikecLeg');
- if(leg)leg.innerHTML=legSwatch('<span style="width:14px;height:0;border-top:3px solid '+C.hi+';"></span>',hrv?'Osjet °C':'Feels-like °C')+legSwatch('<span style="width:10px;height:10px;border-radius:2px;background:'+C.sky+';"></span>',hrv?'Šansa kiše %':'Rain chance %');
-}
-function drawHikeWeek(){
- if(hikeWeekCh){hikeWeekCh.destroy();hikeWeekCh=null;}
- const hrv=lang==='hr';
- const sds=scoreDays('hike',D,7); /* J2: the very same numbers as the Plan card, one bar per forecast day */
- const wrap=document.getElementById('hikewwrap'),wl=document.getElementById('hikewLeg'),sm=document.getElementById('hikeWeekSum');
- if(wrap)wrap.classList.toggle('hidden',!sds.length);
- if(!sds.length){if(wl)wl.innerHTML='';if(sm)sm.textContent=hrv?'Satni podaci još nisu stigli.':'Hourly data has not arrived yet.';return;}
- if(sm)sm.textContent=hrv?'Najbolji 3-satni prozor svakog dana — isti izračun kao kartica gore.':'Best 3-hour window of each day — the same calculation as the card above.';
- const arr=sds.map(s=>s.v), labels=sds.map(s=>dayLab(s.date));
- const cols=sds.map(s=>ACTCOL[s.tier]);
- const M=layout==='mobile';
- hikeWeekCh=new Chart(document.getElementById('hikeweek'),{type:'bar',
-  data:{labels:labels,datasets:[{data:arr,backgroundColor:cols,borderRadius:4,barPercentage:0.62,categoryPercentage:0.9}]},
-  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
-   plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>dayLab(sds[c[0].dataIndex].date),label:c=>{const s=sds[c.dataIndex];return c.parsed.y+'/100 · '+LBL.actTier[s.tier]+' · '+(hrv?'najbolje ':'best ')+planWinTxt(s);}}}},
-   scales:{x:{grid:{display:false},ticks:{color:txt,font:{size:M?9:11}}},y:{display:false,min:0,max:118}}},
-  plugins:[bgPlug,{id:'hwl',afterDatasetsDraw(ch){const ctx=ch.ctx;ctx.save();ctx.textAlign='center';ctx.font=(M?'600 9px ':'600 11px ')+'sans-serif';ctx.fillStyle=strong;ch.getDatasetMeta(0).data.forEach((bar,i)=>{ctx.fillText(arr[i],bar.x,bar.y-4);});ctx.restore();}}]
- });
- if(wl){const sq=c=>'<span style="width:10px;height:10px;border-radius:2px;background:'+c+';"></span>';
-  wl.innerHTML=[['≥80',0],['60–79',1],['40–59',2],['<40',3]].map(a=>legSwatch(sq(ACTCOL[a[1]]),LBL.actTier[a[1]]+' '+a[0])).join('');}
-}
-/* ---------- TODAY strip + AQI (v3.05) ---------- */
-function renderStripWindow(el){
- var hrv=lang==='hr';
- var ext=D.h3ext;
- var nowD=locNow();
- var base=Math.floor(nowD.getHours()/3)*3;
- var pts=ext.filter(function(p){return p.a>=base;});
- if(pts.length<2){el.innerHTML='';return;}
- var hiW=null,loW=null,ppW=0;
- pts.forEach(function(p){if(p.a>base+24)return;if(p.t!=null){if(hiW==null||p.t>hiW)hiW=p.t;if(loW==null||p.t<loW)loW=p.t;}if(p.pp!=null&&p.pp>ppW)ppW=p.pp;});
- var flTxt=(D.now&&D.now.fl!=null)?(hrv?('Osjet '+Math.round(D.now.fl)+'\u00b0'):('Feels like '+Math.round(D.now.fl)+'\u00b0')):'';
- var points='';
- for(var i=0;i<pts.length;i++){
-  var p=pts[i];
-  var dayChg=(i===0||p.dt!==pts[i-1].dt);
-  points+='<div style="flex:0 0 auto;width:56px;text-align:center;'+(dayChg&&i>0?'border-left:1px solid var(--bd);':'')+'">'+
-   '<div style="font-size:9.5px;font-weight:700;color:var(--ts);height:13px;line-height:13px;">'+(dayChg?esc(dayLab(p.dt).split(' ')[0]):'')+'</div>'+
-   '<div style="font-size:40px;line-height:1;">'+iconFor(p)+'</div>'+
-   '<div style="font-size:13px;font-weight:600;color:var(--tp);margin-top:3px;">'+(p.t==null?'--':p.t+'\u00b0')+'</div>'+
-   '<div style="font-size:10px;color:var(--ts);margin-top:2px;">'+p.h.slice(0,2)+'h</div>'+
-   ((p.pp!=null&&p.pp>=20)?('<div style="font-size:9.5px;color:#2caaf0;font-weight:600;">'+p.pp+'%</div>'):'<div style="height:12px;"></div>')+
-   '</div>';
- }
- var old=el.querySelector('.dragx'),keep=old?old.scrollLeft:0;
- var grpLbl=hrv?'Prognoza po satima, povuci za dalje':'Hourly forecast, drag for more';
- el.innerHTML=
-  '<div role="group" aria-label="'+esc(grpLbl)+'" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">'+
-   '<div style="min-width:104px;">'+
-    '<div class="lab" style="font-size:10.5px;">'+(hrv?'sljede\u0107a 24 h':'next 24 h')+'</div>'+
-    '<div style="font-size:26px;font-weight:700;color:var(--tp);">'+(hiW==null?'--':hiW+'\u00b0')+'<span style="color:var(--ts);font-weight:400;"> / '+(loW==null?'--':loW+'\u00b0')+'</span></div>'+
-    (flTxt?('<div style="font-size:12px;color:var(--ts);margin-top:3px;">'+esc(flTxt)+'</div>'):'')+
-    '<div style="font-size:12px;color:var(--ts);margin-top:5px;">\uD83D\uDCA7 '+Math.round(ppW)+'%</div>'+
-   '</div>'+
-   '<div style="flex:1;min-width:220px;">'+
-    '<div class="dragx" tabindex="0"><div style="display:flex;gap:0;">'+points+'</div></div>'+
-   '</div>'+
-  '</div>';
- var nw=el.querySelector('.dragx');if(nw&&keep)nw.scrollLeft=keep;
-}
-function renderTodayStrip(){
- var el=document.getElementById('todayStrip');
- if(!el)return;
- if(D&&D.h3ext&&D.h3ext.length){renderStripWindow(el);return;}
- el.innerHTML='';
-}
+/* ---------- shared drag-scroll for .dragx strips (PLANIRAJ's day row) + AQI helpers ---------- */
 /* drag-to-scroll with the mouse for every .dragx strip (touch scrolls natively); delegated, so re-renders keep working */
 (function(){
  var act=null,sx=0,sl=0,moved=false,swallow=false;
@@ -4839,7 +4546,7 @@ const VIEWS={now:{el:'view-now',render:render},plan:{el:'view-plan',render:rende
 let active='now';
 function hashKey(){return (location.hash||'').split('?')[0];}
 function route(){return ROUTES[hashKey()]||'now';}
-function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,tideCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh,aqiCh,presCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=tideCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=aqiCh=presCh=null;}
+function destroyAllCharts(){[seaCh,mtCh,tideCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,aqiCh,presCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});seaCh=mtCh=tideCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=aqiCh=presCh=null;}
 function updateTabs(){
  document.querySelectorAll('#tabs .tab').forEach(a=>{const on=a.dataset.view===active;a.classList.toggle('on',on);a.setAttribute('aria-selected',on?'true':'false');a.setAttribute('tabindex',on?'0':'-1');});
  if(D){try{const el=id=>document.getElementById(id);
@@ -4850,14 +4557,29 @@ function updateTabs(){
  const cap=active.charAt(0).toUpperCase()+active.slice(1);
  document.title=(LBL.tShort||"Patrik's weather")+' v'+APPV+' · '+(LBL['tab'+cap]||'');
 }
+/* K2 map <-> timeline sync (both guarded): opening the map scrubs its slider to the timeline cursor hour (0..23 h ahead); coming back to SADA puts the cursor on the hour the map was left at */
+function mapSyncFromTl(){
+ const ts=tlCursorTs();if(!ts||!tlOk())return;
+ const h=Math.round((tsMin(ts)-Math.floor(tsMin(locNowStr())/60)*60)/60);
+ if(h>=0&&h<=23){const sl=document.getElementById('gridSlider');if(sl)sl.value=h;gridSeek(h);}
+}
+function tlSyncFromMap(){
+ if(!(GRIDHR>0)||!D||!tlOk())return;
+ const m=Math.floor(tsMin(locNowStr())/60)*60+GRIDHR*60;
+ tlGoto(tlStr(m));
+ TL.cursor=tlSnap(m)*60000;tlRO=true;tlSchedule();
+}
 function showView(name){
  if(!VIEWS[name])name='now';active=name;
  if(name==='plan'){const ra=ROUTEACT[hashKey()];if(ra){PLAN.act=ra;savePrefs();}} /* #plan-hike, #bbq ... pick the activity */
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
  document.getElementById('tabs').classList.toggle('onmap',name==='map'); /* v3.19: the bar stays on the full-screen map; desktop hides the top tabs there */
  destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
+ try{updateNowBar();}catch(e){}
  if(!D)return;
- setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}try{updateAlertBox();}catch(e){}try{updateFoot();}catch(e){}updateTabs();},0);
+ if(name==='map'){try{mapSyncFromTl();}catch(e){console.log('mapSyncFromTl',e);}}
+ setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}try{updateAlertBox();}catch(e){}try{updateFoot();}catch(e){}updateTabs();
+  if(name==='now'){try{tlSyncFromMap();}catch(e){console.log('tlSyncFromMap',e);}}},0);
 }
 /* the warning banner sits above the tabs, so every view render refreshes it */
 function updateAlertBox(){
