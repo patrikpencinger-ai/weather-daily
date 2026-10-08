@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Patrik's weather daily — v3.20</title>
+<title>Patrik's weather daily — v3.21</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#16243a">
@@ -194,7 +194,7 @@ body{padding:20px;transition:background .2s}
 /* J2: PLANIRAJ - activity pills, day pills, the unified plan card and its hourly score bars */
 .actRow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .actRow .lbtn{gap:6px;font-size:13px}
-.dayRow{position:relative;display:flex;gap:6px;margin:0 0 14px;padding:2px 0 4px}
+.dayRow{position:relative;min-width:0;display:flex;gap:6px;margin:0 0 14px;padding:2px 0 4px}
 .dpill{flex:0 0 auto;min-width:50px;min-height:40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 8px;background:transparent;color:var(--ts);border:1px solid var(--bd);border-radius:8px;font:inherit;cursor:pointer}
 #wrap.mobile .dpill,#wrap.mid .dpill{min-height:44px}
 .dpill .dl{font-size:11px;line-height:1.15;white-space:nowrap}
@@ -539,7 +539,7 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.20 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.21 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
 </div>
 
@@ -554,7 +554,7 @@ const ICON_NIGHT={sun:'🌙',partcloud:ICON.cloud}; /* I2: night variants of the
 function iconFor(r){if(!r)return'';return (r.night&&ICON_NIGHT[r.cond])||ICON[r.cond]||'';}
 const ICON_SUN='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 const ICON_MOON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-const APPV='3.20';
+const APPV='3.21';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -1383,7 +1383,7 @@ function saveLast(key,locName,d){ /* PERF-2: persist the last good direct-mode f
  try{
   if(!d||d.mode==='ai')return;
   let dd=d;
-  if(d.hr){dd=Object.assign({},d);dd.hrc=hrPack(d.hr);delete dd.hr;} /* J1: hourly rows are stored columnar (~3x smaller) */
+  if(d.hr){dd=Object.assign({},d);const pk=hrPack(d.hr);if(pk)dd.hrc=pk;delete dd.hr;} /* J1: hourly rows are stored columnar (~3x smaller); an empty array stores neither key */
   const s=JSON.stringify({v:APPV,key:key,loc:locName,t:Date.now(),D:dd});
   if(s.length>400000)return;
   localStorage.setItem(WD_LAST_KEY,s);
@@ -1399,6 +1399,7 @@ function readWdLast(locName,key){
   if(o.key.split('|')[0]!==key.split('|')[0])return null; /* RANGE must match */
   if(o.loc.trim().toLowerCase()!==locName.trim().toLowerCase())return null;
   if(o.D.hrc){const c=o.D.hrc;o.D.hr=c.ts.map((_,i)=>hrRow(c,i));delete o.D.hrc;} /* J1: back to row objects */
+  delete o.D.hrc; /* a stray hrc (e.g. null) must never reach the renderers */
   return o;
  }catch(e){return null;}
 }
@@ -1890,8 +1891,13 @@ function grillData(){
 }
 /* J2: the grilling line of the daily text block - the engine's number for today (scoreDay), the same one the tab peek and the Plan card show. */
 function buildBbqLine(l){
- const sd=scoreDay('bbq',todayIso(),D);if(!sd)return'';
  const hrv=l==='hr';
+ const sd=scoreDay('bbq',todayIso(),D);
+ if(!sd){ /* AI feed / snapshot without hourly rows: the old day-level wording (score, tier icon + name, no best window) */
+  const g=bbqScore(D);if(!g)return'';
+  const t=bbqTier(g.v);
+  return '🔥 '+(hrv?'Roštilj danas ':'Grilling today ')+g.v+'/100 · '+BBQI[t]+' '+bbqName(t).toLowerCase();
+ }
  const f=parseInt(sd.best.from,10),t=parseInt(sd.best.to,10);
  return '🔥 '+(hrv?'Roštilj danas ':'Grilling today ')+sd.v+'/100 · '+(sd.over?(hrv?'bilo najbolje ':'was best '):(hrv?'najbolje ':'best '))+f+'–'+t+' h';
 }
@@ -2107,7 +2113,7 @@ function buildLegends(){
  const bl=document.getElementById('bioLeg');
  if(bl)bl.innerHTML=[0,1,2].map(i=>legSwatch(sqSw([C.ok,C.warn,C.bad][i])+'<span style="font-size:12px;margin-left:2px">'+BIOE[i]+'</span>',bioName(i))).join('');
  const grl=document.getElementById('grLeg');
- if(grl)grl.innerHTML=[0,1,2,3,4].map(i=>legSwatch('<span style="font-size:13px">'+BBQI[i]+'</span>',bbqName(i))).join('');
+ if(grl)grl.innerHTML=grillLegHtml();
 }
 
 /* ---------- Weather view top: hero, stat chips, collapsible groups (P1) ---------- */
@@ -2653,12 +2659,30 @@ function drawPressure(){
  }
 }
 
+/* Day bars of the GRILLING chart: with hourly rows (D.hr) they are the engine's scoreDay numbers, the same as GRILLING's summary sentence
+   and the Plan view (four actTier bands); null = no hourly rows, drawGrill then falls back to the legacy day-level bbqDay (five bbqTier bands). */
+function grillDaySds(){
+ if(!D||!D.hr)return null;
+ const s=scoreDays('bbq',D,GRANGE==='h'?7:GRANGE);
+ return s.length?s:null;
+}
+function grillEngMode(){return !(GRANGE==='h'&&D&&D.grillH&&D.grillH.length>0)&&!!grillDaySds();}
+function grillLegHtml(){
+ if(grillEngMode())return [0,1,2,3].map(i=>legSwatch('<span style="font-size:13px">'+TIERIC[i]+'</span>',LBL.actTier[i])).join('');
+ return [0,1,2,3,4].map(i=>legSwatch('<span style="font-size:13px">'+BBQI[i]+'</span>',bbqName(i))).join('');
+}
 function drawGrill(){
  if(grillCh){grillCh.destroy();grillCh=null;}
  const days=D.days||[];
  const hourly=GRANGE==='h'&&D.grillH&&D.grillH.length>0;
+ const eng=!hourly?grillDaySds():null;
+ const grl0=document.getElementById('grLeg');if(grl0)grl0.innerHTML=grillLegHtml();
  let arr,xlabels,titleFor;
- if(hourly){
+ if(eng){
+  arr=eng.map(x=>x.v);
+  xlabels=eng.map(x=>dayLab(x.date));
+  titleFor=i=>dayLab(eng[i].date);
+ }else if(hourly){
   arr=D.grillH.map(x=>x.s);
   xlabels=D.grillH.map(x=>x.h);
   titleFor=i=>D.grillH[i].h;
@@ -2676,11 +2700,11 @@ function drawGrill(){
  const M0=layout==='mobile';
  const step=hourly?(M0?2:1):(vdense?2:1);
  const tcol=[C.ok,'#3DA35D',C.warn,'#C2632B',C.bad];
- const cols=arr.map(v=>v==null?'rgba(150,150,150,0.35)':tcol[bbqTier(v)]);
+ const cols=arr.map(v=>v==null?'rgba(150,150,150,0.35)':(eng?ACTCOL[actTier(v)]:tcol[bbqTier(v)]));
  grillCh=new Chart(document.getElementById('grill'),{type:'bar',
   data:{labels:xlabels,datasets:[{data:arr.map(v=>v==null?0:v),backgroundColor:cols,borderRadius:4,barPercentage:(hourly||dense)?0.82:0.62,categoryPercentage:0.96}]},
   options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:30}},
-   plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>titleFor(c[0].dataIndex),label:c=>{const v=arr[c.dataIndex];if(v==null)return '—';const t=bbqTier(v);return LBL.cBbq+': '+v+'/100 '+BBQI[t]+' '+bbqName(t);}}}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>titleFor(c[0].dataIndex),label:c=>{const v=arr[c.dataIndex];if(v==null)return '—';if(eng){const t=actTier(v);return LBL.cBbq+': '+v+'/100 '+TIERIC[t]+' '+LBL.actTier[t];}const t=bbqTier(v);return LBL.cBbq+': '+v+'/100 '+BBQI[t]+' '+bbqName(t);}}}},
    scales:{
     x:{grid:{display:false},ticks:{autoSkip:(hourly||vdense),maxTicksLimit:hourly?(M0?7:14):undefined,color:txt,font:{size:M0?8:((dense||hourly)?9:11)}}},
     y:{display:false,min:0,max:118}
@@ -2690,7 +2714,7 @@ function drawGrill(){
    const M=layout==='mobile';
    ch.getDatasetMeta(0).data.forEach((bar,i)=>{const v=arr[i];if(v==null||i%step!==0)return;
     ctx.font=(M?'12px ':'15px ')+'sans-serif';
-    ctx.fillText(BBQI[bbqTier(v)],bar.x,bar.y-12);
+    ctx.fillText(eng?TIERIC[actTier(v)]:BBQI[bbqTier(v)],bar.x,bar.y-12);
     ctx.font=(M?'600 8px ':'600 10px ')+'sans-serif';
     ctx.fillStyle=strong;ctx.fillText(v,bar.x,bar.y-2);
    });
@@ -2991,7 +3015,7 @@ function planDayLab(dt){
 }
 function planWinTxt(sd){return parseInt(sd.best.from,10)+'–'+parseInt(sd.best.to,10)+' h';}
 function planDayRows(date){const rg=D&&D.hr&&D.hrDay&&D.hrDay[date];return rg?D.hr.slice(rg[0],rg[1]):[];}
-function planReasons(sd){ /* "late hour" is noise when the window already sits in the prime afternoon band */
+function planReasons(sd){ /* hide the "late hour" (time) chip when the best window lies inside 12-19 h: the window itself already says "afternoon", so the chip would be noise */
  const f=parseInt(sd.best.from,10),t=parseInt(sd.best.to,10);
  return sd.reasons.filter(k=>!(k==='time'&&f>=12&&t<=19));
 }
@@ -4112,6 +4136,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.21',d:'2026-10-08',en:'<b>Three tabs</b>: NOW, PLAN and MAP (SADA · PLANIRAJ · KARTA in Croatian). BBQ and Hiking are now activities inside PLAN; the old #bbq and #hike links still work. <b>PLAN</b>: pick an activity (BBQ, hiking, biking, running, sea) and any of the next 16 days; one card shows the score, the best time window, the reasons and hour-by-hour bars, with the activity’s own sections below and both weekends at a glance. <b>One scoring engine</b> for every activity: the same numbers drive the daily grilling line, the tab badge and the weekend table. Hourly data for the whole forecast is now kept, the basis for the timeline in the next release.',hr:'<b>Tri kartice</b>: SADA, PLANIRAJ i KARTA. Roštilj i planinarenje sada su aktivnosti unutar PLANIRAJ; stare poveznice #bbq i #hike i dalje rade. <b>PLANIRAJ</b>: odaberi aktivnost (roštilj, planinarenje, bicikl, trčanje, more) i bilo koji od sljedećih 16 dana; jedna kartica prikazuje ocjenu, najbolji vremenski prozor, razloge i stupce po satima, a ispod su odjeljci same aktivnosti i oba vikenda na jednom mjestu. <b>Jedan sustav ocjenjivanja</b> za sve aktivnosti: isti brojevi pokreću dnevnu liniju za roštilj, značku na kartici i tablicu vikenda. Satni podaci za cijelu prognozu sada se čuvaju, kao osnova za vremensku traku u sljedećem izdanju.'},
  {v:'3.20',d:'2026-10-08',en:'<b>Times follow the chosen place</b>: “now”, “today” and “yesterday” use the location’s own clock, so Tokyo seen from Zagreb is right, and days with 23 or 25 hours (clock change) no longer shift the hours. <b>Today first</b>: one hero card (temperature, feels like, low–high, rain % and mm, day verdict) and four stat chips (wind, UV, air, pressure) at the top, the hour strip right below; air, comparisons, sea and bio/pressure/moon sit in <b>collapsible groups</b> that remember their state, and the page is about a third shorter. <b>One BBQ number</b> everywhere (the hourly score) and <b>one weekend block</b> (BBQ, hiking, biking, running) on both Weather and BBQ. <b>Comparison mode</b> says what it compares, BBQ and Hiking say “only A”, and a failed second place is reported. Failures of sea, air or normals show in the footer, and errors have a <b>Try again</b> button. Language, theme and switches are remembered; the first visit opens in the browser’s language. Night icons at night, an honest source label, larger tap targets, text pills and Croatian tooltips everywhere.',hr:'<b>Vrijeme prati odabrano mjesto</b>: „sada”, „danas” i „jučer” koriste sat same lokacije, pa je Tokio gledan iz Zagreba točan, a dani s 23 ili 25 sati (promjena sata) više ne pomiču sate. <b>Danas prvo</b>: jedna glavna kartica (temperatura, osjet, najniža–najviša, kiša u % i mm, ocjena dana) i četiri male kartice (vjetar, UV, zrak, tlak) na vrhu, a satna traka odmah ispod; zrak, usporedbe, more i bio/tlak/mjesec nalaze se u <b>sklopivim skupinama</b> koje pamte stanje, a stranica je otprilike trećinu kraća. <b>Jedan broj za roštilj</b> posvuda (satni indeks) i <b>jedan blok za vikend</b> (roštilj, planinarenje, bicikl, trčanje) na Vremenu i na Roštilju. <b>Usporedba</b> kaže što uspoređuje, Roštilj i Planinarenje kažu „samo A”, a neuspjelo drugo mjesto se prijavljuje. Greške mora, zraka ili normala vide se u podnožju, a greške imaju gumb <b>Pokušaj ponovno</b>. Jezik, tema i prekidači se pamte; prvi posjet otvara se na jeziku preglednika. Noćne ikone noću, iskrena oznaka izvora, veće površine za dodir, tekstualne oznake i hrvatski opisi posvuda.'},
  {v:'3.19',d:'2026-10-05',en:'<b>Map</b>: the bottom icon bar stays visible on phones and foldables; on phones the <b>layer buttons</b> sit in one swipeable row at the bottom, within thumb reach. <b>Precipitation in mm per day</b> next to the rain chance: on the OUTLOOK chart and its summary (with the total), on the Tomorrow card and on the Chance of rain card.',hr:'<b>Karta</b>: donja traka s ikonama ostaje vidljiva na telefonu i preklopnom uređaju; na telefonu su <b>gumbi slojeva</b> u jednom redu na dnu, nadohvat palca. <b>Oborine u mm po danu</b> uz vjerojatnost kiše: na grafu IZGLEDI i u njegovom sažetku (s ukupnom količinom), na kartici Sutra i na kartici Vjerojatnost kiše.'},
  {v:'3.18',d:'2026-10-05',en:'Header: one <b>language toggle</b> button; the refresh button is gone (data refreshes by itself). <b>Cards</b> all have the same height; <b>AQI, PM2.5 and PM10</b> are separate cards; the map card is gone (use the Map link). Phone menu: <b>larger monochrome icons</b> without text. <b>HOUR BY HOUR</b> is one long strip — swipe it, or drag it with the mouse; the slider is gone. Foldables show <b>wide charts</b> in one column. The longest outlook is the real <b>16 days</b>. <b>Pressure</b> is shown by default, in white (dark slate in the light theme).',hr:'Zaglavlje: jedan gumb za <b>promjenu jezika</b>; tipka za osvježavanje je uklonjena (podaci se osvježavaju sami). <b>Kartice</b> su sve iste visine; <b>AQI, PM2.5 i PM10</b> su zasebne kartice; kartica karte je uklonjena (dovoljan je link Karta). Izbornik na telefonu: <b>veće jednobojne ikone</b> bez teksta. <b>SAT PO SAT</b> je jedna duga traka — povuci je prstom ili mišem; klizač je uklonjen. Na preklopnim uređajima <b>široki grafovi</b> u jednom stupcu. Najdulji raspon je stvarnih <b>16 dana</b>. <b>Tlak</b> je uključen od početka, bijele boje (tamnosiva u svijetloj temi).'},

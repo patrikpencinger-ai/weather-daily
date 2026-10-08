@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~4,000 lines). Current version: **v3.20** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~4,300 lines). Current version: **v3.21** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
@@ -19,10 +19,16 @@ browser or served as a static file. Keep it that way.
 
 ### Shape of the app
 
-A **five-view SPA in one file**: a tab bar + hash router (`#weather`/`#bbq`/`#hike`/`#map`/`#info`;
-`#swim` redirects to `#weather`, `#radar` redirects to `#map`) over a `VIEWS`/`ROUTES` registry. Info has
-no tab: it is reached only through the footer's "Info & changelog" link (`#info`), with a "← Back" link
-inside the view; the route also works directly. One shared data fetch (`D`, plus `D2` for a comparison
+A **three-tab SPA in one file** — NOW (Croatian SADA), PLAN (PLANIRAJ) and MAP (KARTA) — plus the tab-less
+Info view: a tab bar + hash router over a `VIEWS`/`ROUTES` registry (views `now`/`plan`/`map`/`info`, sections
+`#view-now`/`#view-plan`/`#view-map`/`#view-info`). Routes: `#now` (also the empty hash, `#weather` and `#swim`),
+`#plan`, `#plan-bbq`/`#plan-hike`/`#plan-bike`/`#plan-run`/`#plan-sea` (open PLAN on that activity),
+`#bbq` and `#hike` (old links: open PLAN on BBQ / hiking), `#map` (also `#radar`) and `#info`. `ROUTEACT` maps
+the activity-bearing hashes to an activity; `showView('plan')` and the `hashchange` handler apply it to
+`PLAN.act`. The separate BBQ and Hiking tabs/views of v3.17–v3.20 were folded into PLAN as activities in
+v3.21 (their render functions, `renderBbq`/`renderHike`, are gone). Info has no tab: it is reached only
+through the footer's "Info & changelog" link (`#info`), with a "← Back" link inside the view; the route also
+works directly. One shared data fetch (`D`, plus `D2` for a comparison
 location) feeds all views. `showView(name)` toggles the `#view-*` sections, calls `destroyAllCharts()`,
 then dispatches the active view's render via `setTimeout(0)` (NOT rAF — throttled in background tabs).
 The global hooks `applyTheme`/`setLang`/`applyResponsive` (plus the switch toggles) call
@@ -31,9 +37,11 @@ alert banner (`updateAlertBox()`), the footer line (`updateFoot()`) and the tab 
 so the footer, the retry button and the failure notes show on every view.
 
 The tab bar (`#tabs`) is the classic top bar on desktop. In the `mobile` and `mid` layouts the **same
-element** is restyled (CSS only) into a fixed bottom navigation bar: 30 px monochrome inline-SVG icons,
-no visible label (the label stays for screen readers, visually hidden) and no peek badge. Desktop keeps
-text labels and peeks. The bar **stays visible on the Map view**: `showView()` sets `#tabs.onmap`;
+element** is restyled (CSS only) into a fixed bottom navigation bar: 30 px monochrome inline-SVG icons
+(cloud-sun, clipboard-check, map, in the order NOW · PLAN · MAP; `tab-now`/`tab-plan`/`tab-map`), no visible
+label (the label stays for screen readers, visually hidden) and no peek badge. Desktop keeps text labels
+(`T` keys `tabNow`/`tabPlan`/`tabMap`) and peeks, set by `updateTabs()`: `pk-now` the current temperature,
+`pk-plan` the chosen activity's icon plus its tier dot for today (from `scoreDay`), `pk-map` 🌧️/🗺️. The bar **stays visible on the Map view**: `showView()` sets `#tabs.onmap`;
 desktop hides the top tabs there, mobile/mid keep the bar above the map and hide the map's ✕.
 
 Header controls: the location pill (`#locSel`), ONE language toggle (`btn-lang`, `toggleLang()`, shows
@@ -81,14 +89,14 @@ browser's, so Tokyo seen from Zagreb is right and 23- or 25-hour clock-change da
 The app is installable (Android/Chrome "Install app", iOS "Add to Home Screen", standalone display) with
 an offline app shell. This is the **one deliberate exception** to "single self-contained file":
 `manifest.json`, `sw.js`, the `icons/` PNGs, and the `tools/make-icons.js` script that generates them are
-the only other files the site ships (`tools/test-time.js` is a dev-only test, see "Running it"). None of
+the only other files the site ships (`tools/test-time.js` and `tools/test-score.js` are dev-only tests, see "Running it"). None of
 them touch app data or behaviour — `sw.js` precaches only the HTML shell (this file, `index.html`,
 `manifest.json`, the icons) and the two pinned CDN library files/styles (Chart.js, Leaflet JS+CSS); it
 never intercepts or caches an API or map-tile request — those always go straight to the network,
 untouched, exactly as if the service worker did not exist. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.20`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.21`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -97,7 +105,7 @@ page. When a new SW takes over an already-open tab (`controllerchange`), the app
 — it appends a bilingual "new version ready — reload" / "nova verzija spremna — osvježi" note to the
 footer chip instead.
 
-### Weather view (`#view-weather`) — DOM order
+### NOW view (`#view-now`, tab SADA) — DOM order
 
 1. `#cmpNote` — in comparison mode, one line saying what is compared (`T.cmpNote`, `{A}`/`{B}`).
 2. `.toprow` — `#hero` (`renderHero()`: temperature, feels like, low–high, rain % + mm, icon, and the
@@ -110,7 +118,7 @@ footer chip instead.
    `.dragx` strip — touch scrolls natively, a delegated mouse-drag handler scrolls it with the mouse,
    arrow keys when focused; any element with class `dragx` gets this behaviour.
 4. The daily text block (`#todayLbl`, `#badge`, `#recTxt`: day sentence, traffic-light badge, advice and
-   one BBQ line; when comparing, a `buildVersus()` line and both places' sentences, no badge).
+   the grilling line `buildBbqLine()` — the engine's number for today and its best window; when comparing, a `buildVersus()` line and both places' sentences, no badge).
 5. `#wxGrid` (a plain wrapper — charts are full width on foldables too): `#hrSec` NEXT 24 HOURS
    (pressure-overlay switch `btn-pr`/`togglePres()` on its heading; pressure overlay ON by default) →
    `#outlookSec` OUTLOOK → `#weekendSec` (WEEKEND PLANS, `buildWeekendBlock(l)`). OUTLOOK has two
@@ -133,21 +141,21 @@ footer chip instead.
    `grpOpen`.
 7. `#factSec` — INTERESTING FACT.
 
-The old `#nowCards` grid, the RIGHT NOW heading, the station line, the GRILLING section on Weather and
+The old `#nowCards` grid, the RIGHT NOW heading, the station line, the GRILLING section on NOW (it now lives in PLAN) and
 the map launcher card are gone. The warning banner `#alertBox` sits above `#tabs`.
 
 ### Logic shared between views
 
-- **One BBQ number.** `bbqToday(d,crit)` is the hourly compound score (`grillCompound`, criteria
-  `BBQCRIT`: time/temp/rain/wind/humid/storm). Its peak (best hour still ahead, or the day's best once
-  the day is over) is THE number: the daily text line, the `pk-bbq` tab badge, the BBQ hero, the GRILLING
-  summary and the A-vs-B verdict all use it. It falls back to the day-level score when there is no
-  hourly data (reduced AI-feed object). `bbqScore(d)`/`bbqDay(x,bs)` remain for **per-day** values that
-  have no hourly rows: the OUTLOOK fire overlay, the GRILLING day bars and the weekend block.
-- **One weekend block.** `buildWeekendBlock(l)` (BBQ rating from `weekendBbq(grp)`, shared Sat/Sun
-  grouping with the lone-Sunday skip) is the single component rendered into `#weekendTxt` on Weather and
-  `#bbqWkTxt` on BBQ: this & next weekend rated for BBQ, hiking, biking and running from a forced 14-day
-  lookahead (`D.daysFull`).
+- **One scoring engine** (next section): the grilling line, the `pk-plan` tab peek, the PLAN card, the day
+  pills, the weekend block and the GRILLING summary all call `scoreDay`/`scoreDays`, so the same day shows
+  the same number everywhere. The day-level estimates `bbqScore(d)`/`bbqDay(x,bs)` remain only for the
+  OUTLOOK fire overlay and the GRILLING day bars.
+- **One weekend block.** `buildWeekendBlock(l)` (shared Sat/Sun grouping with the lone-Sunday skip via
+  `weekendGroups()`) is the single component rendered into `#weekendTxt` on NOW and `#planWkTxt` on PLAN:
+  this & next weekend, one row per activity (BBQ, hiking, biking, running, plus sea on a coast) with a tier
+  dot and word, and the best day by `scoreDay` with its temperature, rain chance, score and top reasons
+  (`planReasons`). A day the engine cannot score is skipped, never shown as a stray 100. It reads
+  `D.daysFull` (forced 14-day lookahead).
 - **Severe-weather alerts** (`buildAlerts`/`D.alerts`, `null` when there is nothing to show, else
   `{sev, rows}`) are derived client-side from Open-Meteo (storm code / strong wind / heavy rain / big
   swing / extreme UV / dangerous heat / dangerous cold) — official DHMZ/Meteoalarm feeds are CORS-blocked
@@ -157,11 +165,79 @@ the map launcher card are gone. The warning banner `#alertBox` sits above `#tabs
   `mmTxt()`; shown on the OUTLOOK chart labels + tooltip + summary total, the hero, the Tomorrow card and
   the Chance-of-rain card.
 
+### Activity engine (one score for every activity)
+
+Banner `/* ---------- Activity engine (J1) ---------- */`. Pure functions that read only their arguments plus
+the location clock (`todayIso()`/`nowMin()`, overridable through `scoreDay`'s `opts`).
+
+- **Hourly rows.** `buildOpenMeteo` returns `D.hr`: every hourly row from yesterday to the last forecast day in
+  one flat shape (`ts, dt, h, hi, t, fl, pp, mm, w, g, rh, uv, p, code, cond, night, vis, frz, snow, cl, cm, ch`),
+  `D.hrDay` (date → `[start,end)` row range, the same map as `dayRows()`) and `D.hrNow` (index of the first row
+  after `current.time`). The AI-feed object has none of these. In `wd_last` the rows are stored **columnar**
+  (`hrPack(hr)` → `hrc`, `hrRow(hrc,i)` → row `i`, about 3× smaller, keeping the snapshot under the 400 kB
+  guard): `saveLast` writes `hrc` only when `hrPack` returns non-null, `readWdLast` rebuilds `D.hr` and always
+  deletes `hrc` again.
+- **Registry.** `ACTS={bbq,hike,bike,run,sea}`, each with `win` = the `[start,end)` wall-clock hours in which the
+  activity is realistic (bbq 9–22, hike 6–20, bike 6–21, run 5–22, sea 8–20); `ACTORDER` (pill order),
+  `ACTICON`, `ACTCOL` (tier colours) and `TIERIC` (tier dots).
+- **`scoreHour(act,r,d)`** → `{v:1..100, parts:{reasonKey:penalty}}`, or `null` when not scoreable (sea without
+  `d.sea`). BBQ is the unchanged `grillCompound`; hike, bike, run and sea use a feels-like comfort band,
+  rain-probability, gust/wind, fog, UV and storm/night caps. Hard caps record their key with the points they
+  removed so reasons rank sensibly.
+- **`scoreDay(act,date,d,opts)`** → `null` or `{act,date,v,tier,best:{from,to,v},hours:[{h,hi,v}],reasons,over}`.
+  **The score of a day is the mean of its best contiguous 3-hour window** (the "best 3-hour window" rule)
+  among the rows inside `ACTS[act].win` (fewer rows if the day has fewer). For today, windows that already
+  ended are skipped; when none is left `over:true` and the best past window is reported. `reasons` are the two
+  penalty keys that cost that window the most. `opts={today,nowMin}` replaces the location clock.
+- **`scoreDays(act,d,n)`** — `scoreDay` for the next `n` forecast days (today first), skipping unscoreable days.
+- **`actTier(v)`** — four bands: 0 great (80+), 1 good (60+), 2 okay (40+), 3 poor. (`bbqTier` is a different
+  five-way scale kept for the day-level estimates.)
+- **`T` keys** (nested objects, identical keys in both languages): `actName` (bbq/hike/bike/run/sea),
+  `actTier` (the four tier words) and `actWhy` (reason chips: rain, hot, cold, wind, storm, night, fog, uv,
+  waves, coldsea, humid, time).
+- **BBQ hour series.** `bbqHourly(d,crit)` builds the per-hour grill series (`grillCompound` over `D.grillRaw`,
+  criteria `BBQCRIT` ticked in the UI, `GRILLALL` = all ticked) for the BBQ section's chart and prep timeline;
+  with all criteria ticked it equals `scoreDay('bbq',today).hours` and its peak lies inside the engine's best
+  window, so the timeline never disagrees with the PLAN card. Unticking a criterion is a what-if that leaves
+  the engine out of it.
+- **Test:** `node tools/test-score.js` (see "Running it").
+
+### PLAN view (`#view-plan`, tab PLANIRAJ) — DOM order
+
+One planner for every activity, built on the engine. `PLAN={act,date}`: `act` is the chosen activity (saved in
+`wd_prefs.act`), `date` the chosen day (today by default, never saved). `planAct()` is the effective activity
+(a sea pick falls back to bbq while the place has no sea data); `planDates()` is today … +15 from `D.hrDay`
+(falling back to the daily list for a snapshot without hourly rows); `planDate()` the effective day.
+`renderPlan()` runs `renderPlanActs` → `renderPlanDays` → `renderPlanCard` → `renderPlanSections`, then the
+weekends, and destroys the charts of activity sections that are not showing.
+
+1. `.viewhead` — `#planHead`, `#planOnly` (the `setOnlyChip` "only A" chip when a comparison is set; PLAN
+   scores the first place only) and the vegan switch `#btn-vegan`/`toggleVegan()` (shown for BBQ only);
+   `#planTag` — a one-line tagline per activity (`T` keys `bbqTag`/`hikeTag`/`bikeTag`/`runTag`/`seaTag`).
+2. `#actRow` — activity pills `btn-act-bbq`/`-hike`/`-bike`/`-run`/`-sea` (`setAct(a)` saves the pref and does
+   `history.replaceState` to `#plan-<act>`; the sea pill is hidden without sea data).
+3. `#dayRow` — a `.dragx` strip of day pills (`.dpill`, `setPlanDate(dt)`) for the next 16 days, each with a
+   tier-coloured dot and an aria-label carrying weekday, score and tier word; `min-width:0` keeps the row
+   from widening the page on phones.
+4. `#planCard` — **the one card** (`renderPlanCard()`): score /100, tier word, the best window ("Best 14–17 h",
+   "Done for today — best was …" when `over`), up to two reason chips (`planReasons(sd)`, which hides the "late
+   hour" `time` chip when the window already lies inside 12–19 h), hour-by-hour bars (`.hbars`, best window
+   highlighted) and the day in numbers (`planFacts`). When the engine has nothing to score it shows an
+   `emptyCard` saying why (`planNoAi`/`planNoHr`/`planNoDay`).
+5. `#planSections` — exactly one block, chosen by `renderPlanSections()`: `#ps-bbq` (`renderBbqSections()`:
+   prep timeline `drawBbqTimeline`, grill score by hour `drawBbqGrill` with the criteria chips, `#grSec`
+   GRILLING via `updateGrSec()`, nonsense numbers, pit checklist `renderBbqCheck()`/`toggleCheck`),
+   `#ps-hike` (`renderHikeSections()`: trail cards on `D.hx`/`D.gustMax`, `drawHikeComfort`, the 7-day trail
+   score `drawHikeWeek` on `scoreDays('hike',D,7)`, trail nonsense) or `#ps-cards` (`renderCondCards()`: a few
+   wind / UV / daylight / sea cards for bike, run and sea). On a day other than today the BBQ and hike
+   sections carry a "Shown for today" note (`planNote`).
+6. `#planWeekends` — the shared `buildWeekendBlock` in `#planWkTxt`.
+
 ### Preferences and local storage
 
 `wd_prefs` (`PREFS_KEY`) is written by `savePrefs()` and read once at boot by `loadPrefs()`. It stores
-`lang`, `theme`, the switches `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`VEGAN`, the chart mode `CMODE`, and
-`groups` (open state of the four groups). **MP (Monty Python) is deliberately not stored.** `PREFS_LIVE`
+`lang`, `theme`, the switches `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`VEGAN`, the chart mode `CMODE`, `act` (the
+PLAN activity, `PLAN.act`) and `groups` (open state of the four groups). **MP (Monty Python) is deliberately not stored.** `PREFS_LIVE`
 is `false` during boot, so reading the saved prefs never rewrites them; it flips to `true` at the end of
 boot. **First visit** (no `wd_prefs`): `lang` follows `navigator.language` (`hr*` → Croatian, otherwise
 English) and the theme follows the OS preference. A new switch must be added to both `savePrefs` and
@@ -169,15 +245,15 @@ English) and the theme follows the OS preference. A new switch must be added to 
 
 All `localStorage` keys (every access wrapped in try/catch): `wd_recents` (recent places), `wd_lochint`
 (exact coordinates of places picked from search), `wd_bbqcheck` (BBQ checklist ticks), `wd_last` (last
-direct-mode forecast snapshot `{v:APPV,key,loc,t,D}`, ≤ 400 kB), `wd_prefs`.
+direct-mode forecast snapshot `{v:APPV,key,loc,t,D}` with `D.hr` stored columnar as `D.hrc`, ≤ 400 kB), `wd_prefs`.
 
 ### Comparison mode (location A vs B)
 
 Reaching two selections starts comparison. **What compares:** the hero and stat chips, the group cards,
 the NEXT 24 HOURS chart, the sea chart and the OUTLOOK (A and B series), plus the versus line in the
 daily text block. **What shows A only:** the hour strip, the weekend block, the air, tide, bio, pressure
-and moon charts, and the whole BBQ and Hiking views. `#cmpNote` states this on Weather; BBQ and Hiking
-show a `setOnlyChip(id)` chip (`bbqOnly`/`hikeOnly`, text `T.onlyA` "only {A}"). If the second place
+and moon charts, and the whole PLAN view. `#cmpNote` states this on NOW; PLAN shows a `setOnlyChip(id)` chip
+(`#planOnly`, text `T.onlyA` "only {A}"). If the second place
 fails to load, `FOOT_NOTE` holds its name and the footer chip adds a bilingual "⚠ Second location
 failed: …" note (`T.secFail`) until the next location change. `buildLegends()` draws each legend to match
 its chart in both modes (the tide legend follows the tide chart).
@@ -229,7 +305,7 @@ loads its forecast) and a **📍 my-location** Leaflet control (`locateOnMap`) t
 recentres/pins the map. Layout: on `mobile` only, `#mlyPills` (the layer buttons) is a fixed swipeable
 row right above the bottom bar and `#mapBottom` sits above that row; on `mobile` and `mid` the zoom and
 locate controls are top-right (below the top row), clear of the bottom panel, and the attribution text
-lives in the bottom panel. The ✕ (desktop only) returns to `#weather`.
+lives in the bottom panel. The ✕ (desktop only) returns to `#now`.
 
 ## Running it
 
@@ -260,14 +336,28 @@ spring-forward day (23 rows); it also checks the location clock (`locNow`/`locNo
 `setLocTz` reset), the `wd_last` snapshot version/tz round trip, and statically that the builder reads
 no clock. It prints `TIME TESTS OK` and exits 1 on any failure.
 
+**Activity-engine test** (dependency-free, node ≥ 18):
+
+```powershell
+node tools/test-score.js
+```
+
+It extracts `ACTS`, `scoreHour`, `scoreDay`, `scoreDays`, `actTier`, `grillCompound`, `hrPack`/`hrRow` … from the
+app `<script>` by name (same extractor as `test-time.js`), stubs the location clock, and runs synthetic hourly
+fixtures: the registry and tier bands, BBQ equal to the unchanged `grillCompound`, rain lowering every score
+monotonically, the hard caps, hike/bike/run specifics, sea inland (`null`), the best 3-hour window, today
+skipping windows that already ended, the reason keys, `scoreDays`, and the columnar `wd_last` round trip. It
+prints `SCORE TESTS OK` and exits 1 on any failure.
+
 ## Data sources (all keyless, all client-side)
 
 - **Open-Meteo forecast** — `api.open-meteo.com` (`timezone=auto`, `past_days=1`; hourly + daily +
   `minutely_15` precipitation for the next-2h rain strip, `D.rain15`; hourly carries `pressure_msl`
   (72 h pressure trend, `D.presH`), `is_day` (night icons), `visibility`, `freezing_level_height`,
   `wind_gusts_10m` and `snowfall` (today's values in `D.hx`), plus daily `wind_gusts_10m_max`
-  (`D.gustMax`) and `precipitation_sum` — these feed the Hiking view's visibility/snow-line/gust cards
-  and the map's gust-aware wind labels) and `geocoding-api.open-meteo.com` for city → lat/lon.
+  (`D.gustMax`) and `precipitation_sum`, plus hourly `precipitation` — together with every other hourly field
+  they fill `D.hr` for the activity engine and feed the hike cards' visibility/snow-line/gust values and the
+  map's gust-aware wind labels) and `geocoding-api.open-meteo.com` for city → lat/lon.
 - **Open-Meteo Marine** — `marine-api.open-meteo.com` (sea surface temperature, tides, plus wave
   height/swell height+period/ocean current — the sea group shows a waves/swell/current line built by
   `buildSeaWaveLine()` for coastal locations, single location only). A 400 response means "no sea point
@@ -308,7 +398,7 @@ These are the non-negotiable house rules for any change:
 
 1. **Bilingual everywhere (EN / HR).** Two accepted patterns: (a) shared/static strings live in the `T`
    translation object (`T.en` / `T.hr`, identical key sets), looked up via `LBL`; static markup uses
-   `data-i="key"` (text) or `data-tt="key"` (title + aria-label); (b) **view-local strings** (BBQ/Hiking
+   `data-i="key"` (text) or `data-tt="key"` (title + aria-label); (b) **view-local strings** (PLAN
    cards, phases, grades) may be inline `hrv?'…hr…':'…en…'` ternaries inside their render function, since
    those re-run on `setLang`. Either way, EVERY user-visible string — tooltips and aria-labels included —
    must exist in both languages, never EN-only. Exception: Monty-Python (`MP`) easter-egg lines are
@@ -346,14 +436,9 @@ Roughly top-to-bottom:
 
 - `<head>` / CSS — theme variables, responsive layout rules (`#wrap.mobile` / `#wrap.mid` / desktop),
   card/hero/stat/group styles, the control sizes above.
-- `<body>` markup — header (`#locSel`, `btn-lang`, `btn-theme`), `#alertBox`, `#tabs` (Weather, Map, BBQ,
-  Hiking — `tab-weather`/`tab-map`/`tab-bbq`/`tab-hike`), then `#dash`'s per-view `<section>`s:
-  `#view-weather` (DOM order above), `#view-bbq` (hero/verdict · WEEKENDS `#bbqWkTxt` · PREP TIMELINE ·
-  TODAY'S GRILL SCORE BY HOUR · **GRILLING** `#grSec`, updated by `updateGrSec()` inside `renderBbq()` ·
-  THE NONSENSE NUMBERS · PIT CHECKLIST, plus the vegan switch `btn-vegan`/`toggleVegan()` on its
-  heading), `#view-hike` (`renderHike`: scores on real hourly data — visibility / freezing level / gusts
-  / snowfall from `D.hx`/`D.gustMax` — with fog, snow-line and gust cards and a 5th trail-score
-  component, falling back to older estimates for the reduced AI-feed object), `#view-map`, and
+- `<body>` markup — header (`#locSel`, `btn-lang`, `btn-theme`), `#alertBox`, `#tabs` (NOW, PLAN, MAP —
+  `tab-now`/`tab-plan`/`tab-map`), then `#dash`'s per-view `<section>`s: `#view-now` and `#view-plan` (DOM
+  orders above; the BBQ and hike sections live inside PLAN as `#ps-bbq`/`#ps-hike`), `#view-map`, and
   `#view-info` (about + the `#infoFeeds` status panel + the bilingual `CHANGELOG` array + the Monty
   Python switch `btn-mp`/`toggleMP()`). The shared footer sits outside `#dash`. The loading and error
   screens are `#loading` / `#error`.
@@ -375,17 +460,19 @@ Roughly top-to-bottom:
   `mid` (700–1099 px, foldables/tablets; falls through to the desktop branch of most
   `layout==='mobile'` checks but gets the bottom bar), `desktop` (≥ 1100 px).
 - `<script>` — organized by `/* ---------- ... ---------- */` banners: state/helpers (`FEEDS`/
-  `feedMark()`, location clock, prefs, BBQ scoring) · `T` translations · data sources (the pure
+  `feedMark()`, location clock, prefs, BBQ scoring) · **activity engine** (`ACTS`, `scoreHour`/`scoreDay`/`scoreDays`, `hrPack`/`hrRow`) · `T` translations · data sources (the pure
   `buildOpenMeteo`, forecast / marine / air / climatology / AI fetchers) · orchestration (`loadData`,
   `fetchFor`, `loadSecondary`, `wd_last` save/restore) · recents/selection/location selector · rendering
-  (`render`, `renderHero`, `renderStats`, `renderGroups`, `updateFoot`, `card`) · chart drawers
+  (`render`, `renderHero`, `renderStats`, `renderGroups`, `updateFoot`, `card`) · **PLAN view** (`planAct`,
+  `setAct`, `renderPlan`, `renderPlanCard`, `renderPlanSections`, `renderBbqSections`, `renderHikeSections`,
+  `renderCondCards`) · chart drawers
   (`drawHourly`, `drawSea`, `drawTide`, `drawMoon`, `drawWeek`, `drawBio`, `drawPressure`, `drawAqi`,
   `drawGrill`, `drawBbqTimeline`, `drawBbqGrill`, `drawHikeComfort`, `drawHikeWeek`) · maps
-  (`loadLeaflet`, the weather map incl. `locateOnMap`) · view router (`ROUTES`/`VIEWS`/`showView`/
-  `renderActive`/`updateAlertBox`) · Info panel (`renderInfo`, `renderFeeds`, `CHANGELOG`).
+  (`loadLeaflet`, the weather map incl. `locateOnMap`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/
+  `showView`/`renderActive`/`updateAlertBox`) · Info panel (`renderInfo`, `renderFeeds`, `CHANGELOG`).
 
 Notable globals: `lang`, `theme`, `layout` (`'mobile'`/`'mid'`/`'desktop'`), `RANGE`, comparison state
-(`selB`/`D2`), location caches (`LOCHINT`, `GEO_LOC`, `MAP_LOC`, `LOCTZ`), `GROUPS`, and the feature
+(`selB`/`D2`), location caches (`LOCHINT`, `GEO_LOC`, `MAP_LOC`, `LOCTZ`), `GROUPS`, `PLAN`, and the feature
 toggles (`CONF`, `MOON`, `TIDE`, `PRES`, `BBQ`, `VEGAN`, `MP`). `MP` is a "Monty Python" easter-egg
 label set.
 
@@ -397,6 +484,10 @@ label set.
   closed.
 - After touching `buildOpenMeteo` or any time code, run `node tools/test-time.js` (it must print
   `TIME TESTS OK`) and add a fixture there for any new time-dependent rule.
+- After touching the activity engine (`ACTS`, `scoreHour`, `scoreDay`, `scoreDays`, `actTier`), `hrPack`/`hrRow`,
+  `D.hr` in `buildOpenMeteo` or the `wd_last` save/restore, run `node tools/test-score.js` (it must print
+  `SCORE TESTS OK`) and add a fixture there for any new rule. A score shown anywhere must come from the
+  engine, never from a second formula.
 - Syntax checks: `node --check sw.js`, and for the page script
   `node -e "const fs=require('fs');const h=fs.readFileSync('weather-dashboard.html','utf8');const m=[...h.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g)].find(x=>x[1].length>1000);new Function(m[1]);console.log('SYNTAX OK')"`.
 - Shipping a user-visible change: bump the version in `<title>`, the footer and `APPV`; add a bilingual
