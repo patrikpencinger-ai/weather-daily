@@ -291,8 +291,8 @@ console.log('location clock (locNow / locNowStr / todayIso)');
   app.setLocTz({ off: -4 * 3600, name: 'America/New_York' });
   { const [v, a] = sameMinute(-4 * 3600, () => app.locNowStr()); eq(v, a, 'UTC-4: locNowStr() = UTC-4 wall-clock'); }
   { const [v, a] = sameMinute(3600, () => app.locNowStrAt(3600)); eq(v, a, 'locNowStrAt(off) works for an explicit offset'); }
-  app.setLocTz({ off: 'x' }); eq(app.getTz().off, -14400, 'setLocTz ignores garbage');
-  app.setLocTz(undefined); eq(app.getTz().off, -14400, 'setLocTz(undefined) is a no-op');
+  app.setLocTz({ off: 'x' }); eq(app.getTz().off, null, 'setLocTz resets on garbage (browser time, never a stale location)');
+  app.setLocTz(undefined); eq(app.getTz().off, null, 'setLocTz(undefined) resets to browser time');
 }
 
 console.log('wd_last snapshot (version tag + tz round trip)');
