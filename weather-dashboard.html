@@ -191,6 +191,23 @@ body{padding:20px;transition:background .2s}
 .dragx::-webkit-scrollbar{display:none}
 .dragx.dragging{cursor:grabbing}
 .dragx:focus-visible{outline:2px solid var(--tp);outline-offset:2px}
+/* K1: VREMENSKA OS / TIMELINE - custom canvas, pills, readout, legend */
+#tlWrap{border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--bg);box-sizing:border-box}
+#tlCanvas{display:block;width:100%;height:100%;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+#tlCanvas.drag{cursor:grabbing}
+#tlCanvas:focus-visible{outline:2px solid var(--tp);outline-offset:-2px}
+#tlLayers .lbtn,#tlZoom .lbtn{gap:5px;flex:0 0 auto}
+#wrap.mobile #tlLayers{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#wrap.mobile #tlLayers::-webkit-scrollbar{display:none}
+#tlReadout{position:absolute;z-index:3;pointer-events:none;background:var(--bg);color:var(--tp);border:1px solid var(--bd);border-radius:10px;padding:7px 10px;font-size:12px;line-height:1.35;box-shadow:0 4px 14px rgba(0,0,0,0.22);max-width:min(240px,calc(100% - 8px));box-sizing:border-box}
+#tlReadout.hidden{display:none}
+.tlrt{font-weight:600;margin:0 0 4px;white-space:nowrap}
+.tlrl{display:flex;gap:6px;align-items:baseline;margin:1px 0}
+.tlrl span:first-child{flex:0 0 auto;width:1.4em;text-align:center}
+#tlLeg{display:flex;flex-wrap:wrap;gap:6px 14px;margin:4px 0 0;font-size:12px}
+.tlli{display:inline-flex;align-items:center;gap:5px}
+.tlsw{display:inline-block;width:12px;height:8px;border-radius:2px;flex:0 0 auto}
+.tlsr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* J2: PLANIRAJ - activity pills, day pills, the unified plan card and its hourly score bars */
 .actRow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .actRow .lbtn{gap:6px;font-size:13px}
@@ -281,6 +298,32 @@ body{padding:20px;transition:background .2s}
 <div class="toprow">
 <div id="hero" class="card hero" role="group"></div>
 <div id="stats" class="stats"></div>
+</div>
+
+<div id="tlSec" class="hidden" style="margin:0 0 2rem;">
+<div class="hd" data-i="tlTitle">TIMELINE</div>
+<p class="lab" id="tlSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+<div class="rng" id="tlZoom" role="group" data-tt="tlZoomAria">
+  <button class="lbtn" id="btn-tlz-h" onclick="tlSetZoom('h')" aria-pressed="true" data-i="tlZ_h">Hours</button>
+  <button class="lbtn" id="btn-tlz-3" onclick="tlSetZoom('3')" aria-pressed="false" data-i="tlZ_3">3 h</button>
+  <button class="lbtn" id="btn-tlz-d" onclick="tlSetZoom('d')" aria-pressed="false" data-i="tlZ_d">Days</button>
+</div>
+<div class="rng" id="tlLayers" role="group" data-tt="tlLayersAria">
+  <button class="lbtn" id="btn-tll-temp" onclick="tlSetLayer('temp')" aria-pressed="true"><span aria-hidden="true">🌡️</span><span data-i="tlL_temp">Temp</span></button>
+  <button class="lbtn" id="btn-tll-rain" onclick="tlSetLayer('rain')" aria-pressed="true"><span aria-hidden="true">🌧️</span><span data-i="tlL_rain">Rain</span></button>
+  <button class="lbtn" id="btn-tll-wind" onclick="tlSetLayer('wind')" aria-pressed="true"><span aria-hidden="true">💨</span><span data-i="tlL_wind">Wind</span></button>
+  <button class="lbtn" id="btn-tll-pres" onclick="tlSetLayer('pres')" aria-pressed="false"><span aria-hidden="true">📈</span><span data-i="tlL_pres">Pressure</span></button>
+  <button class="lbtn" id="btn-tll-uv" onclick="tlSetLayer('uv')" aria-pressed="false"><span aria-hidden="true">☀️</span><span data-i="tlL_uv">UV</span></button>
+  <button class="lbtn" id="btn-tll-air" onclick="tlSetLayer('air')" aria-pressed="false"><span aria-hidden="true">🍃</span><span data-i="tlL_air">Air</span></button>
+  <button class="lbtn hidden" id="btn-tll-sea" onclick="tlSetLayer('sea')" aria-pressed="true"><span aria-hidden="true">🌊</span><span data-i="tlL_sea">Sea</span></button>
+  <button class="lbtn" id="btn-tll-score" onclick="tlSetLayer('score')" aria-pressed="true"><span aria-hidden="true">🔥</span><span data-i="tlL_score">Scores</span></button>
+</div>
+<div id="tlWrap" style="position:relative;width:100%;height:340px;margin:0 0 6px;">
+  <canvas id="tlCanvas" tabindex="0" role="img" data-tt="ar_tl"></canvas>
+  <div id="tlReadout" class="hidden" aria-hidden="true"></div>
+</div>
+<div class="lab" id="tlLeg"></div>
+<span id="tlLive" class="tlsr" role="status" aria-live="polite"></span>
 </div>
 
 <div id="todaySec" class="hidden" style="margin:0 0 2rem;">
@@ -588,6 +631,7 @@ function polLvl(v){return v<10?0:v<50?1:2;}
 let BRANGE='h';
 function setBRange(v){BRANGE=v;markBtns();if(D&&D.bio)drawBio();}
 let GRANGE='h';
+let TL={zoom:'h',layers:{temp:1,rain:1,wind:1,pres:0,uv:0,air:0,sea:1,score:1},x0:null,cursor:null}; /* K1: VREMENSKA OS state; only zoom + layers are remembered (wd_prefs.tl) */
 let PLAN={act:'bbq',date:null}; /* J2: PLANIRAJ - chosen activity (remembered in wd_prefs.act) and day (never saved) */
 function setGRange(v){GRANGE=v;markBtns();if(D&&D.days)drawGrill();}
 function bioLvl(s){return s<=1?0:s<=3?1:2;}
@@ -604,7 +648,7 @@ let PREFS_LIVE=false; /* false during boot so reading the saved prefs never rewr
 let GROUPS={air:false,cmp:false,sea:false,bio:false}; /* P1: open state of the four collapsible groups on the Weather view (closed by default), remembered in wd_prefs.groups */
 function savePrefs(){ /* I2: language, theme and the switches survive a reload (MP is deliberately not saved) */
  if(!PREFS_LIVE)return;
- try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,CONF:CONF,MOON:MOON,TIDE:TIDE,PRES:PRES,BBQ:BBQ,CMODE:CMODE,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS}));}catch(e){}
+ try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,CONF:CONF,MOON:MOON,TIDE:TIDE,PRES:PRES,BBQ:BBQ,CMODE:CMODE,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS,tl:{zoom:TL.zoom,layers:TL.layers}}));}catch(e){}
 }
 function loadPrefs(){
  let p=null;
@@ -624,6 +668,10 @@ function loadPrefs(){
  if(typeof p.act==='string'&&ACTS[p.act])PLAN.act=p.act;
  if(p.CMODE===0||p.CMODE===1||p.CMODE===2)CMODE=p.CMODE;
  if(p.groups&&typeof p.groups==='object'){['air','cmp','sea','bio'].forEach(k=>{if(typeof p.groups[k]==='boolean')GROUPS[k]=p.groups[k];});}
+ if(p.tl&&typeof p.tl==='object'){
+  if(['h','3','d'].indexOf(p.tl.zoom)>=0)TL.zoom=p.tl.zoom;
+  if(p.tl.layers&&typeof p.tl.layers==='object'){Object.keys(TL.layers).forEach(k=>{if(p.tl.layers[k]===0||p.tl.layers[k]===1||typeof p.tl.layers[k]==='boolean')TL.layers[k]=p.tl.layers[k]?1:0;});}
+ }
 }
 function toggleConf(){CONF=!CONF;markBtns();savePrefs();if(D)renderActive();}
 /* the moon / tide charts live inside the BIO and SEA groups: switching the overlay on opens its group and brings the chart into view */
@@ -933,6 +981,9 @@ const T={
   ar_grill:"Grilling score forecast (today\'s grilling hours or upcoming days) as colored bars with tier icons",ar_hikec:"Hourly feels-like temperature and rain chance",ar_hikew:"Seven day trail score",
   ar_radarBox:"Full-screen weather map with radar, lightning, temperature, wind, rain and cloud layers",ar_rainStrip:"Rain expected in the next two hours in 15-minute steps",ar_heatLeg:"Temperature layer colour legend",
   ar_bioInfo:"Biometeo criteria",
+  tlTitle:"TIMELINE",tlZ_h:"Hours",tlZ_3:"3 h",tlZ_d:"Days",tlL_temp:"Temp",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV",tlL_air:"Air",tlL_sea:"Sea",tlL_score:"Scores",
+  tlZoomAria:"Timeline zoom",tlLayersAria:"Timeline layers",
+  ar_tl:"Timeline from now to the end of the forecast with temperature, rain, wind and other layers; drag or use the arrow keys to move, plus and minus to zoom, Home for now",
   dows:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']},
  hr:{title:"PATRIKOVA DNEVNA PROGNOZA",h2:"SLJEDEĆA 24 SATA",h3:"IZGLEDI",h4:"TEMPERATURA MORA",
   loading:"Dohvaćam prognozu…",errTitle:"Prognoza se nije učitala",
@@ -974,6 +1025,9 @@ const T={
   ar_grill:"Prognoza ocjene roštilja (današnji sati za roštilj ili nadolazeći dani) u obojenim stupcima s ikonama razina",ar_hikec:"Satna osjetna temperatura i vjerojatnost kiše",ar_hikew:"Sedmodnevna ocjena staze",
   ar_radarBox:"Vremenska karta preko cijelog zaslona s radarom, munjama te slojevima temperature, vjetra, kiše i oblaka",ar_rainStrip:"Očekivana kiša u sljedeća dva sata u koracima od 15 minuta",ar_heatLeg:"Legenda boja sloja temperature",
   ar_bioInfo:"Kriteriji biometeorologije",
+  tlTitle:"VREMENSKA OS",tlZ_h:"Sati",tlZ_3:"3 h",tlZ_d:"Dani",tlL_temp:"Temp",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV",tlL_air:"Zrak",tlL_sea:"More",tlL_score:"Ocjene",
+  tlZoomAria:"Zoom vremenske osi",tlLayersAria:"Slojevi vremenske osi",
+  ar_tl:"Vremenska os od sada do kraja prognoze s temperaturom, kišom, vjetrom i drugim slojevima; povucite ili koristite strelice za pomicanje, plus i minus za zoom, Home za sada",
   dows:['Ned','Pon','Uto','Sri','Čet','Pet','Sub']}
 };
 let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, tideCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, aqiCh=null, presCh=null, lastErrs=null;
@@ -2349,6 +2403,7 @@ function render(){
   if(cn){if(isC){cn.innerHTML=LBL.cmpNote.replace(/\{A\}/g,()=>esc(D.loc||locA())).replace(/\{B\}/g,()=>esc(D2.loc||selB));cn.classList.remove('hidden');}
    else{cn.textContent='';cn.classList.add('hidden');}}}
  updateAlertBox();
+ try{tlRender();}catch(e){console.log('tlRender',e);}
  const tShow=D.h3ext&&D.h3ext.length;
  document.getElementById('todaySec').classList.toggle('hidden',!tShow);
  if(tShow)renderTodayStrip();
@@ -2797,6 +2852,576 @@ function setLang(l){
  savePrefs();
  if(D)renderActive(); else if(lastErrs&&!document.getElementById('error').classList.contains('hidden'))showError();
 }
+/* ---------- VREMENSKA OS / TIMELINE (K1): one continuous, zoomable, layered canvas timeline on SADA ---------- */
+/* Custom Canvas 2D (no Chart.js). Time axis = location-local wall-clock minutes (tsMin of the 'YYYY-MM-DDTHH:MM' strings), so a
+   day is always 1440 units wide. TL.x0 / TL.cursor are those minutes * 60000 ("ms"). Rows are D.hr; a row is drawn centred on its
+   timestamp. Zoom: 'h' hourly, '3' every 3 h, 'd' daily. Only zoom + layers are remembered (wd_prefs.tl). Hidden for AI-mode data. */
+const TLZ=['h','3','d'];
+const TLPX={h:[34,26],'3':[12,9],d:[3.2,2.6]}; /* px per hour: [desktop/mid, mobile] */
+const TLLAYERS=['temp','rain','wind','pres','uv','air','sea','score'];
+const TLIC={temp:'🌡️',rain:'🌧️',wind:'💨',pres:'📈',uv:'☀️',air:'🍃',sea:'🌊'};
+const TLC={hr:null,hr2:null,dd:null,tm:null,tm2:null,ag:null,tLo:0,tHi:1,pLo:1000,pHi:1020,air:[],airSrc:undefined,airHr:null,scD:null,scK:'',scH:null,rs:null,ds:null,act:'bbq',raf:0,to:0,sum:null,pm:0,xm:0,W:0,H:0};
+let tlRO=false; /* is the readout box open */
+let tlPtr=null;
+function tlOk(){return !!(D&&D.mode!=='ai'&&D.hr&&D.hr.length>24);}
+function tlStr(m){return new Date(m*60000).toISOString().slice(0,16);}
+function tlLb(a,m){let lo=0,hi=a.length;while(lo<hi){const mid=(lo+hi)>>1;if(a[mid]<m)lo=mid+1;else hi=mid;}return lo;}
+function tlNearest(m){const tm=TLC.tm,n=tm.length;let i=tlLb(tm,m);if(i>=n)i=n-1;else if(i>0&&m-tm[i-1]<tm[i]-m)i--;return i;}
+function tlPpm(){return TLPX[TL.zoom][layout==='mobile'?1:0]/60;}
+function tlPrep(){
+ const hr2=(cmp()&&D2&&D2.hr&&D2.hr.length)?D2.hr:null;
+ if(TLC.hr===D.hr&&TLC.hr2===hr2&&TLC.dd===D.daysFull&&TLC.tm)return;
+ TLC.hr=D.hr;TLC.hr2=hr2;TLC.dd=D.daysFull;
+ const hr=D.hr,n=hr.length,tm=new Float64Array(n);
+ let tl=1e9,th=-1e9,pl=1e9,ph=-1e9;
+ const tmx=v=>{if(v!=null&&isFinite(v)){if(v<tl)tl=v;if(v>th)th=v;}};
+ for(let i=0;i<n;i++){const r=hr[i];tm[i]=tsMin(r.ts);tmx(r.t);tmx(r.fl);if(r.p!=null){if(r.p<pl)pl=r.p;if(r.p>ph)ph=r.p;}}
+ (D.daysFull||[]).forEach(d=>{tmx(d.hi);tmx(d.lo);});
+ if(hr2){TLC.tm2=Float64Array.from(hr2,r=>tsMin(r.ts));hr2.forEach(r=>tmx(r.t));if(D2.daysFull)D2.daysFull.forEach(d=>{tmx(d.hi);tmx(d.lo);});}else TLC.tm2=null;
+ if(tl>th){tl=0;th=10;}
+ TLC.tLo=Math.floor(tl)-1;TLC.tHi=Math.ceil(th)+1;
+ if(pl>ph){pl=1005;ph=1020;}
+ if(ph-pl<8){const c=(ph+pl)/2;pl=c-4;ph=c+4;}
+ TLC.pLo=pl;TLC.pHi=ph;TLC.tm=tm;
+ const ag={};
+ Object.keys(D.hrDay||{}).forEach(dt=>{const rg=D.hrDay[dt];let w=null,g=null,uv=null;
+  for(let i=rg[0];i<rg[1];i++){const r=hr[i];if(!r)continue;if(r.w!=null&&(w==null||r.w>w))w=r.w;if(r.g!=null&&(g==null||r.g>g))g=r.g;if(r.uv!=null&&!r.night&&(uv==null||r.uv>uv))uv=r.uv;}
+  ag[dt]={w:w,g:g,uv:uv};});
+ TLC.ag=ag;
+}
+/* AQI series (every 3 h from now, no date keys) -> absolute minutes, by walking forward from the current hour */
+function tlAir(){
+ const a=D.air&&D.air.aqi&&D.air.aqi.series;
+ if(TLC.airSrc===a&&TLC.airHr===D.hr)return TLC.air;
+ TLC.airSrc=a;TLC.airHr=D.hr;TLC.air=[];
+ if(!a||!a.length||!TLC.tm)return TLC.air;
+ let m=TLC.tm[Math.max(0,Math.min(TLC.tm.length-1,(D.hrNow||0)-1))],first=true;
+ a.forEach(s=>{
+  const hh=parseInt(String(s.h).slice(-5,-3),10);
+  if(!isFinite(hh))return;
+  if(!first)m+=60;first=false;
+  let k=0;while(k<48&&(Math.floor(m/60)%24)!==hh){m+=60;k++;}
+  TLC.air.push({m:m,v:s.v});
+ });
+ return TLC.air;
+}
+function tlScores(){
+ const act=planAct(),key=act+'|'+(D.sea?1:0)+'|'+(D.sea?D.sea.cur:'');
+ if(TLC.scD===D&&TLC.scK===key&&TLC.scH===D.hr&&TLC.rs)return;
+ TLC.scD=D;TLC.scK=key;TLC.scH=D.hr;TLC.act=act;
+ TLC.rs=D.hr.map(r=>{try{const s=scoreHour(act,r,D);return s?s.v:null;}catch(e){return null;}});
+ TLC.ds={};
+ Object.keys(D.hrDay||{}).forEach(dt=>{try{TLC.ds[dt]=scoreDay(act,dt,D);}catch(e){TLC.ds[dt]=null;}});
+}
+function tlInvalidate(){TLC.scD=null;TLC.rs=null;TLC.airSrc=undefined;TLC.hr=null;if(D&&tlOk())tlLegend();tlSyncUi();tlSchedule();}
+function tlSchedule(){
+ if(TLC.raf)return;
+ TLC.raf=requestAnimationFrame(tlDraw);
+ clearTimeout(TLC.to);TLC.to=setTimeout(()=>{if(TLC.raf){try{cancelAnimationFrame(TLC.raf);}catch(e){}tlDraw();}},160); /* rAF is throttled in background tabs */
+}
+function tlClamp(W){
+ const nowM=tsMin(locNowStr()),pm=tlPpm();
+ const lo=(nowM-360)*60000,last=(TLC.tm&&TLC.tm.length)?TLC.tm[TLC.tm.length-1]+60:nowM+360;
+ const hi=Math.max(lo,(last-W/pm)*60000);
+ if(TL.x0==null||!isFinite(TL.x0))TL.x0=(nowM-120)*60000;
+ TL.x0=Math.min(hi,Math.max(lo,TL.x0));
+}
+function tlWidth(){const w=document.getElementById('tlWrap');return(w&&w.clientWidth)||320;}
+function tlSetZoom(z){
+ if(TLZ.indexOf(z)<0||z===TL.zoom)return;
+ const W=tlWidth(),cenM=(TL.cursor!=null)?TL.cursor/60000:(TL.x0/60000+W/2/tlPpm());
+ TL.zoom=z;
+ if(TL.cursor!=null&&TLC.tm)TL.cursor=tlSnap(TL.cursor/60000)*60000;
+ TL.x0=(cenM-W/2/tlPpm())*60000;
+ tlClamp(W);savePrefs();markBtns();tlSyncUi();tlLegend();tlSchedule();
+}
+function tlSetLayer(k){
+ if(TLLAYERS.indexOf(k)<0)return;
+ TL.layers[k]=TL.layers[k]?0:1;
+ savePrefs();markBtns();tlSyncUi();tlLegend();tlSchedule();
+}
+function tlSnap(m){ /* a free minute -> the column it belongs to (hour / 3 h row, or noon of the day) */
+ const tm=TLC.tm;if(!tm||!tm.length)return m;
+ if(TL.zoom==='d'){
+  const dd=D.daysFull||[];let c=Math.floor(m/1440)*1440+720;
+  if(dd.length){const a=tsMin(dd[0].dt+'T12:00'),b=tsMin(dd[dd.length-1].dt+'T12:00');c=Math.min(b,Math.max(a,c));}
+  return c;
+ }
+ const st=TL.zoom==='3'?180:60;
+ let c=Math.round(m/st)*st;
+ const first=Math.ceil(tm[0]/st)*st,last=Math.floor(tm[tm.length-1]/st)*st;
+ return Math.min(last,Math.max(first,c));
+}
+function tlGoto(ts){ /* centre the view on a location-local time string 'YYYY-MM-DDTHH:MM' (K2 map sync) */
+ if(!ts||!D||!tlOk())return;
+ const m=tsMin(String(ts).length<=10?(ts+'T12:00'):ts);if(!isFinite(m))return;
+ tlPrep();
+ const W=tlWidth();
+ TL.x0=(m-W/2/tlPpm())*60000;tlClamp(W);tlSchedule();
+}
+function tlCursorTs(){return TL.cursor==null?null:tlStr(TL.cursor/60000);}
+function tlMoveCursor(dir){
+ if(!D||!tlOk())return;tlPrep();
+ const W=tlWidth(),pm=tlPpm(),step=TL.zoom==='d'?1440:(TL.zoom==='3'?180:60);
+ let m=(TL.cursor==null)?tlSnap(tsMin(locNowStr())):tlSnap(TL.cursor/60000+dir*step);
+ TL.cursor=m*60000;tlRO=true;
+ const x=(m-TL.x0/60000)*pm;
+ if(x<24||x>W-24){TL.x0=(m-W/2/pm)*60000;}
+ tlClamp(W);tlSchedule();
+}
+function tlHome(){
+ if(!D||!tlOk())return;tlPrep();
+ const W=tlWidth(),nowM=tsMin(locNowStr());
+ TL.cursor=tlSnap(nowM)*60000;tlRO=true;
+ TL.x0=(nowM-120)*60000;tlClamp(W);tlSchedule();
+}
+function tlTap(px){
+ if(!D||!tlOk())return;tlPrep();
+ const m=tlSnap(TL.x0/60000+px/tlPpm()),cur=m*60000;
+ if(TL.cursor===cur&&tlRO){tlRO=false;TL.cursor=null;}
+ else{TL.cursor=cur;tlRO=true;}
+ tlSchedule();
+}
+function tlHide(){if(!tlRO&&TL.cursor==null)return;tlRO=false;TL.cursor=null;tlSchedule();}
+
+/* --- readout --- */
+function tlRowAt(m){const i=tlNearest(m);return{i:i,r:D.hr[i]};}
+function tlN(v,d){if(v==null||!isFinite(v))return'';const s=d?(Math.round(v*Math.pow(10,d))/Math.pow(10,d)).toFixed(d):String(Math.round(v));return lang==='hr'?s.replace('.',','):s;}
+function tlReadoutLines(){ /* -> {title, lines:[[icon,text]]} for the cursor column, active layers only */
+ if(TL.cursor==null||!TLC.tm)return null;
+ const hrv=lang==='hr',La=TL.layers,m=TL.cursor/60000,act=planAct(),out=[];
+ const sst=dt=>{const s=D.sea&&D.sea.days;if(!s)return null;for(let i=0;i<s.length;i++)if(s[i].dt===dt)return s[i].t;return null;};
+ const scoreLine=(v,extra)=>{const t=actTier(v);return[ACTICON[act]||'',LBL.actName[act]+' '+v+'/100 '+TIERIC[t]+' '+LBL.actTier[t]+(extra||'')];};
+ if(TL.zoom==='d'){
+  const dt=tlStr(m).slice(0,10),dd=(D.daysFull||[]).find(x=>x.dt===dt);
+  if(!dd)return null;
+  const ag=(TLC.ag&&TLC.ag[dt])||{};
+  if(La.temp)out.push([TLIC.temp,dd.lo+'° … '+dd.hi+'°']);
+  if(La.rain)out.push([TLIC.rain,dd.pp+' %'+(dd.mm!=null?' · '+mmTxt(dd.mm):'')]);
+  if(La.wind&&(ag.w!=null||dd.w!=null)){const w=ag.w!=null?ag.w:dd.w;out.push([TLIC.wind,Math.round(w)+' km/h'+((ag.g!=null&&ag.g>=w+10)?' ('+Math.round(ag.g)+')':'')]);}
+  if(La.pres&&dd.p!=null)out.push([TLIC.pres,dd.p+' hPa']);
+  if(La.uv&&ag.uv!=null)out.push([TLIC.uv,'UV '+tlN(ag.uv,1)]);
+  if(La.air){let mx=null;tlAir().forEach(a=>{if(tlStr(a.m).slice(0,10)===dt&&(mx==null||a.v>mx))mx=a.v;});if(mx!=null){out.push([TLIC.air,'AQI '+mx+' · '+aqiName(aqiBand(mx))]);}}
+  if(La.sea&&D.sea){const s=sst(dt);if(s!=null)out.push([TLIC.sea,tlN(s,1)+'°']);}
+  if(La.score){const sd=TLC.ds&&TLC.ds[dt];if(sd)out.push(scoreLine(sd.v,' · '+planWinTxt(sd)));}
+  return{title:dayLab(dt)+' '+(ICON[dd.cond]||''),lines:out};
+ }
+ const i=tlNearest(m),r=D.hr[i];if(!r)return null;
+ const three=TL.zoom==='3';
+ if(La.temp)out.push([TLIC.temp,tlN(r.t)+'°'+(r.fl!=null?' ('+(hrv?'osjet ':'feels ')+tlN(r.fl)+'°)':'')]);
+ if(La.rain){
+  let pp=r.pp,mm=r.mm;
+  if(three){pp=null;mm=0;for(let k=i-1;k<=i+1;k++){const q=D.hr[k];if(!q)continue;if(q.pp!=null&&(pp==null||q.pp>pp))pp=q.pp;if(q.mm!=null)mm+=q.mm;}}
+  out.push([TLIC.rain,(pp!=null?pp+' %':'')+(mm!=null?(pp!=null?' · ':'')+tlN(mm,1)+' mm':'')+(three?' (3 h)':'')]);
+ }
+ if(La.wind&&r.w!=null)out.push([TLIC.wind,tlN(r.w)+' km/h'+((r.g!=null&&r.g>=r.w+10)?' ('+(hrv?'nalet ':'gust ')+tlN(r.g)+')':'')]);
+ if(La.pres&&r.p!=null)out.push([TLIC.pres,tlN(r.p)+' hPa']);
+ if(La.uv&&r.uv!=null)out.push([TLIC.uv,'UV '+(r.night?'0':tlN(r.uv,1))]);
+ if(La.air){const a=tlAir();let best=null;a.forEach(x=>{if(Math.abs(x.m-m)<=90&&(best==null||Math.abs(x.m-m)<Math.abs(best.m-m)))best=x;});if(best)out.push([TLIC.air,'AQI '+best.v+' · '+aqiName(aqiBand(best.v))]);}
+ if(La.sea&&D.sea){const s=sst(r.dt);if(s!=null)out.push([TLIC.sea,tlN(s,1)+'°']);}
+ if(La.score){const v=TLC.rs&&TLC.rs[i];if(v!=null)out.push(scoreLine(v));}
+ return{title:dayLab(r.dt)+' · '+r.h+' '+iconFor(r),lines:out};
+}
+function tlReadoutHtml(ro){
+ return '<div class="tlrt">'+esc(ro.title)+'</div>'+ro.lines.map(l=>'<div class="tlrl"><span aria-hidden="true">'+l[0]+'</span><span>'+esc(l[1])+'</span></div>').join('');
+}
+function tlPlaceReadout(x){
+ const box=document.getElementById('tlReadout'),wrap=document.getElementById('tlWrap'),live=document.getElementById('tlLive');
+ if(!box||!wrap)return;
+ const ro=tlRO?tlReadoutLines():null;
+ if(!ro){box.classList.add('hidden');if(live&&!tlRO)live.textContent='';return;}
+ box.innerHTML=tlReadoutHtml(ro);
+ if(live)live.textContent=ro.title+'. '+ro.lines.map(l=>l[1]).join('. ');
+ const W=wrap.clientWidth,H=wrap.clientHeight;
+ if(x<-4||x>W+4){box.classList.add('hidden');return;}
+ box.classList.remove('hidden');box.style.visibility='hidden';box.style.left='0px';box.style.top='0px';
+ const bw=box.offsetWidth,bh=box.offsetHeight;
+ let l=x+12;if(l+bw>W-4)l=x-12-bw;
+ l=Math.max(4,Math.min(l,W-bw-4));
+ let t=20;if(t+bh>H-4)t=Math.max(4,H-bh-4);
+ box.style.left=Math.round(l)+'px';box.style.top=Math.round(t)+'px';box.style.visibility='visible';
+}
+
+/* --- summary / legend / pills --- */
+function tlWinLab(m,day){
+ const d=new Date(m*60000),dow=LBL.dows[d.getUTCDay()];
+ return day?(dow+' '+d.getUTCDate()):(dow+' '+String(d.getUTCHours()).padStart(2,'0')+' h');
+}
+function tlSummary(xm,mR,nowM){
+ const hrv=lang==='hr',day=TL.zoom==='d',hr=D.hr,tm=TLC.tm,n=tm.length;
+ const last=tm[n-1];
+ const a=tlWinLab(xm,day),b=tlWinLab(Math.min(mR,last),day);
+ let fact='';
+ if(day){
+  const dd=D.daysFull||[];
+  for(let i=0;i<dd.length;i++){const m=tsMin(dd[i].dt+'T12:00');if(m<xm-720||m>mR+720)continue;
+   if((dd[i].mm!=null&&dd[i].mm>=1)||dd[i].pp>=60){fact=(hrv?'kiša ':'rain ')+dayLab(dd[i].dt)+(dd[i].mm!=null?', '+mmTxt(dd[i].mm):'');break;}}
+  if(!fact)fact=hrv?'suho':'dry';
+ }else{
+  let i=tlLb(tm,Math.max(xm,nowM-30));
+  for(;i<n&&tm[i]<=mR;i++){if(hr[i].mm!=null&&hr[i].mm>=0.1)break;}
+  if(i<n&&tm[i]<=mR){
+   let sum=0,j=i;while(j<n&&hr[j].mm!=null&&hr[j].mm>=0.1){sum+=hr[j].mm;j++;}
+   const when=(tm[i]<=nowM+30)?(hrv?'kiša sada':'rain now'):((hrv?'kiša od ':'rain from ')+tlWinLab(tm[i],false));
+   fact=when+', ≈ '+mmTxt(Math.round(sum*10)/10);
+  }else fact=hrv?'suho':'dry';
+ }
+ return a+' → '+b+' · '+fact;
+}
+function tlSyncUi(){
+ const sea=!!(D&&D.sea&&D.sea.days&&D.sea.days.length);
+ TLZ.forEach(z=>{const b=document.getElementById('btn-tlz-'+z);if(b)b.setAttribute('aria-pressed',TL.zoom===z?'true':'false');});
+ TLLAYERS.forEach(k=>{const b=document.getElementById('btn-tll-'+k);if(!b)return;b.setAttribute('aria-pressed',TL.layers[k]?'true':'false');if(k==='sea')b.classList.toggle('hidden',!sea);});
+ const sb=document.getElementById('btn-tll-score');
+ if(sb&&D){const act=D.hr?planAct():PLAN.act;sb.innerHTML='<span aria-hidden="true">'+(ACTICON[act]||'')+'</span><span>'+esc(LBL.actName?LBL.actName[act]:'')+'</span>';}
+}
+function tlLegend(){
+ const el=document.getElementById('tlLeg');if(!el||!D)return;
+ const hrv=lang==='hr',La=TL.layers,isC=cmp(),h=[];
+ const sw=(css,txt)=>'<span class="tlli"><i class="tlsw" style="'+css+'"></i>'+esc(txt)+'</span>';
+ if(La.temp){
+  if(isC){h.push(sw('background:'+CMP.a,esc(D.loc||locA())));h.push(sw('border-top:2px dashed '+CMP.b+';background:none',esc(D2.loc||selB)));}
+  else{h.push(sw('background:'+C.hi,'°C'));if(TL.zoom==='h')h.push(sw('border-top:2px dotted '+C.hi+';background:none',hrv?'osjet':'feels like'));}
+ }
+ if(La.rain){h.push(sw('background:'+C.sky+'88',hrv?'vjerojatnost kiše %':'rain chance %'));h.push(sw('background:'+(theme==='dark'?'#5fb0ee':'#0b5aa8'),'mm'));}
+ if(La.wind)h.push(sw('background:'+txt,hrv?'vjetar km/h (nalet)':'wind km/h (gust)'));
+ if(La.pres)h.push(sw('background:'+C.pres,'hPa'));
+ if(La.uv)h.push(sw('background:'+AQICOL[1]+';border-radius:50%','UV'));
+ if(La.air)h.push(sw('background:'+AQICOL[2],hrv?'zrak (EAQI)':'air (EAQI)'));
+ if(La.sea&&D.sea)h.push(sw('background:'+C.sea,hrv?'more °C':'sea °C'));
+ if(La.score){const act=planAct();h.push('<span class="tlli">'+(ACTICON[act]||'')+' '+esc(LBL.actName[act])+' '+ACTCOL.map((c,i)=>'<i class="tlsw" style="background:'+c+'" title="'+esc(LBL.actTier[i])+'"></i>').join('')+'</span>');}
+ el.innerHTML=h.join('');
+}
+
+/* --- main draw --- */
+function tlDraw(){
+ TLC.raf=0;clearTimeout(TLC.to);
+ const sec=document.getElementById('tlSec'),cv=document.getElementById('tlCanvas'),wrap=document.getElementById('tlWrap');
+ if(!sec||!cv||!wrap||!D||!tlOk())return;
+ const W=wrap.clientWidth,H=wrap.clientHeight;
+ if(W<60||H<60)return;
+ tlPrep();tlScores();
+ const hr=D.hr,tm=TLC.tm,n=hr.length,hrv=lang==='hr',M=layout==='mobile',z=TL.zoom,La=TL.layers;
+ const pxH=TLPX[z][M?1:0],pm=pxH/60,nowM=tsMin(locNowStr());
+ tlClamp(W);
+ const xm=TL.x0/60000,mR=xm+W/pm,X=m=>(m-xm)*pm;
+ TLC.pm=pm;TLC.xm=xm;TLC.W=W;TLC.H=H;
+ const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
+ if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);}
+ const ctx=cv.getContext('2d');
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.clearRect(0,0,W,H);
+ ctx.textBaseline='middle';
+ const FNT=(s,w)=>(w||400)+' '+s+'px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+ const dark=theme==='dark';
+ const cNight=dark?'rgba(0,0,0,0.28)':'rgba(40,50,110,0.09)',cBand=dark?'rgba(255,255,255,0.035)':'rgba(0,0,0,0.03)';
+ const cRain=dark?'#5fb0ee':'#0b5aa8';
+ const rr=(x,y,w,h,r)=>{ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h);};
+ const tx=(s,x,y,col,al,font,hal)=>{ctx.font=font;ctx.textAlign=al||'center';if(hal!==false){ctx.lineWidth=3;ctx.lineJoin='round';ctx.strokeStyle=halo;ctx.strokeText(s,x,y);}ctx.fillStyle=col;ctx.fillText(s,x,y);};
+ /* ---- lane layout (lanes that are off collapse) ---- */
+ const HEAD=16,AX=18,GAP=3;
+ const sea=!!(D.sea&&D.sea.days&&D.sea.days.length);
+ const on={temp:!!La.temp,rain:!!La.rain,pres:!!La.pres,wind:!!La.wind,uv:!!La.uv,air:!!La.air,sea:!!(La.sea&&sea),score:!!La.score};
+ const fx=[['wind',24],['uv',14],['air',14],['sea',24],['score',12]].filter(a=>on[a[0]]);
+ const mainOn=on.temp||on.rain||on.pres;
+ const fixSum=fx.reduce((s,a)=>s+a[1]+GAP,0),avail=H-HEAD-AX-GAP;
+ const mainH=mainOn?Math.max(64,avail-fixSum):0;
+ const kk=(!mainOn&&fixSum>0)?Math.min(2.6,avail/fixSum):1;
+ let yy=HEAD+GAP;const lane={};
+ if(mainOn){lane.main=[yy,mainH];yy+=mainH+GAP;}
+ fx.forEach(a=>{const hh=Math.round(a[1]*kk);lane[a[0]]=[yy,hh];yy+=hh+GAP;});
+ const plotB=H-AX; /* bottom of the plot area = axis line */
+ /* ---- background ---- */
+ ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+ const iA=Math.max(0,tlLb(tm,xm-120)-1),iB=Math.min(n-1,tlLb(tm,mR+120));
+ /* night shading */
+ ctx.fillStyle=cNight;
+ for(let i=iA;i<=iB;i++){const r=hr[i];if(!r.night)continue;const x=X(tm[i]-30);if(z==='d')ctx.fillRect(x,HEAD,pxH+0.6,4);else ctx.fillRect(x,HEAD,pxH+0.6,plotB-HEAD);}
+ /* day bands, midnight lines, sticky labels */
+ const d0=Math.floor(xm/1440)*1440,today=todayIso();
+ const monthStarts=[];
+ for(let dm=d0;dm<mR;dm+=1440){
+  const xl=X(dm),xr=X(dm+1440),dt=tlStr(dm).slice(0,10);
+  if(Math.round(dm/1440)%2===0){ctx.fillStyle=cBand;ctx.fillRect(xl,HEAD,xr-xl,plotB-HEAD);}
+  ctx.fillStyle=grid;ctx.fillRect(Math.round(xl),0,1,plotB);
+  if(z!=='d'){
+   const lab=dayLab(dt)+(dt===today?(hrv?' · danas':' · today'):'');
+   ctx.font=FNT(11,dt===today?700:500);const tw=ctx.measureText(lab).width;
+   let lx=Math.max(xl+5,5);if(lx+tw>xr-4)lx=xr-4-tw;
+   if(xr>10)tx(lab,lx,HEAD/2,strong,'left',FNT(11,dt===today?700:500),false);
+  }else if(dt.slice(8,10)==='01'||dm===d0){monthStarts.push({x:xl,dt:dt,first:dm===d0});}
+ }
+ if(z==='d'){
+  const MN=hrv?['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro']:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  monthStarts.forEach((ms,idx)=>{
+   const nxt=monthStarts[idx+1];
+   let lx=ms.first?5:ms.x+4;
+   if(ms.first&&nxt&&nxt.x<62)return;
+   tx(MN[parseInt(ms.dt.slice(5,7),10)-1]+' '+ms.dt.slice(0,4),lx,HEAD/2,strong,'left',FNT(11,500),false);
+  });
+ }
+ /* storm alert windows */
+ (D.alerts||[]).forEach(al=>{
+  if(al.type!=='storm'||!al.from||!al.to||!al.d)return;
+  const a=tsMin(al.d+'T'+al.from)-30,b=tsMin(al.d+'T'+al.to)+30;
+  if(!isFinite(a)||!isFinite(b)||b<xm||a>mR)return;
+  ctx.fillStyle=C.bad+'24';ctx.fillRect(X(a),HEAD,Math.max(3,X(b)-X(a)),plotB-HEAD);
+ });
+ /* lane tints */
+ ['wind','uv','air','sea','score'].forEach(k=>{if(!lane[k])return;ctx.fillStyle=cBand;ctx.fillRect(0,lane[k][0],W,lane[k][1]);});
+ /* ---- MAIN area: rain columns, pressure, temperature ---- */
+ let zoneTop=0,zoneBot=0,rainTop=0,rainBase=0;
+ const yTemp=t=>zoneBot-(t-TLC.tLo)/(TLC.tHi-TLC.tLo)*(zoneBot-zoneTop);
+ const isC=cmp()&&!!TLC.tm2;
+ if(mainOn){
+  const my=lane.main[0],mh=lane.main[1],my2=my+mh;
+  const r15=(z==='h'&&on.rain&&D.rain15&&D.rain15.length)?D.rain15:null;
+  rainBase=my2-(r15?8:2);
+  const rainH=on.rain?((on.temp||on.pres)?Math.round(mh*0.3):mh-14):0;
+  rainTop=rainBase-rainH;
+  zoneTop=my+13;zoneBot=on.rain?(rainTop-5):(my2-7);
+  if(zoneBot-zoneTop<24)zoneBot=zoneTop+24;
+  ctx.save();ctx.beginPath();ctx.rect(0,my,W,mh);ctx.clip();
+  /* rain */
+  if(on.rain){
+   ctx.fillStyle=grid;ctx.fillRect(0,rainBase,W,1);
+   const colPP=C.sky+'70';
+   if(z==='h'){
+    for(let i=iA;i<=iB;i++){const r=hr[i];const x=X(tm[i]),bw=pxH*0.66;
+     if(r.pp>0){const h1=r.pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
+     if(r.mm>0.04){const h2=Math.max(1.5,Math.min(1,r.mm/3)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.32,rainBase-h2,bw*0.64,h2);
+      if(r.mm>=0.5)tx(tlN(r.mm,1),x,rainBase-h2-6,txt,'center',FNT(9,500));}}
+   }else if(z==='3'){
+    for(let i=iA;i<=iB;i++){const r=hr[i];if(r.hi%3!==0)continue;let pp=null,mm=0;
+     for(let k=i-1;k<=i+1;k++){const q=hr[k];if(!q)continue;if(q.pp!=null&&(pp==null||q.pp>pp))pp=q.pp;if(q.mm!=null)mm+=q.mm;}
+     const x=X(tm[i]),bw=pxH*3*0.8;
+     if(pp>0){const h1=pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
+     if(mm>0.04){const h2=Math.max(1.5,Math.min(1,mm/8)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.3,rainBase-h2,bw*0.6,h2);
+      if(mm>=1)tx(tlN(mm,mm>=10?0:1),x,rainBase-h2-6,txt,'center',FNT(9,500));}}
+   }else{
+    (D.daysFull||[]).forEach(d=>{const x=X(tsMin(d.dt+'T12:00'));if(x<-60||x>W+60)return;const bw=pxH*24*0.62;
+     if(d.pp>0){const h1=d.pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
+     if(d.mm!=null&&d.mm>0.04){const h2=Math.max(1.5,Math.min(1,d.mm/25)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.3,rainBase-h2,bw*0.6,h2);
+      if(d.mm>=1)tx(tlN(d.mm,d.mm>=10?0:1),x,rainBase-h2-6,txt,'center',FNT(9,500));}});
+   }
+   if(r15){ /* next-2h rain in 15-minute slots, a thin strip under the baseline */
+    const mx=Math.max(0.6,...r15.map(s=>s.v||0));
+    let prev=-1,dOff=0;const base=tsMin(today+'T00:00');
+    r15.forEach(s=>{const hhmm=parseInt(s.h.slice(0,2),10)*60+parseInt(s.h.slice(3,5),10);if(hhmm<prev)dOff+=1440;prev=hhmm;
+     const m=base+dOff+hhmm;if(!(s.v>0))return;
+     ctx.globalAlpha=Math.max(0.3,Math.min(1,s.v/mx));ctx.fillStyle=cRain;ctx.fillRect(X(m),rainBase+2,Math.max(1,15*pm-1),6);ctx.globalAlpha=1;});
+   }
+  }
+  /* pressure (right-hand scale) */
+  if(on.pres){
+   const yP=p=>zoneBot-(p-TLC.pLo)/(TLC.pHi-TLC.pLo)*(zoneBot-zoneTop);
+   ctx.strokeStyle=C.pres;ctx.lineWidth=1.6;ctx.setLineDash([]);ctx.beginPath();let st=false;
+   if(z==='d'){(D.daysFull||[]).forEach(d=>{if(d.p==null){st=false;return;}const x=X(tsMin(d.dt+'T12:00'));if(!st){ctx.moveTo(x,yP(d.p));st=true;}else ctx.lineTo(x,yP(d.p));});ctx.stroke();
+    (D.daysFull||[]).forEach(d=>{if(d.p==null)return;ctx.fillStyle=C.pres;ctx.beginPath();ctx.arc(X(tsMin(d.dt+'T12:00')),yP(d.p),2.2,0,6.283);ctx.fill();});}
+   else{for(let i=iA;i<=iB;i++){const p=hr[i].p;if(p==null){st=false;continue;}const x=X(tm[i]);if(!st){ctx.moveTo(x,yP(p));st=true;}else ctx.lineTo(x,yP(p));}ctx.stroke();}
+   tx(Math.round(TLC.pHi)+' hPa',W-4,zoneTop+1,C.pres,'right',FNT(9,600));
+   tx(Math.round(TLC.pLo)+' hPa',W-4,zoneBot-1,C.pres,'right',FNT(9,600));
+  }
+  /* temperature */
+  if(on.temp){
+   const colA=isC?CMP.a:C.hi;
+   const smooth=(arr,get,timeOf)=>{ctx.beginPath();let px=null,py=null,st=false;
+    for(let i=iA;i<=iB;i++){const v=get(arr[i]);if(v==null){st=false;continue;}const x=X(timeOf(i)),y=yTemp(v);
+     if(!st){ctx.moveTo(x,y);st=true;}else{ctx.quadraticCurveTo(px,py,(px+x)/2,(py+y)/2);}px=x;py=y;}
+    if(st)ctx.lineTo(px,py);ctx.stroke();};
+   if(z==='d'){
+    const drawBars=(days,off,col,dashed,lab)=>{
+     const bw=Math.min(isC?20:34,pxH*24*(isC?0.28:0.5));
+     days.forEach((d,idx)=>{const xc=X(tsMin(d.dt+'T12:00'))+off;if(xc<-50||xc>W+50)return;
+      const y1=yTemp(d.hi),y2=yTemp(d.lo);
+      if(!lab&&!isC&&idx>=7){const w=(100-confD(idx))/10;ctx.fillStyle=col+'22';rr(xc-bw/2-3,yTemp(d.hi+w),bw+6,yTemp(d.lo-w)-yTemp(d.hi+w),6);ctx.fill();}
+      ctx.lineWidth=dashed?1.6:1.2;ctx.strokeStyle=col;ctx.setLineDash(dashed?[4,3]:[]);
+      ctx.fillStyle=dashed?col+'30':col+'88';rr(xc-bw/2,y1,bw,Math.max(4,y2-y1),Math.min(8,bw/2));ctx.fill();ctx.stroke();ctx.setLineDash([]);
+      if(!lab){tx(d.hi+'°',xc,y1-8,strong,'center',FNT(11,600));tx(d.lo+'°',xc,y2+8,txt,'center',FNT(10,500));}
+      else{tx(d.hi+'°',xc,y1-7,txt,'center',FNT(9,500));}
+     });};
+    drawBars(D.daysFull||[],isC?-12:0,isC?CMP.a:C.hi,false,false);
+    if(isC&&D2.daysFull)drawBars(D2.daysFull,12,CMP.b,true,true);
+   }else{
+    if(!isC&&z==='h'){ctx.lineWidth=1.3;ctx.strokeStyle=C.hi+'99';ctx.setLineDash([2,3]);smooth(hr,r=>r.fl,i=>tm[i]);ctx.setLineDash([]);}
+    if(isC){
+     const hr2=TLC.hr2,tm2=TLC.tm2;
+     ctx.lineWidth=2;ctx.strokeStyle=CMP.b;ctx.setLineDash([6,4]);
+     {const j0=Math.max(0,tlLb(tm2,xm-120)-1),j1=Math.min(hr2.length-1,tlLb(tm2,mR+120));
+      ctx.beginPath();let px=null,py=null,st=false;
+      for(let j=j0;j<=j1;j++){const v=hr2[j].t;if(v==null){st=false;continue;}const x=X(tm2[j]),y=yTemp(v);if(!st){ctx.moveTo(x,y);st=true;}else ctx.quadraticCurveTo(px,py,(px+x)/2,(py+y)/2);px=x;py=y;}
+      if(st)ctx.lineTo(px,py);ctx.stroke();}
+     ctx.setLineDash([]);
+    }
+    ctx.lineWidth=2.6;ctx.strokeStyle=colA;ctx.lineJoin='round';smooth(hr,r=>r.t,i=>tm[i]);
+    const ls=(z==='h')?3:6;
+    for(let i=iA;i<=iB;i++){const r=hr[i];if(r.t==null||r.hi%ls!==0||tm[i]<xm-30||tm[i]>mR+30)continue;
+     const x=X(tm[i]),y=yTemp(r.t);ctx.fillStyle=colA;ctx.beginPath();ctx.arc(x,y,2.8,0,6.283);ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle=BG;ctx.stroke();
+     tx(Math.round(r.t)+'°',x,y-9,strong,'center',FNT(11,600));}
+   }
+  }
+  ctx.restore();
+ }
+ /* ---- WIND ---- */
+ if(on.wind){
+  const [ly,lh]=lane.wind,cy=ly+lh/2;
+  const wtxt=(w,g)=>Math.round(w)+((g!=null&&g>=w+10)?' ('+Math.round(g)+')':'');
+  const wcol=w=>w>=55?C.bad:(w>=35?C.warn:strong);
+  if(z==='d'){
+   (D.daysFull||[]).forEach(d=>{const ag=(TLC.ag&&TLC.ag[d.dt])||{},w=ag.w!=null?ag.w:d.w;if(w==null)return;const x=X(tsMin(d.dt+'T12:00'));if(x<-60||x>W+60)return;
+    const bh=Math.min(1,w/60)*(lh-4),bw=pxH*24*0.5;ctx.fillStyle=txt.replace(/[\d.]+\)$/,'0.16)');ctx.fillRect(x-bw/2,ly+lh-2-bh,bw,bh);
+    tx(wtxt(w,ag.g),x,cy,wcol(w),'center',FNT(10,w>=35?700:500));});
+  }else{
+   const ls=(z==='h')?3:6;
+   for(let i=iA;i<=iB;i++){const r=hr[i];if(r.w==null)continue;const x=X(tm[i]);
+    const bh=Math.min(1,r.w/60)*(lh-4),bw=pxH*0.7;ctx.fillStyle=txt.replace(/[\d.]+\)$/,'0.16)');ctx.fillRect(x-bw/2,ly+lh-2-bh,bw,bh);
+    if(r.hi%ls===0&&tm[i]>=xm-40&&tm[i]<=mR+40)tx(wtxt(r.w,r.g),x,cy,wcol(r.w),'center',FNT(10,r.w>=35?700:500));}
+  }
+ }
+ /* ---- UV ---- */
+ if(on.uv){
+  const [ly,lh]=lane.uv,cy=ly+lh/2;
+  if(z==='d'){
+   (D.daysFull||[]).forEach(d=>{const ag=(TLC.ag&&TLC.ag[d.dt])||{};if(ag.uv==null||ag.uv<0.5)return;const x=X(tsMin(d.dt+'T12:00'));if(x<-40||x>W+40)return;
+    ctx.fillStyle=AQICOL[uvLvl(ag.uv)];ctx.beginPath();ctx.arc(x,cy,6.2,0,6.283);ctx.fill();tx(tlN(ag.uv),x,cy+0.5,'#fff','center',FNT(9,700),false);});
+  }else{
+   for(let i=iA;i<=iB;i++){const r=hr[i];if(r.night||r.uv==null||r.uv<0.5)continue;const x=X(tm[i]);
+    ctx.fillStyle=AQICOL[uvLvl(r.uv)];ctx.beginPath();ctx.arc(x,cy,Math.min(6.5,1.6+r.uv*0.5),0,6.283);ctx.fill();
+    if(z==='h'&&r.hi%3===0&&r.uv>=3)tx(tlN(r.uv),x,cy+0.5,'#fff','center',FNT(8,700),false);}
+  }
+ }
+ /* ---- AIR ---- */
+ if(on.air){
+  const [ly,lh]=lane.air,ar=tlAir();
+  if(!ar.length)tx(hrv?'nema podataka o zraku':'no air data',W/2,ly+lh/2,txt,'center',FNT(10,400),false);
+  ar.forEach(a=>{const x1=X(a.m-90),x2=X(a.m+90);if(x2<0||x1>W)return;
+   ctx.fillStyle=AQICOL[aqiBand(a.v)]+'e6';ctx.fillRect(x1,ly,x2-x1-1,lh);
+   if(x2-x1>40)tx(String(a.v),(x1+x2)/2,ly+lh/2+0.5,'#fff','center',FNT(9,700),false);});
+ }
+ /* ---- SEA ---- */
+ if(on.sea){
+  const [ly,lh]=lane.sea,cy=ly+lh/2;
+  D.sea.days.forEach(sd=>{
+   const dm=tsMin(sd.dt+'T00:00'),xl=X(dm),xr=X(dm+1440);if(xr<0||xl>W||sd.t==null)return;
+   ctx.fillStyle=C.sea+'1c';ctx.fillRect(xl+1,ly,xr-xl-2,lh);
+   let rg='';
+   if(z!=='d'&&D.sea.tide){const td=D.sea.tide.find(q=>q.dt===sd.dt);if(td&&td.hi!=null&&td.lo!=null)rg=' · ↕ '+(td.hi-td.lo)+' cm';}
+   const lab=tlN(sd.t,1)+'°'+rg;
+   ctx.font=FNT(11,600);const tw=ctx.measureText(lab).width;
+   const vl=Math.max(xl,0),vr=Math.min(xr,W);
+   if(vr-vl>tw+6)tx(lab,(vl+vr)/2,cy,C.sea,'center',FNT(11,600));
+   else if(vr-vl>26)tx(tlN(sd.t,1)+'°',(vl+vr)/2,cy,C.sea,'center',FNT(10,600));
+  });
+ }
+ /* ---- SCORE ---- */
+ if(on.score){
+  const [ly,lh]=lane.score;
+  if(z==='d'){
+   Object.keys(TLC.ds||{}).sort().forEach(dt=>{const sd=TLC.ds[dt];if(!sd)return;const m=tsMin(dt+'T12:00');if(m<nowM-720)return;
+    const x=X(m),w=pxH*24;if(x<-w||x>W+w)return;
+    ctx.fillStyle=ACTCOL[actTier(sd.v)]+'e6';ctx.fillRect(x-w/2+1,ly,w-2,lh);
+    if(w>26)tx(String(sd.v),x,ly+lh/2+0.5,'#fff','center',FNT(9,700),false);});
+  }else{
+   const rs=TLC.rs||[];
+   for(let i=iA;i<=iB;i++){const v=rs[i];if(v==null||tm[i]<nowM-30)continue;const x=X(tm[i]);
+    ctx.fillStyle=ACTCOL[actTier(v)]+'e6';ctx.fillRect(x-pxH/2+0.5,ly,pxH-1,lh);}
+   Object.keys(TLC.ds||{}).forEach(dt=>{const sd=TLC.ds[dt];if(!sd||!sd.best)return;
+    const a=tsMin(dt+'T'+sd.best.from)-30,b=tsMin(dt+'T'+sd.best.to)-30;if(b<xm||a>mR||b<nowM-30)return;
+    ctx.lineWidth=1.6;ctx.strokeStyle=strong;ctx.strokeRect(X(a)+0.5,ly+0.5,Math.max(2,X(b)-X(a))-1,lh-1);});
+  }
+ }
+ /* ---- now line ---- */
+ {const xn=X(nowM);
+  if(xn>=-2&&xn<=W+2){
+   ctx.fillStyle=C.ok;ctx.fillRect(Math.round(xn)-1,HEAD,2,plotB-HEAD);
+   const lab=hrv?'sada':'now';ctx.font=FNT(9,700);const tw=ctx.measureText(lab).width+8;
+   ctx.fillStyle=C.ok;rr(xn-tw/2,HEAD+1,tw,12,6);ctx.fill();
+   tx(lab,xn,HEAD+7.5,'#fff','center',FNT(9,700),false);
+  }}
+ /* ---- cursor ---- */
+ let cx=null;
+ if(TL.cursor!=null){
+  const cm=TL.cursor/60000,sw=(z==='d'?24:(z==='3'?3:1))*pxH;cx=X(cm);
+  ctx.fillStyle=dark?'rgba(255,255,255,0.09)':'rgba(0,0,0,0.07)';ctx.fillRect(cx-sw/2,HEAD,sw,plotB-HEAD);
+  ctx.strokeStyle=strong;ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(Math.round(cx)+0.5,HEAD);ctx.lineTo(Math.round(cx)+0.5,plotB);ctx.stroke();ctx.setLineDash([]);
+ }
+ /* ---- axis ---- */
+ ctx.fillStyle=grid;ctx.fillRect(0,plotB,W,1);
+ if(z==='d'){
+  for(let dm=d0;dm<mR;dm+=1440){const xl=X(dm),xc=X(dm+720),dt=tlStr(dm).slice(0,10);
+   ctx.fillStyle=grid;ctx.fillRect(Math.round(xl),plotB,1,4);
+   if(xc>-30&&xc<W+30)tx(dayLab(dt),xc,plotB+11,dt===today?strong:txt,'center',FNT(10,dt===today?700:400),false);}
+ }else{
+  const st=(z==='h')?180:360;
+  for(let m=Math.ceil(xm/st)*st;m<mR;m+=st){const x=X(m);
+   ctx.fillStyle=grid;ctx.fillRect(Math.round(x),plotB,1,4);
+   const hh=Math.floor(m/60)%24;
+   tx(String(hh).padStart(2,'0')+':00',x,plotB+11,hh===0?strong:txt,'center',FNT(10,hh===0?700:400),false);}
+ }
+ /* ---- lane chips (left edge) ---- */
+ const chip=(s,y)=>{ctx.font=FNT(9,600);const w=ctx.measureText(s).width+6;ctx.fillStyle=BG;ctx.globalAlpha=0.78;rr(1,y,w,12,4);ctx.fill();ctx.globalAlpha=1;tx(s,4,y+6.5,txt,'left',FNT(9,600),false);};
+ if(on.wind)chip('💨 km/h',lane.wind[0]+1);
+ if(on.uv)chip('☀ UV',lane.uv[0]+(lane.uv[1]>12?1:0));
+ if(on.air)chip('AQI',lane.air[0]+(lane.air[1]>12?1:0));
+ if(on.sea)chip('🌊 °C',lane.sea[0]+1);
+ if(on.score){const act=planAct();chip((ACTICON[act]||'')+' /100',lane.score[0]+(lane.score[1]>12?1:0));}
+ /* ---- text updates ---- */
+ const sum=tlSummary(xm,mR,nowM);
+ if(sum!==TLC.sum){TLC.sum=sum;const se=document.getElementById('tlSum');if(se)se.textContent=sum;}
+ tlPlaceReadout(cx);
+}
+
+/* --- interaction --- */
+function tlInit(){
+ const cv=document.getElementById('tlCanvas');if(!cv)return;
+ cv.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  tlPtr={id:e.pointerId,x:e.clientX,x0:TL.x0==null?0:TL.x0,t:Date.now(),moved:false};
+  try{cv.setPointerCapture(e.pointerId);}catch(err){}
+ });
+ cv.addEventListener('pointermove',e=>{
+  if(!tlPtr||e.pointerId!==tlPtr.id)return;
+  const dx=e.clientX-tlPtr.x;
+  if(!tlPtr.moved&&Math.abs(dx)>5){tlPtr.moved=true;cv.classList.add('drag');}
+  if(tlPtr.moved){TL.x0=tlPtr.x0-dx/tlPpm()*60000;tlClamp(tlWidth());tlSchedule();}
+ });
+ const end=e=>{
+  if(!tlPtr||e.pointerId!==tlPtr.id)return;
+  const p=tlPtr;tlPtr=null;cv.classList.remove('drag');
+  try{cv.releasePointerCapture(e.pointerId);}catch(err){}
+  if(e.type==='pointerup'&&!p.moved&&Date.now()-p.t<700){const r=cv.getBoundingClientRect();tlTap(e.clientX-r.left);}
+ };
+ cv.addEventListener('pointerup',end);
+ cv.addEventListener('pointercancel',end);
+ cv.addEventListener('wheel',e=>{
+  let dx=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:(e.shiftKey?e.deltaY:0);
+  if(!dx)return;
+  if(e.deltaMode===1)dx*=16;
+  e.preventDefault();
+  TL.x0+=dx/tlPpm()*60000;tlClamp(tlWidth());tlSchedule();
+ },{passive:false});
+ cv.addEventListener('keydown',e=>{
+  const k=e.key;
+  if(k==='ArrowRight'){e.preventDefault();tlMoveCursor(1);}
+  else if(k==='ArrowLeft'){e.preventDefault();tlMoveCursor(-1);}
+  else if(k==='Home'){e.preventDefault();tlHome();}
+  else if(k==='+'||k==='='||k==='NumpadAdd'){e.preventDefault();const i=TLZ.indexOf(TL.zoom);if(i>0)tlSetZoom(TLZ[i-1]);}
+  else if(k==='-'||k==='_'||k==='NumpadSubtract'){e.preventDefault();const i=TLZ.indexOf(TL.zoom);if(i<TLZ.length-1)tlSetZoom(TLZ[i+1]);}
+  else if(k==='Escape'){tlHide();}
+  else if(k==='Enter'||k===' '){e.preventDefault();if(TL.cursor==null)tlHome();else{tlRO=!tlRO;tlSchedule();}}
+ });
+ try{const ro=new ResizeObserver(()=>{if(D)tlSchedule();});ro.observe(document.getElementById('tlWrap'));}catch(e){}
+}
+function tlRender(){ /* called from render(): show/hide the section, refresh pills + legend, redraw */
+ const sec=document.getElementById('tlSec');if(!sec)return;
+ const ok=!!(D&&tlOk());
+ sec.classList.toggle('hidden',!ok);
+ if(!ok){tlRO=false;return;}
+ tlSyncUi();tlLegend();
+ tlDraw();
+}
+tlInit();
+
 function applyResponsive(){
  /* three layout steps: mobile <700px, mid 700-1099px, desktop >=1100px. every existing layout==='mobile'
     check keeps meaning "narrow phone"; 'mid' falls through to the desktop branch of those ternaries. */
@@ -2807,6 +3432,7 @@ function applyResponsive(){
  document.getElementById('wrap').classList.toggle('mid',want==='mid');
  document.getElementById('wkwrap').style.height=want==='mobile'?'300px':'340px';
  document.getElementById('hrwrap').style.height=want==='mobile'?'220px':'260px';
+ {const tw=document.getElementById('tlWrap');if(tw)tw.style.height=want==='mobile'?'250px':(want==='mid'?'300px':'340px');} /* K1: timeline height per layout step */
  document.getElementById('seawrap').style.height=want==='mobile'?'170px':'200px';
  document.getElementById('mtwrap').style.height=want==='mobile'?'160px':'190px';
  document.getElementById('tidewrap').style.height=want==='mobile'?'160px':'190px';
@@ -2826,6 +3452,8 @@ function markBtns(){
   'btn-c0':CMODE===0,'btn-c1':CMODE===1,'btn-c2':CMODE===2,'btn-moon':MOON,'btn-tide':TIDE,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7,
   'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7,'btn-vegan':VEGAN};
  ACTORDER.forEach(k=>{states['btn-act-'+k]=(planAct()===k);}); /* J2: the PLANIRAJ activity pills */
+ ['h','3','d'].forEach(z=>{states['btn-tlz-'+z]=(TL.zoom===z);}); /* K1: timeline zoom + layer pills */
+ Object.keys(TL.layers).forEach(k=>{states['btn-tll-'+k]=!!TL.layers[k];});
  const paint=(b,on)=>{
   b.style.background=on?actBg:'transparent';b.style.color=on?actFg:inFg;b.style.border=bd;
   b.style.borderRadius='8px';b.style.padding='4px 10px';b.style.fontSize='12px';b.style.fontWeight='500';b.style.cursor='pointer';b.style.boxShadow='none';
@@ -3001,7 +3629,7 @@ function planDates(){ /* today .. +15 that the hourly rows cover (falls back to 
 function planDate(){const ds=planDates();return(PLAN.date&&ds.indexOf(PLAN.date)>=0)?PLAN.date:(ds[0]||todayIso());}
 function setAct(a){
  if(!ACTS[a])return;
- PLAN.act=a;savePrefs();
+ PLAN.act=a;savePrefs();tlInvalidate(); /* K1: the timeline's score lane follows the planner's activity */
  try{history.replaceState(null,'','#plan-'+a);}catch(e){} /* keeps the link shareable without firing hashchange */
  if(D)renderActive();
 }
