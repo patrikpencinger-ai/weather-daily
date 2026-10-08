@@ -424,7 +424,17 @@ function moonPh(iso){const synodic=29.530588853;const ref=Date.UTC(2000,0,6,18,1
 function moonIcon(iso){return MOONS[Math.round(moonPh(iso)*8)%8];}
 function moonIllum(iso){return (1-Math.cos(2*Math.PI*moonPh(iso)))/2*100;}
 function moonName(iso){return (LBL.moonNames||T.en.moonNames)[Math.round(moonPh(iso)*8)%8];}
-function todayIso(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+/* ---------- Location clock (I1): "now" at the forecast location, not the browser's zone ---------- */
+let LOCTZ={off:null,name:null}; /* seconds east of UTC + IANA name of the selected location (from the forecast response) */
+function setLocTz(tz){if(tz&&typeof tz.off==='number'&&isFinite(tz.off))LOCTZ={off:tz.off,name:tz.name||null};}
+/* A Date shifted so its LOCAL getters (getHours, getDate, ...) show the wall-clock time at utc offset `off`; off==null -> browser time */
+function locNowAt(off){const t=Date.now();if(off==null||!isFinite(off))return new Date(t);return new Date(t+(off-(-new Date(t).getTimezoneOffset()*60))*1000);}
+function locNow(){return locNowAt(LOCTZ.off);}
+function locNowStrAt(off){const d=locNowAt(off),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
+function locNowStr(){return locNowStrAt(LOCTZ.off);}
+function todayIso(){return locNowStr().slice(0,10);}
+/* "YYYY-MM-DDTHH:MM" (location-local, no offset) -> minutes, read as UTC so differences are wall-clock minutes and independent of the browser zone */
+function tsMin(s){return Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10),+s.slice(11,13)||0,+s.slice(14,16)||0)/60000;}
 function uvLvl(v){return v<3?0:v<6?1:v<8?2:v<11?3:4;}
 function polLvl(v){return v<10?0:v<50?1:2;}
 let BRANGE='h';
@@ -656,8 +666,7 @@ async function geocode(q){
  return{name:q,lat:g.latitude,lon:g.longitude,station:g.name+(g.country_code?', '+g.country_code:'')};
 }
 async function fetchOpenMeteo(loc,range){
- const days=Math.min(range,16);
- const fetchDays=Math.min(Math.max(days,14),16);
+ const fetchDays=Math.min(Math.max(Math.min(range,16),14),16);
  const url='https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+
   '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,pressure_msl'+
   '&hourly=temperature_2m,precipitation_probability,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,pressure_msl,visibility,freezing_level_height,wind_gusts_10m,snowfall,cloud_cover_low,cloud_cover_mid,cloud_cover_high'+
@@ -667,19 +676,36 @@ async function fetchOpenMeteo(loc,range){
  const r=await tfetch(url,10000);
  if(!r.ok)throw new Error('Open-Meteo '+r.status);
  const j=await r.json();
+ return buildOpenMeteo(j,loc,range);
+}
+/* I1: pure builder. "Now" is the API's own location-local current.time string and every day/hour index is a
+   lookup on the hourly/daily time strings (23/24/25-row DST days safe) — never the browser clock. */
+function buildOpenMeteo(j,loc,range){
+ const days=Math.min(range,16);
  const cur=j.current,hl=j.hourly,dl=j.daily;
- const yIdx=new Date().getHours();
+ const tz={off:(typeof j.utc_offset_seconds==='number'&&isFinite(j.utc_offset_seconds))?j.utc_offset_seconds:null,name:j.timezone||null};
+ const nowStr=(cur&&cur.time)||((dl.time[1]||hl.time[0]||'')+'T00:00'); /* location-local "YYYY-MM-DDTHH:MM" */
+ const todayStr=nowStr.slice(0,10);
+ let tDay=dl.time.indexOf(todayStr);if(tDay<0)tDay=1;
+ const yDay=Math.max(0,tDay-1),yStr=dl.time[yDay];
+ const dayMap={}; /* date -> [start,end) hourly row range */
+ for(let i=0;i<hl.time.length;i++){const d=hl.time[i].slice(0,10),e=dayMap[d];if(!e)dayMap[d]=[i,i+1];else e[1]=i+1;}
+ const dayRows=d=>dayMap[d]||[0,0];
+ let nowIdx=hl.time.findIndex(t=>t>nowStr);if(nowIdx<0)nowIdx=0;
+ let yIdx=-1;
+ {const yr=dayRows(yStr),hh=nowStr.slice(11,13);
+  for(let i=yr[0];i<yr[1];i++){if(hl.time[i].slice(11,13)===hh){yIdx=i;break;}}
+  if(yIdx<0)yIdx=yr[1]>yr[0]?yr[1]-1:Math.max(0,nowIdx-24);}
  const yest={
-  max:Math.round(dl.temperature_2m_max[0]),lo:Math.round(dl.temperature_2m_min[0]),
-  precip:dl.precipitation_sum?dl.precipitation_sum[0]:null,
+  max:Math.round(dl.temperature_2m_max[yDay]),lo:Math.round(dl.temperature_2m_min[yDay]),
+  precip:dl.precipitation_sum?dl.precipitation_sum[yDay]:null,
   t:hl.temperature_2m[yIdx],fl:hl.apparent_temperature[yIdx],
   hum:hl.relative_humidity_2m[yIdx],wind:hl.wind_speed_10m[yIdx]
  };
- const nowIdx=Math.max(0,hl.time.findIndex(t=>new Date(t)>new Date()));
  const hours=[];
  for(let k=0;k<8;k++){const i=nowIdx+k*3;if(i>=hl.time.length)break;
   hours.push({h:hl.time[i].slice(11,16),t:Math.round(hl.temperature_2m[i]),pp:Math.round(hl.precipitation_probability[i]??0),cond:WMO(hl.weather_code[i]),p:(hl.pressure_msl&&hl.pressure_msl[i]!=null)?Math.round(hl.pressure_msl[i]):null});}
- const fullDs=dl.time.slice(1).map((t,i)=>({dt:t,hi:Math.round(dl.temperature_2m_max[i+1]),lo:Math.round(dl.temperature_2m_min[i+1]),pp:Math.round(dl.precipitation_probability_max[i+1]??0),mm:(dl.precipitation_sum&&dl.precipitation_sum[i+1]!=null)?Math.round(dl.precipitation_sum[i+1]*10)/10:null,cond:WMO(dl.weather_code[i+1])}));
+ const fullDs=dl.time.slice(tDay).map((t,i)=>({dt:t,hi:Math.round(dl.temperature_2m_max[i+tDay]),lo:Math.round(dl.temperature_2m_min[i+tDay]),pp:Math.round(dl.precipitation_probability_max[i+tDay]??0),mm:(dl.precipitation_sum&&dl.precipitation_sum[i+tDay]!=null)?Math.round(dl.precipitation_sum[i+tDay]*10)/10:null,cond:WMO(dl.weather_code[i+tDay])}));
  let bi=0,wi=0;
  hours.forEach((h,i)=>{if(h.pp<hours[bi].pp||(h.pp===hours[bi].pp&&Math.abs(h.t-20)<Math.abs(hours[bi].t-20)))bi=i;if(h.pp>hours[wi].pp)wi=i;});
  const ppMax=fullDs[0]?fullDs[0].pp:0,wind=Math.round(cur.wind_speed_10m);
@@ -688,27 +714,33 @@ async function fetchOpenMeteo(loc,range){
   s+=hours[wi]&&hours[wi].pp>15?(L.worst+': ~'+hours[wi].h+' ('+hours[wi].pp+'%). '):(L.dry.charAt(0).toUpperCase()+L.dry.slice(1)+'. ');
   s+=(l==='en'?'Wind ':'Vjetar ')+wind+' km/h '+COMPASS(cur.wind_direction_10m)+'.';return s;};
  const pmean=(a,b)=>{let t=0,n=0;for(let i=a;i<b&&i<hl.pressure_msl.length;i++){const v=hl.pressure_msl[i];if(v!=null){t+=v;n++;}}return n?t/n:null;};
+ const pmeanDay=d=>{const r=dayRows(d);return pmean(r[0],r[1]);}; /* mean over exactly that date's rows (23/24/25) */
+ const rh13=d=>{const r=dayRows(d);let k=-1;
+  for(let i=r[0];i<r[1];i++){if(hl.time[i].slice(11,16)==='13:00'){k=i;break;}}
+  if(k<0&&r[1]>r[0])k=r[0]+Math.floor((r[1]-r[0])/2);
+  return k>=0?hl.relative_humidity_2m[k]:null;};
  const bioH=[];
  for(let k=0;k<24;k++){const i=nowIdx+k;if(i>=hl.time.length)break;
   const dp=(i>=24&&hl.pressure_msl[i]!=null&&hl.pressure_msl[i-24]!=null)?(hl.pressure_msl[i]-hl.pressure_msl[i-24]):null;
   const sc=scoreBio({dp:dp,fl:hl.apparent_temperature[i],rh:hl.relative_humidity_2m[i],wind:hl.wind_speed_10m[i],cond:WMO(hl.weather_code[i]),swing:null});
   bioH.push({h:hl.time[i].slice(11,16),s:sc.s,r:sc.r});}
  const bioD=[];
- for(let dd=1;dd<Math.min(dl.time.length,8);dd++){
-  const dp=(()=>{const a=pmean(dd*24,(dd+1)*24),b=pmean((dd-1)*24,dd*24);return(a!=null&&b!=null)?(a-b):null;})();
+ for(let dd=tDay;dd<Math.min(dl.time.length,tDay+7);dd++){
+  const dp=(()=>{const a=pmeanDay(dl.time[dd]),b=pmeanDay(dl.time[dd-1]);return(a!=null&&b!=null)?(a-b):null;})();
   const hi2=dl.temperature_2m_max[dd],lo2=dl.temperature_2m_min[dd];
-  const sc=scoreBio({dp:dp,fl:hi2,rh:hl.relative_humidity_2m[dd*24+13],wind:dl.wind_speed_10m_max?dl.wind_speed_10m_max[dd]:null,cond:WMO(dl.weather_code[dd]),swing:(hi2!=null&&lo2!=null)?(hi2-lo2):null});
+  const sc=scoreBio({dp:dp,fl:hi2,rh:rh13(dl.time[dd]),wind:dl.wind_speed_10m_max?dl.wind_speed_10m_max[dd]:null,cond:WMO(dl.weather_code[dd]),swing:(hi2!=null&&lo2!=null)?(hi2-lo2):null});
   bioD.push({dt:dl.time[dd],s:sc.s,r:sc.r});}
  const grillRaw=[];
- {const todayStr=(dl.time[1]||hl.time[0]||'').slice(0,10);
-  for(let i=0;i<hl.time.length;i++){const ts=hl.time[i];if(ts.slice(0,10)!==todayStr)continue;
+ {const tr=dayRows(todayStr);
+  for(let i=tr[0];i<tr[1];i++){const ts=hl.time[i];
    const hh=parseInt(ts.slice(11,13),10);if(hh<9||hh>22)continue;
    grillRaw.push({h:hh,hh:ts.slice(11,16),t:hl.temperature_2m[i],fl:hl.apparent_temperature[i],pp:Math.round(hl.precipitation_probability[i]||0),wind:hl.wind_speed_10m[i],rh:hl.relative_humidity_2m[i],cond:WMO(hl.weather_code[i]),gust:(hl.wind_gusts_10m&&hl.wind_gusts_10m[i]!=null&&isFinite(hl.wind_gusts_10m[i]))?Math.round(hl.wind_gusts_10m[i]):null});}}
  const grillH=grillRaw.map(o=>({h:o.hh,s:grillCompound(o,GRILLALL).v}));
- fullDs.forEach((x,i)=>{const v=pmean((i+1)*24,(i+2)*24);x.p=v!=null?Math.round(v):null;x.w=(dl.wind_speed_10m_max&&dl.wind_speed_10m_max[i+1]!=null)?Math.round(dl.wind_speed_10m_max[i+1]):null;});
+ fullDs.forEach((x,i)=>{const v=pmeanDay(x.dt);x.p=v!=null?Math.round(v):null;x.w=(dl.wind_speed_10m_max&&dl.wind_speed_10m_max[i+tDay]!=null)?Math.round(dl.wind_speed_10m_max[i+tDay]):null;});
  /* FEAT-1: today's hourly extras (visibility/freezing level/gusts/snowfall) for the Hiking view */
  const hx=[];
- for(let k4=0;k4<24;k4++){const i4=24+k4;if(i4>=hl.time.length)break;
+ {const tr=dayRows(todayStr);
+  for(let i4=tr[0];i4<tr[1];i4++){
   const vis=hl.visibility?hl.visibility[i4]:null,frz=hl.freezing_level_height?hl.freezing_level_height[i4]:null,
    gu=hl.wind_gusts_10m?hl.wind_gusts_10m[i4]:null,sn=hl.snowfall?hl.snowfall[i4]:null;
   const clL=hl.cloud_cover_low?hl.cloud_cover_low[i4]:null,clM=hl.cloud_cover_mid?hl.cloud_cover_mid[i4]:null,clH=hl.cloud_cover_high?hl.cloud_cover_high[i4]:null;
@@ -719,8 +751,8 @@ async function fetchOpenMeteo(loc,range){
    snow:(sn!=null&&isFinite(sn))?Math.round(sn*10)/10:null,
    cl:(clL!=null&&isFinite(clL))?Math.round(clL):null,
    cm:(clM!=null&&isFinite(clM))?Math.round(clM):null,
-   ch:(clH!=null&&isFinite(clH))?Math.round(clH):null});}
- const gustMax=(dl.wind_gusts_10m_max&&dl.wind_gusts_10m_max[1]!=null&&isFinite(dl.wind_gusts_10m_max[1]))?Math.round(dl.wind_gusts_10m_max[1]):null;
+   ch:(clH!=null&&isFinite(clH))?Math.round(clH):null});}}
+ const gustMax=(dl.wind_gusts_10m_max&&dl.wind_gusts_10m_max[tDay]!=null&&isFinite(dl.wind_gusts_10m_max[tDay]))?Math.round(dl.wind_gusts_10m_max[tDay]):null;
  const ds=fullDs.slice(0,days);
  const alerts=[];
  {const end=Math.min(hl.time.length,nowIdx+30);
@@ -743,9 +775,9 @@ async function fetchOpenMeteo(loc,range){
   const t0=fullDs[0];if(t0&&t0.hi!=null&&t0.lo!=null&&(t0.hi-t0.lo)>=14)alerts.push({sev:1,type:'swing',hi:t0.hi,lo:t0.lo});
   if(heatMax!=null&&heatMax>=35)alerts.push({sev:1,type:'heat',val:Math.round(heatMax),at:heatAt,d:heatD});
   if(coldMin!=null&&coldMin<=-15)alerts.push({sev:1,type:'cold',val:Math.round(coldMin),at:coldAt,d:coldD});
-  {const todayD=dl.time[1],tomD=dl.time[2];
-   const uvT=(dl.uv_index_max&&dl.uv_index_max[1]!=null&&isFinite(dl.uv_index_max[1]))?dl.uv_index_max[1]:null;
-   const uvM=(dl.uv_index_max&&dl.uv_index_max[2]!=null&&isFinite(dl.uv_index_max[2]))?dl.uv_index_max[2]:null;
+  {const todayD=dl.time[tDay],tomD=dl.time[tDay+1];
+   const uvT=(dl.uv_index_max&&dl.uv_index_max[tDay]!=null&&isFinite(dl.uv_index_max[tDay]))?dl.uv_index_max[tDay]:null;
+   const uvM=(dl.uv_index_max&&dl.uv_index_max[tDay+1]!=null&&isFinite(dl.uv_index_max[tDay+1]))?dl.uv_index_max[tDay+1]:null;
    let uvVal=null,uvD=null;
    if(uvT!=null&&uvT>=8&&(uvM==null||uvT>=uvM)){uvVal=uvT;uvD=todayD;}
    else if(uvM!=null&&uvM>=8){uvVal=uvM;uvD=tomD;}
@@ -753,11 +785,11 @@ async function fetchOpenMeteo(loc,range){
   }
  }
  let sunObj=null;
- if(dl.sunrise&&dl.sunset&&dl.sunrise[1]&&dl.sunset[1]){
-  const mins=(a,b)=>Math.round((new Date(b)-new Date(a))/60000);
-  const len0=mins(dl.sunrise[1],dl.sunset[1]);
-  const len1=(dl.sunrise[2]&&dl.sunset[2])?mins(dl.sunrise[2],dl.sunset[2]):len0;
-  sunObj={rise:dl.sunrise[1].slice(11,16),set:dl.sunset[1].slice(11,16),len:len0,dmin:len1-len0};
+ if(dl.sunrise&&dl.sunset&&dl.sunrise[tDay]&&dl.sunset[tDay]){
+  const mins=(a,b)=>Math.round(tsMin(b)-tsMin(a));
+  const len0=mins(dl.sunrise[tDay],dl.sunset[tDay]);
+  const len1=(dl.sunrise[tDay+1]&&dl.sunset[tDay+1])?mins(dl.sunrise[tDay+1],dl.sunset[tDay+1]):len0;
+  sunObj={rise:dl.sunrise[tDay].slice(11,16),set:dl.sunset[tDay].slice(11,16),len:len0,dmin:len1-len0};
  }
  const pcur=(cur.pressure_msl!=null)?cur.pressure_msl:(hl.pressure_msl?hl.pressure_msl[nowIdx]:null);
  let presObj=null;
@@ -767,12 +799,13 @@ async function fetchOpenMeteo(loc,range){
   const ti2=(d3==null)?1:(d3>0.5?0:(d3<-0.5?2:1));
   presObj={cur:Math.round(pcur),t:ti2,d3:d3!=null?Math.round(d3*10)/10:null,d24:d24!=null?Math.round(d24*10)/10:null};
  }
- /* FEAT-2: 72h pressure trend for the BIOMETEO chart */
+ /* FEAT-2: 72h pressure trend for the BIOMETEO chart (window starts at yesterday's first row, now is string-anchored) */
  let presH=[],presNowIdx=0;
  if(hl.pressure_msl){
   let prevDay=null,pos=0;
-  const endP=Math.min(hl.time.length,72);
-  for(let i5=0;i5<endP;i5+=3,pos++){
+  const pS=dayRows(yStr)[0];
+  const endP=Math.min(hl.time.length,pS+72);
+  for(let i5=pS;i5<endP;i5+=3,pos++){
    const ts5=hl.time[i5],dpart=ts5.slice(0,10);
    const dayStart=(dpart!==prevDay);prevDay=dpart;
    const v5=hl.pressure_msl[i5];
@@ -781,36 +814,30 @@ async function fetchOpenMeteo(loc,range){
    if(i5<=nowIdx)presNowIdx=pos;
   }
  }
- const uvObj={cur:(hl.uv_index&&hl.uv_index[nowIdx]!=null)?Math.round(hl.uv_index[nowIdx]*10)/10:null,max:(dl.uv_index_max&&dl.uv_index_max[1]!=null)?Math.round(dl.uv_index_max[1]*10)/10:null};
+ const uvObj={cur:(hl.uv_index&&hl.uv_index[nowIdx]!=null)?Math.round(hl.uv_index[nowIdx]*10)/10:null,max:(dl.uv_index_max&&dl.uv_index_max[tDay]!=null)?Math.round(dl.uv_index_max[tDay]*10)/10:null};
  let rain15=null;
  if(j.minutely_15&&j.minutely_15.time&&j.minutely_15.precipitation){
-  const mt=j.minutely_15.time,mp=j.minutely_15.precipitation,nowT=new Date().getTime(),arr=[];
+  const mt=j.minutely_15.time,mp=j.minutely_15.precipitation,nowM=tsMin(nowStr),arr=[];
   for(let i=0;i<mt.length;i++){
-   if(new Date(mt[i]).getTime()+15*60000<=nowT)continue; /* slot fully in the past */
+   if(tsMin(mt[i])+15<=nowM)continue; /* slot fully in the past (both location-local strings) */
    arr.push({h:mt[i].slice(11,16),v:(mp[i]!=null&&isFinite(mp[i]))?Math.round(mp[i]*100)/100:null});
    if(arr.length>=8)break; /* 2 hours */
   }
   if(arr.length)rain15=arr;
  }
- let today3=null,todayMeta=null;
- if(hl.time.length>24){
-  const t3=[];
-  for(let k2=0;k2<=8;k2++){const i2=24+k2*3;if(i2>=hl.time.length)break;
-   t3.push({h:hl.time[i2].slice(11,16),t:Math.round(hl.temperature_2m[i2]),cond:WMO(hl.weather_code[i2])});}
-  if(t3.length>=4){
-   today3=t3;
-   todayMeta={hi:fullDs[0]?fullDs[0].hi:null,lo:fullDs[0]?fullDs[0].lo:null,pp:fullDs[0]?fullDs[0].pp:null,
-    mm:(dl.precipitation_sum&&dl.precipitation_sum[1]!=null)?Math.round(dl.precipitation_sum[1]*10)/10:null};
-  }
- }
  let h3ext=null;
- if(hl.time.length>24){
-  const ex=[];
-  for(let k3=0;k3<=96;k3+=3){const i3=24+k3;if(i3>=hl.time.length)break;
-   ex.push({a:k3,dt:hl.time[i3].slice(0,10),h:hl.time[i3].slice(11,16),t:Math.round(hl.temperature_2m[i3]),cond:WMO(hl.weather_code[i3]),pp:(hl.precipitation_probability&&hl.precipitation_probability[i3]!=null)?Math.round(hl.precipitation_probability[i3]):null});}
+ if(dayMap[todayStr]){
+  const ex=[],t0m=tsMin(todayStr+'T00:00');
+  for(let i3=dayMap[todayStr][0];i3<hl.time.length;i3++){
+   const ts=hl.time[i3];
+   if(ts.slice(14,16)!=='00'||parseInt(ts.slice(11,13),10)%3!==0)continue;
+   const a=Math.round((tsMin(ts)-t0m)/60); /* wall-clock hours since today 00:00 */
+   if(a>96)break;
+   if(ex.length&&ex[ex.length-1].a===a)continue; /* repeated wall-clock hour on a fall-back day */
+   ex.push({a:a,dt:ts.slice(0,10),h:ts.slice(11,16),t:Math.round(hl.temperature_2m[i3]),cond:WMO(hl.weather_code[i3]),pp:(hl.precipitation_probability&&hl.precipitation_probability[i3]!=null)?Math.round(hl.precipitation_probability[i3]):null});}
   if(ex.length>=9)h3ext=ex;
  }
- return{loc:loc.name,station:loc.station,uv:uvObj,rain15:rain15,today3:today3,todayMeta:todayMeta,h3ext:h3ext,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,presH:presH,presNowIdx:presNowIdx,sun:sunObj,hx:hx,gustMax:gustMax,
+ return{loc:loc.name,tz:tz,uv:uvObj,rain15:rain15,h3ext:h3ext,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,presH:presH,presNowIdx:presNowIdx,sun:sunObj,hx:hx,gustMax:gustMax,
   daysFull:fullDs,
   now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),wdeg:Math.round(((cur.wind_direction_10m%360)+360)%360),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
   hours:hours,days:ds,yest:yest,badge:badge,
@@ -833,16 +860,17 @@ function ensureMarine(loc){
   const lv=j.hourly&&j.hourly.sea_level_height_msl, wv=j.hourly&&j.hourly.wave_height;
   const sw=j.hourly&&j.hourly.swell_wave_height, swp=j.hourly&&j.hourly.swell_wave_period, cv=j.hourly&&j.hourly.ocean_current_velocity;
   const cvUnit=(j.hourly_units&&j.hourly_units.ocean_current_velocity)||'km/h';
+  const nowS=locNowStrAt(typeof j.utc_offset_seconds==='number'?j.utc_offset_seconds:LOCTZ.off); /* location-local string, same format as tm[i] */
   if(!tm||!vv)throw new Error('marine: incomplete data');
   const byDate={},byLvl={};let cur=null,wave=null,swell=null,swellT=null,current=null;
   for(let i=0;i<tm.length;i++){
    const d=tm[i].slice(0,10);
    const v=vv[i];
    if(v!=null&&isFinite(v)){
-    if(cur===null&&new Date(tm[i])>=new Date())cur=v;
+    if(cur===null&&tm[i]>=nowS)cur=v;
     (byDate[d]=byDate[d]||[]).push(v);
    }
-   const isFuture=new Date(tm[i])>=new Date();
+   const isFuture=tm[i]>=nowS;
    const w=wv?wv[i]:null;
    if(wave===null&&w!=null&&isFinite(w)&&isFuture)wave=w;
    const sh=sw?sw[i]:null;
@@ -877,7 +905,8 @@ function ensureAir(loc){
   const r=await tfetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,dust&current=european_aqi&forecast_days=3&past_days=1&timezone=auto',10000);
   if(!r.ok)throw new Error('air-quality '+r.status);
   const j=await r.json();const h=j.hourly;if(!h||!h.time)throw new Error('air-quality: incomplete data');
-  let idx=h.time.findIndex(t=>new Date(t)>=new Date());if(idx<0)idx=h.time.length-1;
+  const nowS=locNowStrAt(typeof j.utc_offset_seconds==='number'?j.utc_offset_seconds:LOCTZ.off); /* location-local string, same format as h.time */
+  let idx=h.time.findIndex(t=>t>=nowS);if(idx<0)idx=h.time.length-1;
   const keys=['alder','birch','grass','mugwort','olive','ragweed'];
   const list=[];
   keys.forEach(kk=>{const arr=h[kk+'_pollen'];const v=arr?arr[idx]:null;if(v!=null&&isFinite(v))list.push({k:kk,v:v});});
@@ -909,12 +938,12 @@ function ensureAir(loc){
 /* ---------- Climatology: WMO-style normals ---------- */
 function mmdd(d){return String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function windowKeys(){
- const keys=[];const ref=new Date(2000,new Date().getMonth(),new Date().getDate());
+ const keys=[];const ln=locNow();const ref=new Date(2000,ln.getMonth(),ln.getDate());
  for(let o=-WIN;o<=WIN;o++){const d=new Date(ref);d.setDate(ref.getDate()+o);keys.push(mmdd(d));}
  return keys;
 }
 function sameDayISO(yearsBack){
- const d=new Date();const y=d.getFullYear()-yearsBack;
+ const d=locNow();const y=d.getFullYear()-yearsBack;
  let dd=d.getDate();const mo=d.getMonth()+1;
  if(mo===2&&dd===29)dd=28;
  return y+'-'+String(mo).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
@@ -1005,7 +1034,7 @@ function scheduleRender(){ /* PERF-3: 150ms trailing debounce so 3-4 async arriv
 function saveLast(key,locName,d){ /* PERF-2: persist the last good direct-mode forecast for instant SWR reload */
  try{
   if(!d||d.mode==='ai')return;
-  const s=JSON.stringify({key:key,loc:locName,t:Date.now(),D:d});
+  const s=JSON.stringify({v:APPV,key:key,loc:locName,t:Date.now(),D:d});
   if(s.length>400000)return;
   localStorage.setItem(WD_LAST_KEY,s);
  }catch(e){}
@@ -1016,6 +1045,7 @@ function readWdLast(locName,key){
   if(!raw)return null;
   const o=JSON.parse(raw);
   if(!o||!o.D||o.D.mode==='ai'||!o.key||!o.loc)return null;
+  if(o.v!==APPV)return null; /* I1: snapshots from another app version are never rendered by this code */
   if(o.key.split('|')[0]!==key.split('|')[0])return null; /* RANGE must match */
   if(o.loc.trim().toLowerCase()!==locName.trim().toLowerCase())return null;
   return o;
@@ -1055,7 +1085,7 @@ async function refreshInBackground(locName,key,mySeq){ /* PERF-2/PERF-4: SWR / s
   const d=await fetchFor(locName,key,getA);
   if(mySeq!==loadSeq)return; /* superseded by a newer loadData() call */
   d.fetchedAt=Date.now();d.fromCache=false;
-  D=d;cache[key]=D;
+  D=d;setLocTz(D.tz);cache[key]=D;
   lastRefreshFailed=false;
   scheduleRender();
  }catch(err){
@@ -1077,14 +1107,14 @@ async function loadData(){
  lastErrs={direct:null,ai:null};
  lastRefreshFailed=false;
  if(cache[key]){
-  D=cache[key];addRecent(locName);show('dash');showView(route());btn.disabled=false;
+  D=cache[key];setLocTz(D.tz);addRecent(locName);show('dash');showView(route());btn.disabled=false;
   if(Date.now()-(D.fetchedAt||0)>FRESH_MS)refreshInBackground(locName,key,mySeq); /* PERF-4: stale in-memory entry */
   loadSecondary();
   return;
  }
  const last=readWdLast(locName,key); /* PERF-2: no in-memory hit — fall back to the persisted snapshot */
  if(last){
-  D=last.D;D.fetchedAt=last.t;D.fromCache=true;cache[key]=D;
+  D=last.D;D.fetchedAt=last.t;D.fromCache=true;cache[key]=D;setLocTz(D.tz); /* tz missing in an old snapshot -> LOCTZ stays as is (browser time on a fresh page) */
   addRecent(locName);show('dash');showView(route());btn.disabled=false;
   refreshInBackground(locName,key,mySeq);
   loadSecondary();
@@ -1096,7 +1126,7 @@ async function loadData(){
   const d=await fetchFor(locName,key,getA);
   if(mySeq!==loadSeq)return; /* a newer loadData() call already took over */
   d.fetchedAt=Date.now();d.fromCache=false;
-  D=d;cache[key]=D;addRecent(locName);show('dash');showView(route());
+  D=d;setLocTz(D.tz);cache[key]=D;addRecent(locName);show('dash');showView(route());
   loadSecondary();
  }catch(err){
   if(mySeq!==loadSeq)return;
@@ -1597,7 +1627,7 @@ function buildFact(d,l){
  const hrv=l==='hr';
  const cand=[];
  const d0=(d.days&&d.days[0])||null;
- const mo=new Date().getMonth();
+ const mo=locNow().getMonth();
  if(d0&&d.climo&&d.climo.byDay){
   const nm=d.climo.byDay[d0.dt.slice(5)];
   if(nm!=null){
@@ -1608,7 +1638,7 @@ function buildFact(d,l){
   }
  }
  if(d.sun){
-  const now=new Date();const y=now.getFullYear();
+  const now=locNow();const y=now.getFullYear();
   const cands=[new Date(y,5,21),new Date(y,11,21),new Date(y+1,5,21)];
   let nx=cands.find(c=>c>=new Date(y,now.getMonth(),now.getDate()));
   const nDays=Math.round((nx-now)/86400000);
@@ -2354,7 +2384,7 @@ function requestGeo(){
 function clmp(x){return Math.max(0,Math.min(100,Math.round(x)));}
 function colByPct(p){return p>=66?C.ok:(p>=40?C.warn:C.bad);}
 function mins2hm(m){m=((Math.round(m)%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
-function nowMin(){const d=new Date();return d.getHours()*60+d.getMinutes();}
+function nowMin(){const d=locNow();return d.getHours()*60+d.getMinutes();}
 function cdownTxt(target,l){const hrv=l==='hr';let d=Math.round(target-nowMin());const ago=d<0;const a=Math.abs(d);const h=Math.floor(a/60),m=a%60;const s=(h?h+'h ':'')+m+'m';return ago?(hrv?('prije '+s):(s+' ago')):(hrv?('za '+s):('in '+s));}
 function gaugeBar(pct,color){return '<div class="gauge"><span style="width:'+clmp(pct)+'%;background:'+color+'"></span></div>';}
 function gcard(label,pct,ctx){return '<div class="card"><div class="lab">'+label+'</div><div style="display:flex;align-items:baseline;gap:6px;"><span class="big" style="font-size:26px;">'+clmp(pct)+'</span><span class="lab" style="font-size:11px;">/100</span></div>'+gaugeBar(pct,colByPct(pct))+(ctx?'<div class="ctx">'+ctx+'</div>':'')+'</div>';}
@@ -2395,7 +2425,7 @@ function weekendVerdict(){
  return out;
 }
 function bbqPhase(l){
- const hrv=l==='hr',d=new Date().getDay();
+ const hrv=l==='hr',d=locNow().getDay();
  if(d===1||d===2)return hrv?'Prerano za vikend. Drži hvataljke u futroli.':'Too early to call the weekend. Keep your tongs holstered.';
  if(d===3)return hrv?'Sredina tjedna — vikend prognoza dobiva oblik. Počni marinirati očekivanja.':'Midweek checkpoint — the weekend forecast is taking shape. Start marinating expectations.';
  if(d===4)return hrv?'Vrijeme za plan: pogledaj presudu gore — ako dobro izgleda, vadi teže komade iz škrinje.':'Planning window: check the verdict above — if it looks good, pull the heavy cuts from the freezer.';
@@ -2728,7 +2758,7 @@ function drawHikeWeek(){
 function renderStripWindow(el){
  var hrv=lang==='hr';
  var ext=D.h3ext;
- var nowD=new Date();
+ var nowD=locNow();
  var base=Math.floor(nowD.getHours()/3)*3;
  var pts=ext.filter(function(p){return p.a>=base;});
  if(pts.length<2){el.innerHTML='';return;}
