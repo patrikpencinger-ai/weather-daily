@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Patrik's weather daily — v3.19</title>
+<title>Patrik's weather daily — v3.20</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#16243a">
@@ -492,7 +492,7 @@ body{padding:20px;transition:background .2s}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.19 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.20 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
 </div>
 
@@ -507,7 +507,7 @@ const ICON_NIGHT={sun:'🌙',partcloud:ICON.cloud}; /* I2: night variants of the
 function iconFor(r){if(!r)return'';return (r.night&&ICON_NIGHT[r.cond])||ICON[r.cond]||'';}
 const ICON_SUN='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 const ICON_MOON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-const APPV='3.19';
+const APPV='3.20';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -729,13 +729,13 @@ const T={
   loading:"Fetching the live forecast…",errTitle:"Couldn't load the forecast",
   lgT:"Temperature °C",lgP:"Precip chance %",lgHi:"High",lgLo:"Low",
   lgC:"Forecast confidence %",anomVs:"vs normal",
-  cT:"Temperature",cMax:"Daily max",cFL:"Feels like",cH:"Humidity",cW:"Wind",cP:"Chance of rain",cS:"Sea temp",
+  cMax:"Daily max",cFL:"Feels like",cH:"Humidity",cW:"Wind",cP:"Chance of rain",cS:"Sea temp",
   badges:{g:"Green light",y:"Caution",r:"Stay flexible"},
   longNote:"Beyond ~10 days this is trend-level guidance — confidence drops with distance.",
   capNote:"(direct feed tops out at 16 days)",
   best:"Best window",worst:"Wettest risk",dry:"dry all day",
   vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
-  zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",locThis:"This location",locSearchPh:"Search a place…",locDone:"Done",locSelLbl:"Location search",moonLeg:"moon phase",tideHi:"High tide",tideLo:"Low tide",h5:"MOON & TIDE",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cUV:"UV index",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",wkB:"WEEKENDS",mapLoading:"Loading…",
+  zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",locThis:"This location",locSearchPh:"Search a place…",locDone:"Done",locSelLbl:"Location search",moonLeg:"moon phase",tideHi:"High tide",tideLo:"Low tide",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",wkB:"WEEKENDS",mapLoading:"Loading…",
   grpAir:"AIR",grpCmp:"COMPARISONS",grpSea:"SEA",grpBio:"BIO, PRESSURE & MOON",pillMoon:"🌙 Moon",pillTide:"🌊 Tide",pillBbq:"🔥 BBQ",pillConf:"Confidence",pillPres:"Pressure",cRain:"Rain",stAir:"Air",heroToday:"today",heroLbl:"Current weather",
   tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabMap:"Map",tabInfo:"Info",tShort:"Patrik's weather",
   infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",infoFeedsH:"DATA SOURCES · STATUS",infoBack:"← Back",infoLink:"Info & changelog",
@@ -748,7 +748,7 @@ const T={
   critTime:"Time of day",critTemp:"Temperature",critRain:"Rain",critWind:"Wind",critHumid:"Humidity",critStorm:"Storm",
   hikeHead:"🥾 Hiking",hikeTag:"Trails within ~20 km — read the light, dodge the rain, mind the altitude.",
   hikeMetricsH:"TODAY ON THE TRAIL",hikeComfH:"HOURLY COMFORT & RAIN",hikeWeekH:"7-DAY TRAIL SCORE",hikeFunH:"TRAIL NONSENSE",
-  cBbq:"BBQ score",bbqInfo:"<b>The premise.</b> Every day starts at a perfect 100 \u2014 much like every grill master's confidence.<br><br><b>Rain, the arch-enemy.</b> Each percent of evening shower risk burns 0.9 points, because soggy \u010devapi help nobody. A forecast thunderstorm slams the score to 15 \u2014 lightning is the only thing allowed to flame-grill you.<br><br><b>Temperature.</b> Judged for prime tong hours (17\u201321 h): the sweet spot is 18\u201326\u00B0, every degree outside costs 4 points.<br><br><b>Wind &amp; air.</b> Above 20 km/h the wind steals a point per km/h \u2014 smoke in your eyes, napkins next door. Sultry evenings (humidity over 80% at 24\u00B0+) cost 8 points and one shirt. A grumpy biometeo docks 6 points per level \u2014 guests with pressure headaches eat suspiciously little.<br><br><b>The verdict \u2014 which icon is which.</b><br>\uD83D\uDD25\uD83E\uDD69 90\u2013100 \u00B7 grill god<br>\uD83C\uDF56 70\u201389 \u00B7 prime grilling<br>\uD83C\uDF2D 50\u201369 \u00B7 decent grilling<br>\uD83C\uDF62 30\u201349 \u00B7 for the brave<br>\uD83E\uDDEF 1\u201329 \u00B7 extinguisher weather<br><br>The biggest culprit is named on the card. Advice, not destiny \u2014 true masters grill in anything.<br><br><b>Two scores, one truth.</b> This card and the daily bars use the day-level formula above. The BBQ tab runs an <i>hourly compound</i> with tickable criteria (time of day \u2014 prime 12\u201318 h, peak 14 h \u2014 temperature, rain, wind, humidity, storm), so its number can differ. Same weather, different lens.",bioInfo:"<b>What it measures.</b> How hard today's weather leans on the weather-sensitive \u2014 a load score built from the same data the charts show.<br><br><b>Pressure.</b> A 24-hour swing over 4 hPa adds a point; over 8 hPa adds two. Fronts announce themselves in your sinuses first.<br><br><b>Heat &amp; cold.</b> Feels-like of 27\u00B0+ adds one, 30\u00B0+ two; \u22125\u00B0 or below adds one. Sultry air (humidity \u226585% when warm) adds another.<br><br><b>Wind &amp; storms.</b> Wind of 40+ km/h adds one; a thunderstorm adds two. A day swinging more than 14\u00B0 between low and high adds one more.<br><br><b>The smileys.</b> 0\u20131 \u2192 \uD83D\uDE42 favorable; 2\u20133 \u2192 \uD83D\uDE10 moderately unfavorable; 4+ \u2192 \u2639\uFE0F unfavorable. Triggers are listed on the card \u2014 so you know whether to blame the front, the heat, or simply Monday.",bbqTiers:['Grill god conditions','Prime grilling','Decent grilling','For the brave','Extinguisher weather'],bbqWhy:{rain:'rain risk',hot:'too hot',cold:'too cold',wind:'windy',bio:'biometeo',hum:'sultry',storm:'thunderstorm'},cBio:"Biometeo",cPres:"Pressure",presTrend:['Rising','Steady','Falling'],lgPr:"Pressure hPa",bioLevels:['Favorable','Moderately unfavorable','Unfavorable'],bioR:{rPress:'pressure swing',rHeat:'heat',rCold:'cold',rHum:'sultry',rWind:'wind',rStorm:'storm',rSwing:'temp swing'},aRun:'Running',aHike:'Hiking',runGo:'good — best ~',runCare:'easy does it (heat/biometeo) — if so ~',hikeGood:'good day',hikeRain:'rain risk — plan windows',uvNote:'high UV midday, protect',moonNames:['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent'],
+  cBbq:"BBQ score",bioInfo:"<b>What it measures.</b> How hard today's weather leans on the weather-sensitive \u2014 a load score built from the same data the charts show.<br><br><b>Pressure.</b> A 24-hour swing over 4 hPa adds a point; over 8 hPa adds two. Fronts announce themselves in your sinuses first.<br><br><b>Heat &amp; cold.</b> Feels-like of 27\u00B0+ adds one, 30\u00B0+ two; \u22125\u00B0 or below adds one. Sultry air (humidity \u226585% when warm) adds another.<br><br><b>Wind &amp; storms.</b> Wind of 40+ km/h adds one; a thunderstorm adds two. A day swinging more than 14\u00B0 between low and high adds one more.<br><br><b>The smileys.</b> 0\u20131 \u2192 \uD83D\uDE42 favorable; 2\u20133 \u2192 \uD83D\uDE10 moderately unfavorable; 4+ \u2192 \u2639\uFE0F unfavorable. Triggers are listed on the card \u2014 so you know whether to blame the front, the heat, or simply Monday.",bbqTiers:['Grill god conditions','Prime grilling','Decent grilling','For the brave','Extinguisher weather'],bbqWhy:{rain:'rain risk',hot:'too hot',cold:'too cold',wind:'windy',bio:'biometeo',hum:'sultry',storm:'thunderstorm'},cBio:"Biometeo",cPres:"Pressure",presTrend:['Rising','Steady','Falling'],lgPr:"Pressure hPa",bioLevels:['Favorable','Moderately unfavorable','Unfavorable'],bioR:{rPress:'pressure swing',rHeat:'heat',rCold:'cold',rHum:'sultry',rWind:'wind',rStorm:'storm',rSwing:'temp swing'},aRun:'Running',aHike:'Hiking',runGo:'good — best ~',runCare:'easy does it (heat/biometeo) — if so ~',hikeGood:'good day',hikeRain:'rain risk — plan windows',uvNote:'high UV midday, protect',moonNames:['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent'],
   normFoot:"normal: ERA5 "+NORM_LBL+" ±"+WIN+"d",
   errDirect:"Direct feed (Open-Meteo): ",errAI:"AI feed (Claude): ",
   errTip:"Live data can't be fetched from a local file — iPhone/iPad Safari blocks network requests on file:// pages. Serve it over http(s) (e.g. GitHub Pages, Netlify, or a local web server) and open that link instead. On desktop, also check ad-blockers. The AI feed only works inside Claude.",
@@ -763,19 +763,19 @@ const T={
   ar_mt:"Moon illumination with phase icons",ar_tide:"Daily tide high and low levels",ar_bbqtl:"BBQ prep timeline back-timed from the best grill hour",ar_bbqgr:"Hourly grilling score 9am to 10pm with tier icons",
   ar_grill:"Grilling score forecast (today\'s grilling hours or upcoming days) as colored bars with tier icons",ar_hikec:"Hourly feels-like temperature and rain chance",ar_hikew:"Seven day trail score",
   ar_radarBox:"Full-screen weather map with radar, lightning, temperature, wind, rain and cloud layers",ar_rainStrip:"Rain expected in the next two hours in 15-minute steps",ar_heatLeg:"Temperature layer colour legend",
-  ar_bioInfo:"Biometeo criteria",ar_bbqInfo:"BBQ score criteria",
+  ar_bioInfo:"Biometeo criteria",
   dows:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']},
  hr:{title:"PATRIKOVA DNEVNA PROGNOZA",h2:"SLJEDEĆA 24 SATA",h3:"IZGLEDI",h4:"TEMPERATURA MORA",
   loading:"Dohvaćam prognozu…",errTitle:"Prognoza se nije učitala",
   lgT:"Temperatura °C",lgP:"Vjerojatnost oborina %",lgHi:"Najviša",lgLo:"Najniža",
   lgC:"Pouzdanost prognoze %",anomVs:"vs normala",
-  cT:"Temperatura",cMax:"Dnevni maksimum",cFL:"Osjet",cH:"Vlažnost",cW:"Vjetar",cP:"Vjerojatnost kiše",cS:"More",
+  cMax:"Dnevni maksimum",cFL:"Osjet",cH:"Vlažnost",cW:"Vjetar",cP:"Vjerojatnost kiše",cS:"More",
   badges:{g:"Zeleno svjetlo",y:"Oprez",r:"Budi fleksibilan"},
   longNote:"Nakon ~10 dana ovo je prognoza trenda — pouzdanost pada s udaljenošću.",
   capNote:"(izravni izvor ide do 16 dana)",
   best:"Najbolji prozor",worst:"Najveći rizik kiše",dry:"suho cijeli dan",
   vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
-  zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",locThis:"Ova lokacija",locSearchPh:"Traži mjesto…",locDone:"Gotovo",locSelLbl:"Pretraga lokacije",moonLeg:"mjesečeve mijene",tideHi:"Plima",tideLo:"Oseka",h5:"MJESEC I MORSKE MIJENE",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cUV:"UV indeks",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",wkB:"VIKENDI",
+  zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",locThis:"Ova lokacija",locSearchPh:"Traži mjesto…",locDone:"Gotovo",locSelLbl:"Pretraga lokacije",moonLeg:"mjesečeve mijene",tideHi:"Plima",tideLo:"Oseka",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",wkB:"VIKENDI",
   grpAir:"ZRAK",grpCmp:"USPOREDBE",grpSea:"MORE",grpBio:"BIO, TLAK I MJESEC",pillMoon:"🌙 Mjesec",pillTide:"🌊 Plima",pillBbq:"🔥 Roštilj",pillConf:"Pouzdanost",pillPres:"Tlak",cRain:"Kiša",stAir:"Zrak",heroToday:"danas",heroLbl:"Trenutno vrijeme",mapLoading:"U\u010ditavam\u2026",
   tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabMap:"Karta",tabInfo:"Info",tShort:"Patrikova prognoza",
   infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",infoFeedsH:"IZVORI PODATAKA \u00b7 STATUS",infoBack:"\u2190 Natrag",infoLink:"Info i izmjene",
@@ -788,7 +788,7 @@ const T={
   critTime:"Doba dana",critTemp:"Temperatura",critRain:"Ki\u0161a",critWind:"Vjetar",critHumid:"Sparina",critStorm:"Nevrijeme",
   hikeHead:"\ud83e\udd7e Planinarenje",hikeTag:"Staze unutar ~20 km \u2014 uhvati svjetlo, izbjegni ki\u0161u, pazi na visinu.",
   hikeMetricsH:"DANAS NA STAZI",hikeComfH:"UGODA I KI\u0160A PO SATU",hikeWeekH:"INDEKS STAZE \u2014 7 DANA",hikeFunH:"STAZA BEZ VEZE",
-  cBbq:"Ro\u0161tilj indeks",bbqInfo:"<b>Premisa.</b> Svaki dan po\u010dinje sa savr\u0161enih 100 \u2014 ba\u0161 kao samopouzdanje svakog majstora ro\u0161tilja.<br><br><b>Ki\u0161a, glavni neprijatelj.</b> Svaki posto ve\u010dernjeg rizika spaljuje 0,9 bodova, jer raskva\u0161eni \u0107evapi nikome ne poma\u017eu. Najavljena grmljavina ru\u0161i indeks na 15 \u2014 jedino munji dopu\u0161tamo flambiranje.<br><br><b>Temperatura.</b> Ocjenjuje se za zlatno doba hvataljki (17\u201321 h): idealno je 18\u201326\u00B0, svaki stupanj izvan toga ko\u0161ta 4 boda.<br><br><b>Vjetar i zrak.</b> Preko 20 km/h vjetar krade bod po km/h \u2014 dim u o\u010di, salvete u susjedovo dvori\u0161te. Sparne ve\u010deri (vlaga preko 80% uz 24\u00B0+) nose 8 bodova i jednu majicu. Mrzovoljan biometeo skida 6 bodova po razini \u2014 gosti s glavoboljom sumnjivo malo jedu.<br><br><b>Presuda \u2014 koja ikona je koji rezultat.</b><br>\uD83D\uDD25\uD83E\uDD69 90\u2013100 \u00B7 bo\u017eanski ro\u0161tilj<br>\uD83C\uDF56 70\u201389 \u00B7 odli\u010dno<br>\uD83C\uDF2D 50\u201369 \u00B7 sasvim solidno<br>\uD83C\uDF62 30\u201349 \u00B7 za hrabre<br>\uD83E\uDDEF 1\u201329 \u00B7 vrijeme za aparat<br><br>Najve\u0107eg krivca pi\u0161emo na kartici. Savjet, a ne sudbina \u2014 pravi majstori ro\u0161tiljaju po svemu.<br><br><b>Dva indeksa, jedna istina.</b> Ova kartica i dnevni stupci koriste gornji dnevni izra\u010dun. Ro\u0161tilj tab ra\u010duna <i>satni kompozitni</i> indeks s uklju\u010divim kriterijima (doba dana \u2014 zlatno 12\u201318 h, vrh 14 h \u2014 temperatura, ki\u0161a, vjetar, sparina, nevrijeme), pa se brojke mogu razlikovati. Isto vrijeme, druga le\u0107a.",bioInfo:"<b>\u0160to mjeri.</b> Koliko dana\u0161nje vrijeme pritisak stavlja na meteoropate \u2014 indeks optere\u0107enja iz istih podataka koje vidite na grafovima.<br><br><b>Tlak.</b> Promjena ve\u0107a od 4 hPa u 24 h donosi bod; preko 8 hPa dva. Fronte se najprije najave u sinusima.<br><br><b>Vru\u0107ina i hladno\u0107a.</b> Osje\u0107aj od 27\u00B0+ donosi bod, 30\u00B0+ dva; \u22125\u00B0 ili ni\u017ee jo\u0161 jedan. Sparina (vlaga \u226585% uz toplo) dodaje bod.<br><br><b>Vjetar i nevrijeme.</b> Vjetar od 40+ km/h donosi bod; grmljavina dva. Dan koji se nji\u0161e vi\u0161e od 14\u00B0 izme\u0111u minimuma i maksimuma jo\u0161 jedan.<br><br><b>Smajli\u0107i.</b> 0\u20131 \u2192 \uD83D\uDE42 povoljno; 2\u20133 \u2192 \uD83D\uDE10 umjereno nepovoljno; 4+ \u2192 \u2639\uFE0F nepovoljno. Okida\u010di su navedeni na kartici \u2014 da znate krivite li frontu, vru\u0107inu ili jednostavno ponedjeljak.",bbqTiers:['Bo\u017eanski ro\u0161tilj','Odli\u010dno za ro\u0161tilj','Sasvim solidno','Za hrabre','Vrijeme za aparat'],bbqWhy:{rain:'rizik ki\u0161e',hot:'prevru\u0107e',cold:'prehladno',wind:'vjetrovito',bio:'biometeo',hum:'sparina',storm:'grmljavina'},cBio:"Biometeo",cPres:"Tlak zraka",presTrend:['Raste','Stabilno','Pada'],lgPr:"Tlak hPa",bioLevels:['Povoljno','Umjereno nepovoljno','Nepovoljno'],bioR:{rPress:'promjena tlaka',rHeat:'vrućina',rCold:'hladnoća',rHum:'sparina',rWind:'vjetar',rStorm:'nevrijeme',rSwing:'kolebanje temp.'},aRun:'Trčanje',aHike:'Planinarenje',runGo:'dobro — najbolje ~',runCare:'polako (vrućina/biometeo) — ako ideš ~',hikeGood:'dobar dan',hikeRain:'rizik kiše — planiraj prozore',uvNote:'jak UV oko podneva, zaštita',moonNames:['Mlađak','Rastući srp','Prva četvrt','Rastući mjesec','Puni mjesec','Opadajući mjesec','Zadnja četvrt','Opadajući srp'],
+  cBbq:"Ro\u0161tilj indeks",bioInfo:"<b>\u0160to mjeri.</b> Koliko dana\u0161nje vrijeme pritisak stavlja na meteoropate \u2014 indeks optere\u0107enja iz istih podataka koje vidite na grafovima.<br><br><b>Tlak.</b> Promjena ve\u0107a od 4 hPa u 24 h donosi bod; preko 8 hPa dva. Fronte se najprije najave u sinusima.<br><br><b>Vru\u0107ina i hladno\u0107a.</b> Osje\u0107aj od 27\u00B0+ donosi bod, 30\u00B0+ dva; \u22125\u00B0 ili ni\u017ee jo\u0161 jedan. Sparina (vlaga \u226585% uz toplo) dodaje bod.<br><br><b>Vjetar i nevrijeme.</b> Vjetar od 40+ km/h donosi bod; grmljavina dva. Dan koji se nji\u0161e vi\u0161e od 14\u00B0 izme\u0111u minimuma i maksimuma jo\u0161 jedan.<br><br><b>Smajli\u0107i.</b> 0\u20131 \u2192 \uD83D\uDE42 povoljno; 2\u20133 \u2192 \uD83D\uDE10 umjereno nepovoljno; 4+ \u2192 \u2639\uFE0F nepovoljno. Okida\u010di su navedeni na kartici \u2014 da znate krivite li frontu, vru\u0107inu ili jednostavno ponedjeljak.",bbqTiers:['Bo\u017eanski ro\u0161tilj','Odli\u010dno za ro\u0161tilj','Sasvim solidno','Za hrabre','Vrijeme za aparat'],bbqWhy:{rain:'rizik ki\u0161e',hot:'prevru\u0107e',cold:'prehladno',wind:'vjetrovito',bio:'biometeo',hum:'sparina',storm:'grmljavina'},cBio:"Biometeo",cPres:"Tlak zraka",presTrend:['Raste','Stabilno','Pada'],lgPr:"Tlak hPa",bioLevels:['Povoljno','Umjereno nepovoljno','Nepovoljno'],bioR:{rPress:'promjena tlaka',rHeat:'vrućina',rCold:'hladnoća',rHum:'sparina',rWind:'vjetar',rStorm:'nevrijeme',rSwing:'kolebanje temp.'},aRun:'Trčanje',aHike:'Planinarenje',runGo:'dobro — najbolje ~',runCare:'polako (vrućina/biometeo) — ako ideš ~',hikeGood:'dobar dan',hikeRain:'rizik kiše — planiraj prozore',uvNote:'jak UV oko podneva, zaštita',moonNames:['Mlađak','Rastući srp','Prva četvrt','Rastući mjesec','Puni mjesec','Opadajući mjesec','Zadnja četvrt','Opadajući srp'],
   normFoot:"normala: ERA5 "+NORM_LBL+" ±"+WIN+"d",
   errDirect:"Izravni izvor (Open-Meteo): ",errAI:"AI izvor (Claude): ",
   errTip:"Uživo podaci ne mogu se dohvatiti iz lokalne datoteke — Safari na iPhoneu/iPadu blokira mrežne zahtjeve na file:// stranicama. Posluži je preko http(s) (npr. GitHub Pages, Netlify ili lokalni web server) i otvori tu poveznicu. Na računalu provjeri i blokatore oglasa. AI izvor radi samo unutar Claudea.",
@@ -803,7 +803,7 @@ const T={
   ar_mt:"Osvijetljenost Mjeseca s ikonama mijena",ar_tide:"Dnevne razine plime i oseke",ar_bbqtl:"Vremenska crta priprema za roštilj, računata unatrag od najboljeg sata za roštilj",ar_bbqgr:"Satna ocjena roštilja od 9 do 22 sata s ikonama razina",
   ar_grill:"Prognoza ocjene roštilja (današnji sati za roštilj ili nadolazeći dani) u obojenim stupcima s ikonama razina",ar_hikec:"Satna osjetna temperatura i vjerojatnost kiše",ar_hikew:"Sedmodnevna ocjena staze",
   ar_radarBox:"Vremenska karta preko cijelog zaslona s radarom, munjama te slojevima temperature, vjetra, kiše i oblaka",ar_rainStrip:"Očekivana kiša u sljedeća dva sata u koracima od 15 minuta",ar_heatLeg:"Legenda boja sloja temperature",
-  ar_bioInfo:"Kriteriji biometeorologije",ar_bbqInfo:"Kriteriji ocjene za roštilj",
+  ar_bioInfo:"Kriteriji biometeorologije",
   dows:['Ned','Pon','Uto','Sri','Čet','Pet','Sub']}
 };
 let LBL=T.en, D=null, D2=null, hourlyCh=null, weekCh=null, seaCh=null, mtCh=null, tideCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, hikeCh=null, hikeWeekCh=null, aqiCh=null, presCh=null, lastErrs=null;
@@ -1287,7 +1287,7 @@ async function loadData(){
  }
  const last=readWdLast(locName,key); /* PERF-2: no in-memory hit — fall back to the persisted snapshot */
  if(last){
-  D=last.D;D.fetchedAt=last.t;D.fromCache=true;cache[key]=D;setLocTz(D.tz); /* tz missing in an old snapshot -> LOCTZ stays as is (browser time on a fresh page) */
+  D=last.D;D.fetchedAt=last.t;D.fromCache=true;cache[key]=D;setLocTz(D.tz); /* tz missing in an old snapshot -> setLocTz resets LOCTZ to browser time */
   addRecent(locName);show('dash');showView(route());btn.disabled=false;
   refreshInBackground(locName,key,mySeq);
   loadSecondary();
@@ -1720,8 +1720,9 @@ function buildGrillSum(l){
  const hrv=l==='hr';
  const bt=bbqToday(D)||{v:g.t0,tier:g.tier,why:g.why,hourly:false}; /* P1: today's headline number is the shared hourly one; the "best day" comparison below stays day-level */
  let s=(hrv?'Danas ':'Today ')+BBQI[bt.tier]+' '+bt.v+'/100 — '+bbqName(bt.tier).toLowerCase()+((!bt.hourly&&bt.why)?(' ('+(LBL.bbqWhy[bt.why]||'')+')'):'')+'. ';
- if(g.k>=1){const span=g.ranOut?(g.arr.length-1):g.k;s+=hrv?('Najbolji dan za roštilj u idućih '+span+' dana.'):('Best grilling day for the next '+span+' day'+(span===1?'':'s')+'.');}
- else if(g.bestI>0&&g.bestV>g.t0){s+=hrv?('Bolje '+dayLab(g.days[g.bestI].dt)+' '+BBQI[bbqTier(g.bestV)]+' '+g.bestV+'/100.'):('Better on '+dayLab(g.days[g.bestI].dt)+' '+BBQI[bbqTier(g.bestV)]+' '+g.bestV+'/100.');}
+ const head=bt.hourly?bt.v:g.t0; /* compare later days against the number shown in the headline */
+ if(g.bestI>0&&g.bestV>head){s+=hrv?('Bolje '+dayLab(g.days[g.bestI].dt)+' '+BBQI[bbqTier(g.bestV)]+' '+g.bestV+'/100.'):('Better on '+dayLab(g.days[g.bestI].dt)+' '+BBQI[bbqTier(g.bestV)]+' '+g.bestV+'/100.');}
+ else if(g.k>=1){const span=g.ranOut?(g.arr.length-1):g.k;s+=hrv?('Najbolji dan za roštilj u idućih '+span+' dana.'):('Best grilling day for the next '+span+' day'+(span===1?'':'s')+'.');}
  return s.trim();
 }
 /* Shared weekend component (P1): both upcoming weekends x BBQ / hiking / biking / running, one row per activity with a
@@ -1797,7 +1798,7 @@ function buildVersus(l){
  else if(D2.sea&&!D.sea){rb.push(hrv?'uop\u0107e ima more':'has a sea at all');b++;}
  if(D.bio&&D2.bio&&D.bio.d&&D2.bio.d&&D.bio.d.length&&D2.bio.d.length){const sa=D.bio.d[0].s,sb=D2.bio.d[0].s;if(sa!==sb){const w=sa<sb;(w?ra:rb).push(hrv?'ugodniji biometeo':'kinder biometeo');w?a++:b++;}}
  if(D.air&&D2.air&&D.air.dom&&D2.air.dom){const va=D.air.dom.v,vb=D2.air.dom.v;if(Math.abs(va-vb)>=5){const w=va<vb;(w?ra:rb).push(hrv?'manje peludi':'less pollen');w?a++:b++;}}
- (function(){const qa=bbqToday(D),qb=bbqToday(D2);if(qa&&qb&&Math.abs(qa.v-qb.v)>=8){const w=qa.v>qb.v;(w?ra:rb).push((hrv?'bolji ro\u0161tilj (':'better BBQ (')+(w?qa.v:qb.v)+')');w?a++:b++;}})();
+ (function(){const qa=bbqScore(D),qb=bbqScore(D2);if(qa&&qb&&Math.abs(qa.v-qb.v)>=8){const w=qa.v>qb.v;(w?ra:rb).push((hrv?'bolji ro\u0161tilj (':'better BBQ (')+(w?qa.v:qb.v)+')');w?a++:b++;}})();
  if(a===0&&b===0)return'';
  if(a===b){
   return MP?('The great '+An+' v '+Bn+' weather-off ends '+a+':'+b+' \u2014 a tie. We are the knights who say\u2026 both.')
@@ -2108,7 +2109,7 @@ function renderGroups(){
   if(dom&&!short)p.push(LBL.cPol.toLowerCase()+': '+(LBL.polNames[dom.k]||dom.k).toLowerCase()+' '+LBL.polLevels[polLvl(dom.v)]);
   return p.join(' · ');
  };
- sum('air',isC?[nameA+' '+airSum(D,true),nameB+' '+airSum(D2,true)].join(' · '):airSum(D,false));
+ sum('air',isC?[[nameA,airSum(D,true)],[nameB,airSum(D2,true)]].filter(x=>x[1]).map(x=>x[0]+' '+x[1]).join(' · '):airSum(D,false));
  {const p=[];
   if(isC){const e0=dayOf(D2,0);if(d0.hi!=null)p.push(nameA+' '+d0.hi+'°');if(e0.hi!=null)p.push(nameB+' '+e0.hi+'°');}
   else{
@@ -2132,6 +2133,17 @@ function renderGroups(){
   else{const a=bioOf(D);if(a!=null)p.push(bioName(a).toLowerCase());const pt=presTxt(D);if(pt)p.push(pt);}
   p.push((hrv?'mjesec ':'moon ')+Math.round(moonIllum(ti))+' %');
   sum('bio',p.join(' · '));}
+}
+
+/* the footer line (forecast source, refreshed time, failure notes, retry button); built for every view, not only Weather */
+function updateFoot(){
+ if(!D)return;
+ const isC=cmp();
+ const av=D.climo&&D.climo.avg;
+ const now=new Date();
+ FOOT_BASE=(lang==='hr'?"Prognoza: ":"Forecast: ")+esc(D.loc||locA())+(isC?(' + '+esc(D2.loc||selB)):'')+" · "+(D.srcKey?(LBL[D.srcKey]||""):(D.src||""))+((D.mode==='direct'&&RANGE>16)?(' '+LBL.capNote):'')+((!isC&&av)?(" · "+LBL.normFoot):"")+" · "+(lang==='hr'?"osvježeno ":"refreshed ")+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+ document.getElementById('foot').textContent=FOOT_BASE+footChip();
+ footRetryUpdate();
 }
 
 function render(){
@@ -2184,11 +2196,7 @@ function render(){
   const bbl=buildBbqLine(lang);
   document.getElementById('recTxt').innerHTML=esc((D.rec&&D.rec[lang])||"")+(adv.ex?('<br>'+esc(adv.ex)):'')+'<br>'+adv.act+(bbl?('<br>'+esc(bbl)):'')+(RANGE>10?('<br>'+esc(LBL.longNote)):'');
  }
- const av=D.climo&&D.climo.avg;
- const now=new Date();
- FOOT_BASE=(lang==='hr'?"Prognoza: ":"Forecast: ")+esc(D.loc||locA())+(isC?(' + '+esc(D2.loc||selB)):'')+" · "+(D.srcKey?(LBL[D.srcKey]||""):(D.src||""))+((D.mode==='direct'&&RANGE>16)?(' '+LBL.capNote):'')+((!isC&&av)?(" · "+LBL.normFoot):"")+" · "+(lang==='hr'?"osvježeno ":"refreshed ")+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
- document.getElementById('foot').textContent=FOOT_BASE+footChip();
- footRetryUpdate();
+ updateFoot();
 }
 
 function drawHourly(){
@@ -3801,6 +3809,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.20',d:'2026-10-08',en:'<b>Times follow the chosen place</b>: “now”, “today” and “yesterday” use the location’s own clock, so Tokyo seen from Zagreb is right, and days with 23 or 25 hours (clock change) no longer shift the hours. <b>Today first</b>: one hero card (temperature, feels like, low–high, rain % and mm, day verdict) and four stat chips (wind, UV, air, pressure) at the top, the hour strip right below; air, comparisons, sea and bio/pressure/moon sit in <b>collapsible groups</b> that remember their state, and the page is about a third shorter. <b>One BBQ number</b> everywhere (the hourly score) and <b>one weekend block</b> (BBQ, hiking, biking, running) on both Weather and BBQ. <b>Comparison mode</b> says what it compares, BBQ and Hiking say “only A”, and a failed second place is reported. Failures of sea, air or normals show in the footer, and errors have a <b>Try again</b> button. Language, theme and switches are remembered; the first visit opens in the browser’s language. Night icons at night, an honest source label, larger tap targets, text pills and Croatian tooltips everywhere.',hr:'<b>Vrijeme prati odabrano mjesto</b>: „sada”, „danas” i „jučer” koriste sat same lokacije, pa je Tokio gledan iz Zagreba točan, a dani s 23 ili 25 sati (promjena sata) više ne pomiču sate. <b>Danas prvo</b>: jedna glavna kartica (temperatura, osjet, najniža–najviša, kiša u % i mm, ocjena dana) i četiri male kartice (vjetar, UV, zrak, tlak) na vrhu, a satna traka odmah ispod; zrak, usporedbe, more i bio/tlak/mjesec nalaze se u <b>sklopivim skupinama</b> koje pamte stanje, a stranica je otprilike trećinu kraća. <b>Jedan broj za roštilj</b> posvuda (satni indeks) i <b>jedan blok za vikend</b> (roštilj, planinarenje, bicikl, trčanje) na Vremenu i na Roštilju. <b>Usporedba</b> kaže što uspoređuje, Roštilj i Planinarenje kažu „samo A”, a neuspjelo drugo mjesto se prijavljuje. Greške mora, zraka ili normala vide se u podnožju, a greške imaju gumb <b>Pokušaj ponovno</b>. Jezik, tema i prekidači se pamte; prvi posjet otvara se na jeziku preglednika. Noćne ikone noću, iskrena oznaka izvora, veće površine za dodir, tekstualne oznake i hrvatski opisi posvuda.'},
  {v:'3.19',d:'2026-10-05',en:'<b>Map</b>: the bottom icon bar stays visible on phones and foldables; on phones the <b>layer buttons</b> sit in one swipeable row at the bottom, within thumb reach. <b>Precipitation in mm per day</b> next to the rain chance: on the OUTLOOK chart and its summary (with the total), on the Tomorrow card and on the Chance of rain card.',hr:'<b>Karta</b>: donja traka s ikonama ostaje vidljiva na telefonu i preklopnom uređaju; na telefonu su <b>gumbi slojeva</b> u jednom redu na dnu, nadohvat palca. <b>Oborine u mm po danu</b> uz vjerojatnost kiše: na grafu IZGLEDI i u njegovom sažetku (s ukupnom količinom), na kartici Sutra i na kartici Vjerojatnost kiše.'},
  {v:'3.18',d:'2026-10-05',en:'Header: one <b>language toggle</b> button; the refresh button is gone (data refreshes by itself). <b>Cards</b> all have the same height; <b>AQI, PM2.5 and PM10</b> are separate cards; the map card is gone (use the Map link). Phone menu: <b>larger monochrome icons</b> without text. <b>HOUR BY HOUR</b> is one long strip — swipe it, or drag it with the mouse; the slider is gone. Foldables show <b>wide charts</b> in one column. The longest outlook is the real <b>16 days</b>. <b>Pressure</b> is shown by default, in white (dark slate in the light theme).',hr:'Zaglavlje: jedan gumb za <b>promjenu jezika</b>; tipka za osvježavanje je uklonjena (podaci se osvježavaju sami). <b>Kartice</b> su sve iste visine; <b>AQI, PM2.5 i PM10</b> su zasebne kartice; kartica karte je uklonjena (dovoljan je link Karta). Izbornik na telefonu: <b>veće jednobojne ikone</b> bez teksta. <b>SAT PO SAT</b> je jedna duga traka — povuci je prstom ili mišem; klizač je uklonjen. Na preklopnim uređajima <b>široki grafovi</b> u jednom stupcu. Najdulji raspon je stvarnih <b>16 dana</b>. <b>Tlak</b> je uključen od početka, bijele boje (tamnosiva u svijetloj temi).'},
  {v:'3.17',d:'2026-09-21',en:'App-like <b>bottom navigation</b> on phones and foldables (Weather, Map, BBQ, Hiking) — desktop keeps the top tabs. New <b>location selector</b>: a collapsible search with recent places, “This location”, and up to two selections — tap a place to switch, “+ compare” to add a second place; two selections start the comparison. Three layout steps: phone, foldable/tablet (two columns), desktop. Warnings now show as a detailed full-width banner at the top of every page — no warning button when there is nothing to warn about. Light/dark is now one sun/moon icon; large-font mode is removed (use the browser/system zoom). The pressure switch sits at the NEXT 24 HOURS chart, the confidence switch at the OUTLOOK chart, vegan switch on BBQ, Monty Python switch on Info. The HOUR BY HOUR strip is always the next 24 h with the 3-day slider, and icons are twice as large. The GRILLING chart moved to the BBQ page; the Swimming page is removed — sea temperature, tides, waves, swell and current stay on the Weather page for coastal places (also in comparison). The title moved to the footer, with Info &amp; changelog linked from there.',hr:'Aplikacijska <b>donja navigacija</b> na mobitelima i preklopnim uređajima (Vrijeme, Karta, Roštilj, Planinarenje) — desktop zadržava gornje kartice. Novi <b>izbornik lokacija</b>: sklopiva pretraga s nedavnim mjestima, „Ova lokacija” i do dva odabira — dodir na mjesto ga postavlja kao jedino, „+ usporedi” dodaje drugo mjesto; dva odabira pokreću usporedbu. Tri koraka rasporeda: mobitel, preklopni/tablet (dva stupca), desktop. Upozorenja se sada prikazuju kao detaljna traka preko cijele širine na vrhu svake stranice — nema gumba za upozorenje kad nema ničega za upozoriti. Svijetli/tamni način sada je jedna ikona sunca/mjeseca; način velikog fonta je uklonjen (koristite zum preglednika/sustava). Prekidač tlaka sada je uz graf SLJEDEĆIH 24 SATA, prekidač pouzdanosti uz IZGLED, prekidač vegan uz Roštilj, Monty Python prekidač na Info. Traka PO SATIMA uvijek prikazuje sljedećih 24 h s klizačem za 3 dana, a ikone su dvostruko veće. Graf ROŠTILJA preselio je na karticu Roštilj; kartica Kupanje je uklonjena — temperatura mora, plima, valovi, val i struja ostaju na kartici Vrijeme za obalna mjesta (i u usporedbi). Naslov je preseljen u podnožje, s poveznicom na Info i povijest verzija.'},
@@ -3852,7 +3861,7 @@ function renderFeeds(){
  const hrv=lang==='hr';
  el.innerHTML=FEED_ROWS.map(function(r){
   const name=r[0],f=FEEDS[name];
-  const inland=(name==='marine'&&f&&!f.ok&&D&&!D.sea); /* inland city: the marine API has no sea point here — not a failure */
+  const inland=(name==='marine'&&f&&!f.ok&&!!f.na); /* inland city: the marine API has no sea point here (feed flagged na) — not a failure; a real network error stays "failed" */
   const col=!f?'var(--ts)':(inland?'var(--ts)':(f.ok?C.ok:C.bad));
   const word=!f?(hrv?'još nije korišteno':'not used yet'):(inland?(hrv?'nema mora ovdje':'no sea here'):(f.ok?(hrv?'uživo':'live'):(hrv?'greška':'failed')));
   const hhmm=f?new Date(f.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';
@@ -3890,7 +3899,7 @@ function showView(name){
  document.getElementById('tabs').classList.toggle('onmap',name==='map'); /* v3.19: the bar stays on the full-screen map; desktop hides the top tabs there */
  destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
  if(!D)return;
- setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}try{updateAlertBox();}catch(e){}updateTabs();},0);
+ setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}try{updateAlertBox();}catch(e){}try{updateFoot();}catch(e){}updateTabs();},0);
 }
 /* the warning banner sits above the tabs, so every view render refreshes it */
 function updateAlertBox(){
@@ -3903,7 +3912,7 @@ function updateAlertBox(){
    }).join('');
   }else{ab.classList.add('hidden');ab.innerHTML='';}}
 }
-function renderActive(){if(!D)return;try{VIEWS[active].render();}catch(e){console.log('renderActive',e);}try{updateAlertBox();}catch(e){}updateTabs();}
+function renderActive(){if(!D)return;try{VIEWS[active].render();}catch(e){console.log('renderActive',e);}try{updateAlertBox();}catch(e){}try{updateFoot();}catch(e){}updateTabs();}
 addEventListener('hashchange',()=>{const r=route();if(r!==active)showView(r);});
 /* FIX-8: roving-tabindex arrow-key navigation for the tab bar (ArrowLeft/Right wrap, Home/End). */
 document.getElementById('tabs').addEventListener('keydown',function(e){
