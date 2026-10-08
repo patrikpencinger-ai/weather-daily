@@ -97,14 +97,14 @@ const scriptM = [...html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g)]
 if (!scriptM) { console.log('FAIL cannot find the app <script>'); process.exit(1); }
 const script = scriptM[1];
 
-const CONSTS = ['APPV', 'WD_LAST_KEY', 'LOCTZ', 'ICON', 'GRILLALL', 'WMO', 'COMPASS'];
+const CONSTS = ['APPV', 'WD_LAST_KEY', 'LOCTZ', 'ICON', 'ICON_NIGHT', 'GRILLALL', 'WMO', 'COMPASS'];
 const FUNCS = ['timePenalty', 'scoreBio', 'grillCompound', 'setLocTz', 'locNowAt', 'locNow', 'locNowStrAt', 'locNowStr',
-  'todayIso', 'tsMin', 'sameDayISO', 'buildOpenMeteo', 'fetchOpenMeteo', 'saveLast', 'readWdLast'];
+  'todayIso', 'tsMin', 'sameDayISO', 'iconFor', 'buildOpenMeteo', 'fetchOpenMeteo', 'saveLast', 'readWdLast'];
 /* T (the translation table) pulls in half the app; the builder only reads three label keys from it, so it is stubbed */
 const parts = ['const T={en:{best:"Best",worst:"Worst",dry:"dry"},hr:{best:"Najbolje",worst:"Najgore",dry:"suho"}};', 'function feedMark(){}', 'function tfetch(){throw new Error("no network in tests");}'];
 CONSTS.forEach(n => parts.push(extractConst(script, n)));
 FUNCS.forEach(n => parts.push(extractFunction(script, n)));
-parts.push('return {buildOpenMeteo, fetchOpenMeteo, locNow, locNowStr, locNowStrAt, locNowAt, todayIso, setLocTz, sameDayISO, saveLast, readWdLast, tsMin, APPV, getTz(){return LOCTZ;}};');
+parts.push('return {iconFor, ICON, buildOpenMeteo, fetchOpenMeteo, locNow, locNowStr, locNowStrAt, locNowAt, todayIso, setLocTz, sameDayISO, saveLast, readWdLast, tsMin, APPV, getTz(){return LOCTZ;}};');
 const fakeLS = (() => { const m = {}; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, _m: m }; })();
 const app = new Function('localStorage', parts.join('\n'))(fakeLS);
 const builderSrc = extractFunction(script, 'buildOpenMeteo');
@@ -127,7 +127,7 @@ function mkFixture(o) {
   const dates = Array.from({ length: o.nDays }, (_, i) => addDays(o.start, i));
   const H = { time: [], temperature_2m: [], precipitation_probability: [], weather_code: [], apparent_temperature: [], relative_humidity_2m: [],
     wind_speed_10m: [], uv_index: [], pressure_msl: [], visibility: [], freezing_level_height: [], wind_gusts_10m: [], snowfall: [],
-    cloud_cover_low: [], cloud_cover_mid: [], cloud_cover_high: [] };
+    cloud_cover_low: [], cloud_cover_mid: [], cloud_cover_high: [], is_day: [] };
   dates.forEach((d, di) => {
     const seen = {};
     o.rowHours(d).forEach(hh => {
@@ -146,6 +146,7 @@ function mkFixture(o) {
       H.wind_gusts_10m.push(8 + hh);
       H.snowfall.push(0);
       H.cloud_cover_low.push(hh); H.cloud_cover_mid.push(hh + 1); H.cloud_cover_high.push(hh + 2);
+      H.is_day.push(hh >= 6 && hh < 18 ? 1 : 0);                  /* I2: daylight 06:00-17:59 */
     });
   });
   const Dd = { time: dates, temperature_2m_max: [], temperature_2m_min: [], precipitation_probability_max: [], weather_code: [],
@@ -190,6 +191,13 @@ console.log('F1 Tokyo (UTC+9), now 2026-10-08T20:45, all days 24 rows');
   eq(r.yest.t, valueAt(fx, 'temperature_2m', '2026-10-07T20:00'), 'yest.t = yesterday 20:00 (same hour as location now)');
   eq(r.yest.hum, valueAt(fx, 'relative_humidity_2m', '2026-10-07T20:00'), 'yest.hum = yesterday 20:00');
   eq(r.hx.length, 24, 'hx has 24 rows'); eq(r.hx[0].h, '00:00', 'hx starts at 00:00');
+  eq(r.hours[0].night, true, 'I2: the 21:00 hours row is night:true');
+  eq(r.h3ext.find(p => p.dt === '2026-10-08' && p.h === '21:00').night, true, 'I2: the 21:00 h3ext row is night:true');
+  ok(!r.h3ext.find(p => p.dt === '2026-10-08' && p.h === '12:00').night, 'I2: the 12:00 h3ext row is not night');
+  eq(app.iconFor({ cond: 'sun', night: true }), '🌙', 'I2: iconFor night + clear = moon');
+  eq(app.iconFor({ cond: 'sun' }), app.ICON.sun, 'I2: iconFor day + clear = sun');
+  eq(app.iconFor({ cond: 'rain', night: true }), app.ICON.rain, 'I2: iconFor night + rain keeps the rain icon');
+  ok(/is_day/.test(extractFunction(script, 'fetchOpenMeteo')), 'I2: the hourly request asks for is_day');
   eq(r.daysFull[0].dt, '2026-10-08', 'daysFull[0] is the Tokyo today');
   eq(r.days[0].dt, '2026-10-08', 'days[0] is the Tokyo today');
   eq(r.h3ext[0].dt, '2026-10-08', 'h3ext[0].dt is today'); eq(r.h3ext[0].a, 0, 'h3ext[0].a is 0'); eq(r.h3ext[0].h, '00:00', 'h3ext[0] is 00:00');
