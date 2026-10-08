@@ -2857,7 +2857,7 @@ function tlSummary(xm,mR,nowM){
  if(day){
   const dd=D.daysFull||[];
   for(let i=0;i<dd.length;i++){const m=tsMin(dd[i].dt+'T12:00');if(m<xm-720||m>mR+720)continue;
-   if((dd[i].mm!=null&&dd[i].mm>=1)||dd[i].pp>=60){fact=(hrv?'kiša ':'rain ')+dayLab(dd[i].dt)+(dd[i].mm!=null?', '+mmTxt(dd[i].mm):'');break;}}
+   if((dd[i].mm!=null&&dd[i].mm>=1)||dd[i].pp>=60){fact=(hrv?'kiša ':'rain ')+dayLab(dd[i].dt)+(dd[i].mm!=null?', '+tlMm(dd[i].mm):'');break;}}
   if(!fact)fact=hrv?'suho':'dry';
  }else{
   let i=tlLb(tm,Math.max(xm,nowM-30));
@@ -2865,7 +2865,7 @@ function tlSummary(xm,mR,nowM){
   if(i<n&&tm[i]<=mR){
    let sum=0,j=i;while(j<n&&hr[j].mm!=null&&hr[j].mm>=0.1){sum+=hr[j].mm;j++;}
    const when=(tm[i]<=nowM+30)?(hrv?'kiša sada':'rain now'):((hrv?'kiša od ':'rain from ')+tlWinLab(tm[i],false));
-   fact=when+', ≈ '+mmTxt(Math.round(sum*10)/10);
+   fact=when+', ≈ '+tlMm(Math.round(sum*10)/10);
   }else fact=hrv?'suho':'dry';
  }
  return a+' → '+b+' · '+fact;

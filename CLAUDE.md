@@ -232,7 +232,7 @@ and every render call it); its label is `T.nowBarAria`.
 
 **Map ⏱ sync.** `mapSyncFromTl()` (called by `showView('map')`) puts the map's time-scrub slider
 (`#gridSlider`, `gridSeek`) on the hour of the timeline cursor when it lies 0–23 h ahead; `tlSyncFromMap()`
-(after `showView('now')` renders) moves the cursor to the hour the map was left on (`GRIDHR` > 0) and centres
+(only when the previous view was the map, via `prevView` in `showView`) moves the cursor to the hour the map was left on (`GRIDHR` > 0) and centres
 the view with `tlGoto`. Both are wrapped in try/catch.
 
 **Fixed 16-day forecast.** `FCDAYS=16` (the Open-Meteo maximum) is the only forecast span: `fetchFor`, the cache
@@ -322,8 +322,8 @@ weekends, and destroys the charts of activity sections that are not showing.
 5. `#planSections` — exactly one block, chosen by `renderPlanSections()`: `#ps-bbq` (`renderBbqSections()`:
    prep timeline `drawBbqTimeline`, grill score by hour `drawBbqGrill` with the criteria chips, `#grSec`
    GRILLING via `updateGrSec()`, nonsense numbers, pit checklist `renderBbqCheck()`/`toggleCheck`),
-   `#ps-hike` (`renderHikeSections()`: trail cards on `D.hx`/`D.gustMax`, `drawHikeComfort`, the 7-day trail
-   score `drawHikeWeek` on `scoreDays('hike',D,7)`, trail nonsense) or `#ps-cards` (`renderCondCards()`: a few
+   `#ps-hike` (`renderHikeSections()`: trail cards on `D.hx`/`D.gustMax`, trail nonsense — the hourly comfort and
+   7-day trail charts were removed in v3.22, the timeline covers them) or `#ps-cards` (`renderCondCards()`: a few
    wind / UV / daylight / sea cards for bike, run and sea). On a day other than today the BBQ and hike
    sections carry a "Shown for today" note (`planNote`).
 6. `#planWeekends` — the shared `buildWeekendBlock` in `#planWkTxt`.
