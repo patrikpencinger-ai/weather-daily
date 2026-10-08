@@ -686,6 +686,129 @@ function actScore(x,act){
  if(w>20){v-=Math.min(25,wf*(w-20));if(w>=30)why.push('wind');}
  return{v:Math.max(1,Math.min(100,Math.round(v))),why:why};
 }
+/* ---------- Activity engine (J1) ---------- */
+/* One consistent 1-100 score for bbq / hike / bike / run / sea on ANY forecast day, from the hourly rows in D.hr.
+   Pure functions (they read only their arguments plus the location clock via todayIso()/nowMin(), overridable
+   through scoreDay's `opts`). The older day-level scores (bbqScore/bbqDay/actScore) and the hourly BBQ compound
+   (grillCompound, reused unchanged here) keep working untouched. win = [start,end) wall-clock hours of the day
+   during which the activity is realistic. */
+const ACTS={bbq:{win:[9,22]},hike:{win:[6,20]},bike:{win:[6,21]},run:{win:[5,22]},sea:{win:[8,20]}};
+const ACTICON={bbq:'🔥',hike:'🥾',bike:'🚲',run:'🏃',sea:'🌊'};
+/* Same four-way banding everywhere the new engine is shown: 0 great (80+), 1 good (60+), 2 okay (40+), 3 poor.
+   (bbqTier is a different, five-way 90/70/50/30 scale for the legacy BBQ view and is deliberately left alone.) */
+function actTier(v){return v>=80?0:(v>=60?1:(v>=40?2:3));}
+/* One hour's score for one activity -> {v:1..100, parts:{reasonKey:penalty}} (null = not scoreable, e.g. sea inland).
+   Hard caps record their key with the points they removed (min 1) so the reasons rank sensibly. */
+function scoreHour(act,r,d){
+ if(!r)return null;
+ if(act==='bbq'){
+  const g=grillCompound({h:r.hi,t:r.t,pp:r.pp,wind:r.w,rh:r.rh,cond:r.cond},GRILLALL);
+  const parts={};
+  if(g.parts.time)parts.time=g.parts.time;
+  if(g.parts.temp)parts[(r.t-22)>=0?'hot':'cold']=g.parts.temp;
+  if(g.parts.rain)parts.rain=g.parts.rain;
+  if(g.parts.wind)parts.wind=g.parts.wind;
+  if(g.parts.humid)parts.humid=g.parts.humid;
+  if(g.parts.storm)parts.storm=99;
+  return{v:g.v,parts:parts};
+ }
+ if(!ACTS[act])return null;
+ let v=100;const parts={};
+ const pen=(k,p,keyIt)=>{if(p>0){v-=p;if(keyIt)parts[k]=(parts[k]||0)+p;}};
+ const cap=(k,lim)=>{parts[k]=(parts[k]||0)+Math.max(1,v-lim);v=Math.min(v,lim);};
+ const pp=r.pp||0,w=r.w,storm=r.cond==='storm';
+ /* comfort band on the feels-like temperature: -3 per degree outside [lo,hi], max 35 */
+ const comfort=(lo,hi)=>{if(r.fl==null)return;const out=r.fl<lo?lo-r.fl:(r.fl>hi?r.fl-hi:0);const p=Math.min(35,3*out);pen(r.fl<lo?'cold':'hot',p,p>=6);};
+ if(act==='hike'){
+  comfort(10,22);
+  pen('rain',0.8*pp,pp>=40);
+  if(storm)cap('storm',20);
+  if(r.g!=null&&r.g>40){pen('wind',Math.min(25,0.6*(r.g-40)),r.g>=50);}
+  if(r.vis!=null&&r.vis<2000)pen('fog',20,true);
+  if(r.uv!=null&&r.uv>=8)pen('uv',5,true);
+  if(r.night)cap('night',30);
+ }else if(act==='bike'){
+  comfort(12,26);
+  if(w!=null&&w>20)pen('wind',Math.min(30,1.2*(w-20)),w>=30);
+  pen('rain',1.0*pp,pp>=40);
+  if(storm)cap('storm',15);
+  if(r.night)cap('night',30);
+ }else if(act==='run'){
+  comfort(4,18);
+  pen('rain',0.6*pp,pp>=40);
+  if(w!=null&&w>25){const p=Math.min(15,0.5*(w-25));pen('wind',p,p>=5);}
+  if(storm)cap('storm',15);
+  if(r.uv!=null&&r.uv>=8)pen('uv',10,true);
+  if(r.night)cap('night',60);
+ }else if(act==='sea'){
+  if(!d||!d.sea)return null;
+  if(r.t!=null&&r.t<24){const p=4*(24-r.t);pen('cold',p,r.t<22);if(r.t<18)cap('cold',20);}
+  let st=d.sea.cur;
+  if(d.sea.days){for(let i=0;i<d.sea.days.length;i++){if(d.sea.days[i].dt===r.dt&&d.sea.days[i].t!=null){st=d.sea.days[i].t;break;}}}
+  if(st!=null){if(st<18)cap('coldsea',30);else if(st<21)pen('coldsea',20,true);}
+  if(d.sea.wave!=null){if(d.sea.wave>80)pen('waves',25,true);else if(d.sea.wave>50)pen('waves',10,true);}
+  if(w!=null&&w>25)pen('wind',15,true);
+  pen('rain',0.8*pp,pp>=40);
+  if(storm)cap('storm',10);
+  if(r.uv!=null&&r.uv>=8)parts.uv=0.1; /* note only - no points taken */
+  if(r.night)cap('night',10);
+ }
+ return{v:Math.max(1,Math.min(100,Math.round(v))),parts:parts};
+}
+/* A whole day for one activity -> null (cannot be scored) or
+   {act,date,v,tier,best:{from,to,v},hours:[{h,hi,v}],reasons:[keys],over}.
+   v = mean of the best contiguous 3-hour window inside ACTS[act].win (fewer rows if the day has fewer); for
+   today, windows that already ended are skipped (over:true when none is left - the best past window is then
+   reported anyway). opts: {today:'YYYY-MM-DD', nowMin:minutes} replace the location clock (e.g. for a second
+   location in another time zone). */
+function scoreDay(act,date,d,opts){
+ const cfg=ACTS[act];
+ if(!cfg||!d||!d.hr||!d.hrDay)return null;
+ if(act==='sea'&&!d.sea)return null;
+ const rg=d.hrDay[date];if(!rg)return null;
+ const rows=[];
+ for(let i=rg[0];i<rg[1];i++){const r=d.hr[i];if(r&&r.hi>=cfg.win[0]&&r.hi<cfg.win[1]){const s=scoreHour(act,r,d);if(s)rows.push({r:r,s:s});}}
+ if(!rows.length)return null;
+ const n=Math.min(3,rows.length),wins=[];
+ for(let k=0;k+n<=rows.length;k++){
+  let sum=0;for(let j=k;j<k+n;j++)sum+=rows[j].s.v;
+  wins.push({k:k,mean:sum/n,endMin:(rows[k+n-1].r.hi+1)*60});
+ }
+ const today=(opts&&opts.today)||todayIso(),nowM=(opts&&opts.nowMin!=null)?opts.nowMin:nowMin();
+ let pool=wins,over=false;
+ if(date===today){const live=wins.filter(x=>x.endMin>=nowM);if(live.length)pool=live;else over=true;}
+ let b=pool[0];pool.forEach(x=>{if(x.mean>b.mean)b=x;});
+ const bw=rows.slice(b.k,b.k+n),v=Math.round(b.mean);
+ const sums={};
+ bw.forEach(x=>{Object.keys(x.s.parts).forEach(key=>{sums[key]=(sums[key]||0)+x.s.parts[key];});});
+ const reasons=Object.keys(sums).filter(key=>sums[key]>0).sort((a,c)=>sums[c]-sums[a]).slice(0,2);
+ const last=bw[bw.length-1].r.hi+1;
+ return{act:act,date:date,v:v,tier:actTier(v),
+  best:{from:bw[0].r.h,to:(last<10?'0':'')+last+':00',v:v},
+  hours:rows.map(x=>({h:x.r.h,hi:x.r.hi,v:x.s.v})),reasons:reasons,over:over};
+}
+/* scoreDay for the next n forecast days (today first), skipping days that cannot be scored */
+function scoreDays(act,d,n){
+ if(!d||!d.hrDay)return[];
+ const today=todayIso(),out=[];
+ const dates=Object.keys(d.hrDay).sort().filter(x=>x>=today);
+ for(let i=0;i<dates.length&&i<n;i++){const s=scoreDay(act,dates[i],d);if(s)out.push(s);}
+ return out;
+}
+/* wd_last stores D.hr columnar (one array per field, ts/dt/h/hi/cond/night derived) - ~3x smaller than row objects, which
+   would otherwise push a 16-day snapshot toward the 400 kB saveLast guard. hrPack(hr) -> hrc, hrRow(hrc,i) -> row i. */
+const HRCOLS=['t','fl','pp','mm','w','g','rh','uv','p','code','vis','frz','snow','cl','cm','ch'];
+function hrPack(hr){
+ if(!hr||!hr.length)return null;
+ const c={ts:hr.map(r=>r.ts),night:hr.map(r=>r.night?1:0)};
+ HRCOLS.forEach(f=>{c[f]=hr.map(r=>r[f]);});
+ return c;
+}
+function hrRow(d,i){
+ const c=d.hrc||d;
+ const ts=c.ts[i];
+ return{ts:ts,dt:ts.slice(0,10),h:ts.slice(11,16),hi:parseInt(ts.slice(11,13),10),t:c.t[i],fl:c.fl[i],pp:c.pp[i],mm:c.mm[i],w:c.w[i],g:c.g[i],rh:c.rh[i],uv:c.uv[i],p:c.p[i],code:c.code[i],cond:WMO(c.code[i]),night:c.night[i]===1,vis:c.vis[i],frz:c.frz[i],snow:c.snow[i],cl:c.cl[i],cm:c.cm[i],ch:c.ch[i]};
+}
 let selB=null;
 let BG,txt,strong,halo,grid,ptb;
 const cache={};
@@ -748,7 +871,7 @@ const T={
   critTime:"Time of day",critTemp:"Temperature",critRain:"Rain",critWind:"Wind",critHumid:"Humidity",critStorm:"Storm",
   hikeHead:"🥾 Hiking",hikeTag:"Trails within ~20 km — read the light, dodge the rain, mind the altitude.",
   hikeMetricsH:"TODAY ON THE TRAIL",hikeComfH:"HOURLY COMFORT & RAIN",hikeWeekH:"7-DAY TRAIL SCORE",hikeFunH:"TRAIL NONSENSE",
-  cBbq:"BBQ score",bioInfo:"<b>What it measures.</b> How hard today's weather leans on the weather-sensitive \u2014 a load score built from the same data the charts show.<br><br><b>Pressure.</b> A 24-hour swing over 4 hPa adds a point; over 8 hPa adds two. Fronts announce themselves in your sinuses first.<br><br><b>Heat &amp; cold.</b> Feels-like of 27\u00B0+ adds one, 30\u00B0+ two; \u22125\u00B0 or below adds one. Sultry air (humidity \u226585% when warm) adds another.<br><br><b>Wind &amp; storms.</b> Wind of 40+ km/h adds one; a thunderstorm adds two. A day swinging more than 14\u00B0 between low and high adds one more.<br><br><b>The smileys.</b> 0\u20131 \u2192 \uD83D\uDE42 favorable; 2\u20133 \u2192 \uD83D\uDE10 moderately unfavorable; 4+ \u2192 \u2639\uFE0F unfavorable. Triggers are listed on the card \u2014 so you know whether to blame the front, the heat, or simply Monday.",bbqTiers:['Grill god conditions','Prime grilling','Decent grilling','For the brave','Extinguisher weather'],bbqWhy:{rain:'rain risk',hot:'too hot',cold:'too cold',wind:'windy',bio:'biometeo',hum:'sultry',storm:'thunderstorm'},cBio:"Biometeo",cPres:"Pressure",presTrend:['Rising','Steady','Falling'],lgPr:"Pressure hPa",bioLevels:['Favorable','Moderately unfavorable','Unfavorable'],bioR:{rPress:'pressure swing',rHeat:'heat',rCold:'cold',rHum:'sultry',rWind:'wind',rStorm:'storm',rSwing:'temp swing'},aRun:'Running',aHike:'Hiking',runGo:'good — best ~',runCare:'easy does it (heat/biometeo) — if so ~',hikeGood:'good day',hikeRain:'rain risk — plan windows',uvNote:'high UV midday, protect',moonNames:['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent'],
+  cBbq:"BBQ score",bioInfo:"<b>What it measures.</b> How hard today's weather leans on the weather-sensitive \u2014 a load score built from the same data the charts show.<br><br><b>Pressure.</b> A 24-hour swing over 4 hPa adds a point; over 8 hPa adds two. Fronts announce themselves in your sinuses first.<br><br><b>Heat &amp; cold.</b> Feels-like of 27\u00B0+ adds one, 30\u00B0+ two; \u22125\u00B0 or below adds one. Sultry air (humidity \u226585% when warm) adds another.<br><br><b>Wind &amp; storms.</b> Wind of 40+ km/h adds one; a thunderstorm adds two. A day swinging more than 14\u00B0 between low and high adds one more.<br><br><b>The smileys.</b> 0\u20131 \u2192 \uD83D\uDE42 favorable; 2\u20133 \u2192 \uD83D\uDE10 moderately unfavorable; 4+ \u2192 \u2639\uFE0F unfavorable. Triggers are listed on the card \u2014 so you know whether to blame the front, the heat, or simply Monday.",bbqTiers:['Grill god conditions','Prime grilling','Decent grilling','For the brave','Extinguisher weather'],bbqWhy:{rain:'rain risk',hot:'too hot',cold:'too cold',wind:'windy',bio:'biometeo',hum:'sultry',storm:'thunderstorm'},actName:{bbq:'BBQ',hike:'Hiking',bike:'Biking',run:'Running',sea:'Sea'},actTier:['great','good','okay','poor'],actWhy:{rain:'rain',hot:'too hot',cold:'too cold',wind:'wind',storm:'storm',night:'night',fog:'fog',uv:'strong UV',waves:'waves',coldsea:'cold sea',humid:'muggy',time:'late hour'},cBio:"Biometeo",cPres:"Pressure",presTrend:['Rising','Steady','Falling'],lgPr:"Pressure hPa",bioLevels:['Favorable','Moderately unfavorable','Unfavorable'],bioR:{rPress:'pressure swing',rHeat:'heat',rCold:'cold',rHum:'sultry',rWind:'wind',rStorm:'storm',rSwing:'temp swing'},aRun:'Running',aHike:'Hiking',runGo:'good — best ~',runCare:'easy does it (heat/biometeo) — if so ~',hikeGood:'good day',hikeRain:'rain risk — plan windows',uvNote:'high UV midday, protect',moonNames:['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent'],
   normFoot:"normal: ERA5 "+NORM_LBL+" ±"+WIN+"d",
   errDirect:"Direct feed (Open-Meteo): ",errAI:"AI feed (Claude): ",
   errTip:"Live data can't be fetched from a local file — iPhone/iPad Safari blocks network requests on file:// pages. Serve it over http(s) (e.g. GitHub Pages, Netlify, or a local web server) and open that link instead. On desktop, also check ad-blockers. The AI feed only works inside Claude.",
@@ -788,7 +911,7 @@ const T={
   critTime:"Doba dana",critTemp:"Temperatura",critRain:"Ki\u0161a",critWind:"Vjetar",critHumid:"Sparina",critStorm:"Nevrijeme",
   hikeHead:"\ud83e\udd7e Planinarenje",hikeTag:"Staze unutar ~20 km \u2014 uhvati svjetlo, izbjegni ki\u0161u, pazi na visinu.",
   hikeMetricsH:"DANAS NA STAZI",hikeComfH:"UGODA I KI\u0160A PO SATU",hikeWeekH:"INDEKS STAZE \u2014 7 DANA",hikeFunH:"STAZA BEZ VEZE",
-  cBbq:"Ro\u0161tilj indeks",bioInfo:"<b>\u0160to mjeri.</b> Koliko dana\u0161nje vrijeme pritisak stavlja na meteoropate \u2014 indeks optere\u0107enja iz istih podataka koje vidite na grafovima.<br><br><b>Tlak.</b> Promjena ve\u0107a od 4 hPa u 24 h donosi bod; preko 8 hPa dva. Fronte se najprije najave u sinusima.<br><br><b>Vru\u0107ina i hladno\u0107a.</b> Osje\u0107aj od 27\u00B0+ donosi bod, 30\u00B0+ dva; \u22125\u00B0 ili ni\u017ee jo\u0161 jedan. Sparina (vlaga \u226585% uz toplo) dodaje bod.<br><br><b>Vjetar i nevrijeme.</b> Vjetar od 40+ km/h donosi bod; grmljavina dva. Dan koji se nji\u0161e vi\u0161e od 14\u00B0 izme\u0111u minimuma i maksimuma jo\u0161 jedan.<br><br><b>Smajli\u0107i.</b> 0\u20131 \u2192 \uD83D\uDE42 povoljno; 2\u20133 \u2192 \uD83D\uDE10 umjereno nepovoljno; 4+ \u2192 \u2639\uFE0F nepovoljno. Okida\u010di su navedeni na kartici \u2014 da znate krivite li frontu, vru\u0107inu ili jednostavno ponedjeljak.",bbqTiers:['Bo\u017eanski ro\u0161tilj','Odli\u010dno za ro\u0161tilj','Sasvim solidno','Za hrabre','Vrijeme za aparat'],bbqWhy:{rain:'rizik ki\u0161e',hot:'prevru\u0107e',cold:'prehladno',wind:'vjetrovito',bio:'biometeo',hum:'sparina',storm:'grmljavina'},cBio:"Biometeo",cPres:"Tlak zraka",presTrend:['Raste','Stabilno','Pada'],lgPr:"Tlak hPa",bioLevels:['Povoljno','Umjereno nepovoljno','Nepovoljno'],bioR:{rPress:'promjena tlaka',rHeat:'vrućina',rCold:'hladnoća',rHum:'sparina',rWind:'vjetar',rStorm:'nevrijeme',rSwing:'kolebanje temp.'},aRun:'Trčanje',aHike:'Planinarenje',runGo:'dobro — najbolje ~',runCare:'polako (vrućina/biometeo) — ako ideš ~',hikeGood:'dobar dan',hikeRain:'rizik kiše — planiraj prozore',uvNote:'jak UV oko podneva, zaštita',moonNames:['Mlađak','Rastući srp','Prva četvrt','Rastući mjesec','Puni mjesec','Opadajući mjesec','Zadnja četvrt','Opadajući srp'],
+  cBbq:"Ro\u0161tilj indeks",bioInfo:"<b>\u0160to mjeri.</b> Koliko dana\u0161nje vrijeme pritisak stavlja na meteoropate \u2014 indeks optere\u0107enja iz istih podataka koje vidite na grafovima.<br><br><b>Tlak.</b> Promjena ve\u0107a od 4 hPa u 24 h donosi bod; preko 8 hPa dva. Fronte se najprije najave u sinusima.<br><br><b>Vru\u0107ina i hladno\u0107a.</b> Osje\u0107aj od 27\u00B0+ donosi bod, 30\u00B0+ dva; \u22125\u00B0 ili ni\u017ee jo\u0161 jedan. Sparina (vlaga \u226585% uz toplo) dodaje bod.<br><br><b>Vjetar i nevrijeme.</b> Vjetar od 40+ km/h donosi bod; grmljavina dva. Dan koji se nji\u0161e vi\u0161e od 14\u00B0 izme\u0111u minimuma i maksimuma jo\u0161 jedan.<br><br><b>Smajli\u0107i.</b> 0\u20131 \u2192 \uD83D\uDE42 povoljno; 2\u20133 \u2192 \uD83D\uDE10 umjereno nepovoljno; 4+ \u2192 \u2639\uFE0F nepovoljno. Okida\u010di su navedeni na kartici \u2014 da znate krivite li frontu, vru\u0107inu ili jednostavno ponedjeljak.",bbqTiers:['Bo\u017eanski ro\u0161tilj','Odli\u010dno za ro\u0161tilj','Sasvim solidno','Za hrabre','Vrijeme za aparat'],bbqWhy:{rain:'rizik ki\u0161e',hot:'prevru\u0107e',cold:'prehladno',wind:'vjetrovito',bio:'biometeo',hum:'sparina',storm:'grmljavina'},actName:{bbq:'Roštilj',hike:'Planinarenje',bike:'Biciklizam',run:'Trčanje',sea:'More'},actTier:['odlično','dobro','osrednje','slabo'],actWhy:{rain:'kiša',hot:'prevruće',cold:'prehladno',wind:'vjetar',storm:'oluja',night:'noć',fog:'magla',uv:'jak UV',waves:'valovi',coldsea:'hladno more',humid:'sparina',time:'kasno'},cBio:"Biometeo",cPres:"Tlak zraka",presTrend:['Raste','Stabilno','Pada'],lgPr:"Tlak hPa",bioLevels:['Povoljno','Umjereno nepovoljno','Nepovoljno'],bioR:{rPress:'promjena tlaka',rHeat:'vrućina',rCold:'hladnoća',rHum:'sparina',rWind:'vjetar',rStorm:'nevrijeme',rSwing:'kolebanje temp.'},aRun:'Trčanje',aHike:'Planinarenje',runGo:'dobro — najbolje ~',runCare:'polako (vrućina/biometeo) — ako ideš ~',hikeGood:'dobar dan',hikeRain:'rizik kiše — planiraj prozore',uvNote:'jak UV oko podneva, zaštita',moonNames:['Mlađak','Rastući srp','Prva četvrt','Rastući mjesec','Puni mjesec','Opadajući mjesec','Zadnja četvrt','Opadajući srp'],
   normFoot:"normala: ERA5 "+NORM_LBL+" ±"+WIN+"d",
   errDirect:"Izravni izvor (Open-Meteo): ",errAI:"AI izvor (Claude): ",
   errTip:"Uživo podaci ne mogu se dohvatiti iz lokalne datoteke — Safari na iPhoneu/iPadu blokira mrežne zahtjeve na file:// stranicama. Posluži je preko http(s) (npr. GitHub Pages, Netlify ili lokalni web server) i otvori tu poveznicu. Na računalu provjeri i blokatore oglasa. AI izvor radi samo unutar Claudea.",
@@ -840,7 +963,7 @@ async function fetchOpenMeteo(loc,range){
  const fetchDays=Math.min(Math.max(Math.min(range,16),14),16);
  const url='https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+
   '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,pressure_msl'+
-  '&hourly=temperature_2m,precipitation_probability,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,pressure_msl,visibility,freezing_level_height,wind_gusts_10m,snowfall,cloud_cover_low,cloud_cover_mid,cloud_cover_high,is_day'+
+  '&hourly=temperature_2m,precipitation_probability,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m,uv_index,pressure_msl,visibility,freezing_level_height,wind_gusts_10m,snowfall,cloud_cover_low,cloud_cover_mid,cloud_cover_high,is_day,precipitation'+
   '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,precipitation_sum,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset'+
   '&minutely_15=precipitation&forecast_minutely_15=16'+
   '&forecast_days='+fetchDays+'&past_days=1&timezone=auto';
@@ -997,6 +1120,12 @@ function buildOpenMeteo(j,loc,range){
   }
   if(arr.length)rain15=arr;
  }
+ /* J1: every hourly row (yesterday .. last forecast day) in one flat shape for the activity engine and the timeline; hrDay maps a date to its [start,end) row range */
+ const hr=[];
+ {const nv=(a,i)=>(a&&a[i]!=null&&isFinite(a[i]))?a[i]:null;
+  const ni=(a,i)=>{const v=nv(a,i);return v==null?null:Math.round(v);};
+  for(let i=0;i<hl.time.length;i++){const ts=hl.time[i],cd=hl.weather_code?hl.weather_code[i]:null;
+   hr.push({ts:ts,dt:ts.slice(0,10),h:ts.slice(11,16),hi:parseInt(ts.slice(11,13),10),t:nv(hl.temperature_2m,i),fl:nv(hl.apparent_temperature,i),pp:ni(hl.precipitation_probability,i),mm:nv(hl.precipitation,i),w:nv(hl.wind_speed_10m,i),g:nv(hl.wind_gusts_10m,i),rh:ni(hl.relative_humidity_2m,i),uv:nv(hl.uv_index,i),p:nv(hl.pressure_msl,i),code:cd,cond:WMO(cd),night:!!(hl.is_day&&hl.is_day[i]===0),vis:ni(hl.visibility,i),frz:ni(hl.freezing_level_height,i),snow:nv(hl.snowfall,i),cl:ni(hl.cloud_cover_low,i),cm:ni(hl.cloud_cover_mid,i),ch:ni(hl.cloud_cover_high,i)});}}
  let h3ext=null;
  if(dayMap[todayStr]){
   const ex=[],t0m=tsMin(todayStr+'T00:00');
@@ -1009,7 +1138,7 @@ function buildOpenMeteo(j,loc,range){
    ex.push({...(nightAt(i3)?{night:true}:{}),a:a,dt:ts.slice(0,10),h:ts.slice(11,16),t:Math.round(hl.temperature_2m[i3]),cond:WMO(hl.weather_code[i3]),pp:(hl.precipitation_probability&&hl.precipitation_probability[i3]!=null)?Math.round(hl.precipitation_probability[i3]):null});}
   if(ex.length>=9)h3ext=ex;
  }
- return{loc:loc.name,tz:tz,uv:uvObj,rain15:rain15,h3ext:h3ext,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,presH:presH,presNowIdx:presNowIdx,sun:sunObj,hx:hx,gustMax:gustMax,
+ return{loc:loc.name,tz:tz,hr:hr,hrDay:dayMap,hrNow:nowIdx,uv:uvObj,rain15:rain15,h3ext:h3ext,bio:{h:bioH,d:bioD},grillH:grillH,grillRaw:grillRaw,alerts:alerts,pres:presObj,presH:presH,presNowIdx:presNowIdx,sun:sunObj,hx:hx,gustMax:gustMax,
   daysFull:fullDs,
   now:{t:Math.round(cur.temperature_2m),fl:Math.round(cur.apparent_temperature),hum:Math.round(cur.relative_humidity_2m),wind:wind,wdir:COMPASS(cur.wind_direction_10m),wdeg:Math.round(((cur.wind_direction_10m%360)+360)%360),pp:hours[0]?hours[0].pp:0,cond:WMO(cur.weather_code)},
   hours:hours,days:ds,yest:yest,badge:badge,
@@ -1206,7 +1335,9 @@ function scheduleRender(){ /* PERF-3: 150ms trailing debounce so 3-4 async arriv
 function saveLast(key,locName,d){ /* PERF-2: persist the last good direct-mode forecast for instant SWR reload */
  try{
   if(!d||d.mode==='ai')return;
-  const s=JSON.stringify({v:APPV,key:key,loc:locName,t:Date.now(),D:d});
+  let dd=d;
+  if(d.hr){dd=Object.assign({},d);dd.hrc=hrPack(d.hr);delete dd.hr;} /* J1: hourly rows are stored columnar (~3x smaller) */
+  const s=JSON.stringify({v:APPV,key:key,loc:locName,t:Date.now(),D:dd});
   if(s.length>400000)return;
   localStorage.setItem(WD_LAST_KEY,s);
  }catch(e){}
@@ -1220,6 +1351,7 @@ function readWdLast(locName,key){
   if(o.v!==APPV)return null; /* I1: snapshots from another app version are never rendered by this code */
   if(o.key.split('|')[0]!==key.split('|')[0])return null; /* RANGE must match */
   if(o.loc.trim().toLowerCase()!==locName.trim().toLowerCase())return null;
+  if(o.D.hrc){const c=o.D.hrc;o.D.hr=c.ts.map((_,i)=>hrRow(c,i));delete o.D.hrc;} /* J1: back to row objects */
   return o;
  }catch(e){return null;}
 }

@@ -97,14 +97,14 @@ const scriptM = [...html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g)]
 if (!scriptM) { console.log('FAIL cannot find the app <script>'); process.exit(1); }
 const script = scriptM[1];
 
-const CONSTS = ['APPV', 'WD_LAST_KEY', 'LOCTZ', 'ICON', 'ICON_NIGHT', 'GRILLALL', 'WMO', 'COMPASS'];
-const FUNCS = ['timePenalty', 'scoreBio', 'grillCompound', 'setLocTz', 'locNowAt', 'locNow', 'locNowStrAt', 'locNowStr',
+const CONSTS = ['APPV', 'WD_LAST_KEY', 'LOCTZ', 'ICON', 'ICON_NIGHT', 'GRILLALL', 'HRCOLS', 'WMO', 'COMPASS'];
+const FUNCS = ['timePenalty', 'scoreBio', 'grillCompound', 'hrPack', 'hrRow', 'setLocTz', 'locNowAt', 'locNow', 'locNowStrAt', 'locNowStr',
   'todayIso', 'tsMin', 'sameDayISO', 'iconFor', 'buildOpenMeteo', 'fetchOpenMeteo', 'saveLast', 'readWdLast'];
 /* T (the translation table) pulls in half the app; the builder only reads three label keys from it, so it is stubbed */
 const parts = ['const T={en:{best:"Best",worst:"Worst",dry:"dry"},hr:{best:"Najbolje",worst:"Najgore",dry:"suho"}};', 'function feedMark(){}', 'function tfetch(){throw new Error("no network in tests");}'];
 CONSTS.forEach(n => parts.push(extractConst(script, n)));
 FUNCS.forEach(n => parts.push(extractFunction(script, n)));
-parts.push('return {iconFor, ICON, buildOpenMeteo, fetchOpenMeteo, locNow, locNowStr, locNowStrAt, locNowAt, todayIso, setLocTz, sameDayISO, saveLast, readWdLast, tsMin, APPV, getTz(){return LOCTZ;}};');
+parts.push('return {hrPack, hrRow, iconFor, ICON, buildOpenMeteo, fetchOpenMeteo, locNow, locNowStr, locNowStrAt, locNowAt, todayIso, setLocTz, sameDayISO, saveLast, readWdLast, tsMin, APPV, getTz(){return LOCTZ;}};');
 const fakeLS = (() => { const m = {}; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, _m: m }; })();
 const app = new Function('localStorage', parts.join('\n'))(fakeLS);
 const builderSrc = extractFunction(script, 'buildOpenMeteo');
@@ -126,7 +126,7 @@ const HOURS24 = () => Array.from({ length: 24 }, (_, i) => i);
 function mkFixture(o) {
   const dates = Array.from({ length: o.nDays }, (_, i) => addDays(o.start, i));
   const H = { time: [], temperature_2m: [], precipitation_probability: [], weather_code: [], apparent_temperature: [], relative_humidity_2m: [],
-    wind_speed_10m: [], uv_index: [], pressure_msl: [], visibility: [], freezing_level_height: [], wind_gusts_10m: [], snowfall: [],
+    wind_speed_10m: [], precipitation: [], uv_index: [], pressure_msl: [], visibility: [], freezing_level_height: [], wind_gusts_10m: [], snowfall: [],
     cloud_cover_low: [], cloud_cover_mid: [], cloud_cover_high: [], is_day: [] };
   dates.forEach((d, di) => {
     const seen = {};
@@ -139,6 +139,7 @@ function mkFixture(o) {
       H.apparent_temperature.push(hh - 1);
       H.relative_humidity_2m.push(40 + hh * 2);                    /* 13:00 -> 66 */
       H.wind_speed_10m.push(5 + hh / 2);
+      H.precipitation.push(hh % 5 === 0 ? 0.4 : 0);               /* J1: mm per hour */
       H.uv_index.push(hh / 3);
       H.pressure_msl.push(1000 + di * 10 + hh + (dup ? 0.5 : 0)); /* varies within and between days */
       H.visibility.push(10000 - hh * 10);
