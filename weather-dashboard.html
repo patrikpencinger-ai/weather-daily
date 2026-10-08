@@ -191,6 +191,39 @@ body{padding:20px;transition:background .2s}
 .dragx::-webkit-scrollbar{display:none}
 .dragx.dragging{cursor:grabbing}
 .dragx:focus-visible{outline:2px solid var(--tp);outline-offset:2px}
+/* J2: PLANIRAJ - activity pills, day pills, the unified plan card and its hourly score bars */
+.actRow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.actRow .lbtn{gap:6px;font-size:13px}
+.dayRow{position:relative;display:flex;gap:6px;margin:0 0 14px;padding:2px 0 4px}
+.dpill{flex:0 0 auto;min-width:50px;min-height:40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 8px;background:transparent;color:var(--ts);border:1px solid var(--bd);border-radius:8px;font:inherit;cursor:pointer}
+#wrap.mobile .dpill,#wrap.mid .dpill{min-height:44px}
+.dpill .dl{font-size:11px;line-height:1.15;white-space:nowrap}
+.dpill .dn{font-size:15px;font-weight:600;line-height:1.15;color:var(--tp)}
+.dpill .dd{width:8px;height:8px;border-radius:50%;margin-top:1px;background:var(--bd)}
+.dpill:hover{border-color:var(--tp)}
+.dpill.on{background:var(--tp);border-color:var(--tp);color:var(--bg)}
+.dpill.on .dn{color:var(--bg)}
+.dpill.on .dd{box-shadow:0 0 0 1.5px var(--bg)}
+.dpill:focus-visible{outline:2px solid var(--tp);outline-offset:2px}
+.planCard.hero{display:block;padding:1rem 1.1rem;margin:0 0 1.5rem}
+.pc-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
+.pc-main{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.pc-sc{display:flex;align-items:baseline;gap:4px}
+.pc-tier{font-size:17px;font-weight:600;line-height:1.2;margin-top:2px}
+.pc-r{flex:1 1 170px;min-width:0}
+.pc-best{font-size:16px;font-weight:500;line-height:1.3}
+.pc-name{font-size:12.5px;color:var(--ts);margin-top:2px}
+.pc-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.pc-chip{font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--bd);color:var(--tp);line-height:1.3}
+.hbars{display:flex;gap:2px;margin:14px 0 0}
+.hbc{flex:1 1 0;min-width:0;display:flex;flex-direction:column}
+.hbt{height:56px;display:flex;align-items:flex-end;opacity:.55}
+.hbc.best .hbt{opacity:1}
+.hb{width:100%;border-radius:3px 3px 0 0;min-height:3px}
+.hl{height:15px;line-height:15px;margin-top:2px;font-size:10px;text-align:center;color:var(--ts);white-space:nowrap}
+.hbc.best .hl{box-shadow:inset 0 2px 0 var(--tp);color:var(--tp)}
+.pc-facts{display:flex;flex-wrap:wrap;gap:4px 14px;margin:10px 0 0;font-size:12.5px;color:var(--ts)}
+.pc-facts span{white-space:nowrap}
 .viewhead{font-size:19px;font-weight:600;letter-spacing:0.02em;margin:0 0 3px}
 .viewtag{font-size:12.5px;color:var(--ts);margin:0 0 18px;line-height:1.5}
 .gauge{height:7px;border-radius:999px;background:var(--bd);overflow:hidden;margin:5px 0 0}
@@ -239,12 +272,11 @@ body{padding:20px;transition:background .2s}
 <div id="dash" class="hidden">
 <div id="alertBox" class="hidden" style="border-radius:12px;padding:0.6rem 1.1rem;margin:0 0 1.25rem;"></div>
 <nav id="tabs" role="tablist">
-  <a class="tab on" id="tab-weather" role="tab" href="#weather" data-view="weather" aria-controls="view-weather" tabindex="0"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg></span><span class="tablabel" data-i="tabWeather">Weather</span><span class="pk" id="pk-weather"></span></a>
-  <a class="tab" id="tab-map" role="tab" href="#map" data-view="map" aria-controls="view-map" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg></span><span class="tablabel" data-i="tabMap">Map</span><span class="pk" id="pk-map"></span></a>
-  <a class="tab" id="tab-bbq" role="tab" href="#bbq" data-view="bbq" aria-controls="view-bbq" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.4 13.7A6.5 6.5 0 1 0 6.28 6.6c-1.1 3.13-.78 3.9-3.18 6.08A3 3 0 0 0 5 18c4 0 8.4-1.8 11.4-4.3"/><path d="m18.5 6 2.19 4.5a6.48 6.48 0 0 1-2.29 7.2C15.4 20.2 11 22 7 22a3 3 0 0 1-2.68-1.66L2.4 16.5"/><circle cx="12.5" cy="8.5" r="2.5"/></svg></span><span class="tablabel" data-i="tabBbq">BBQ</span><span class="pk" id="pk-bbq"></span></a>
-  <a class="tab" id="tab-hike" role="tab" href="#hike" data-view="hike" aria-controls="view-hike" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg></span><span class="tablabel" data-i="tabHike">Hiking</span><span class="pk" id="pk-hike"></span></a>
+  <a class="tab on" id="tab-now" role="tab" href="#now" data-view="now" aria-controls="view-now" tabindex="0"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg></span><span class="tablabel" data-i="tabNow">NOW</span><span class="pk" id="pk-now"></span></a>
+  <a class="tab" id="tab-plan" role="tab" href="#plan" data-view="plan" aria-controls="view-plan" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></span><span class="tablabel" data-i="tabPlan">PLAN</span><span class="pk" id="pk-plan"></span></a>
+  <a class="tab" id="tab-map" role="tab" href="#map" data-view="map" aria-controls="view-map" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg></span><span class="tablabel" data-i="tabMap">MAP</span><span class="pk" id="pk-map"></span></a>
 </nav>
-<section id="view-weather" role="tabpanel" aria-labelledby="tab-weather">
+<section id="view-now" role="tabpanel" aria-labelledby="tab-now">
 <p class="lab hidden" id="cmpNote" style="margin:0 0 0.9rem;line-height:1.5;"></p>
 <div class="toprow">
 <div id="hero" class="card hero" role="group"></div>
@@ -392,66 +424,81 @@ body{padding:20px;transition:background .2s}
 </div>
 </section>
 
-<section id="view-bbq" class="hidden" role="tabpanel" aria-labelledby="tab-bbq">
-  <div class="viewhead" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span><span id="bbqHead" data-i="bbqHead">🔥 ROŠTILJ COMMAND CENTRE</span><span id="bbqOnly" class="lab hidden" style="font-size:12px;font-weight:400;letter-spacing:0;margin-left:8px;"></span></span><button class="lbtn" id="btn-vegan" onclick="toggleVegan()" aria-label="Vegan Inbound mode" title="Vegan Inbound mode (BBQ)" style="font-size:14px;">🌱</button></div>
-  <p class="viewtag" id="bbqTag"></p>
-  <div class="cards" id="bbqHero" style="margin:0 0 1.25rem;"></div>
-  <div id="bbqWeekends" style="background:var(--bg);border:0.5px solid var(--bd);border-radius:12px;padding:1rem 1.25rem;margin:0 0 1.5rem;">
+<section id="view-plan" class="hidden" role="tabpanel" aria-labelledby="tab-plan">
+  <div class="viewhead" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span><span id="planHead" data-i="planHead">PLAN</span><span id="planOnly" class="lab hidden" style="font-size:12px;font-weight:400;letter-spacing:0;margin-left:8px;"></span></span><button class="lbtn hidden" id="btn-vegan" onclick="toggleVegan()" aria-label="Vegan Inbound mode" title="Vegan Inbound mode (BBQ)" style="font-size:14px;">🌱</button></div>
+  <p class="viewtag" id="planTag"></p>
+  <div class="actRow" id="actRow" role="group">
+    <button type="button" class="lbtn" id="btn-act-bbq" data-act="bbq" onclick="setAct('bbq')"></button>
+    <button type="button" class="lbtn" id="btn-act-hike" data-act="hike" onclick="setAct('hike')"></button>
+    <button type="button" class="lbtn" id="btn-act-bike" data-act="bike" onclick="setAct('bike')"></button>
+    <button type="button" class="lbtn" id="btn-act-run" data-act="run" onclick="setAct('run')"></button>
+    <button type="button" class="lbtn hidden" id="btn-act-sea" data-act="sea" onclick="setAct('sea')"></button>
+  </div>
+  <div class="dayRow dragx" id="dayRow" role="group" tabindex="0"></div>
+  <div id="planCard"></div>
+  <div id="planSections">
+  <div id="ps-bbq" class="hidden">
+    <div class="ctx" id="bbqPhase" style="margin:0 0 1.25rem;"></div>
+    <div class="hd" data-i="bbqPrepH">PREP TIMELINE</div>
+    <p class="ctx hidden" id="bbqtlNote" style="margin:-6px 0 8px;"></p>
+    <p class="lab" id="bbqtlSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+    <div class="cards" id="bbqPrep" style="margin:0 0 1.25rem;"></div>
+    <div id="bbqtlwrap" style="position:relative;width:100%;height:250px;margin:0 0 1.75rem;"><canvas id="bbqtl" role="img" data-tt="ar_bbqtl"></canvas></div>
+    <div class="hd" data-i="bbqGrillH">TODAY'S GRILL SCORE BY HOUR</div>
+    <p class="ctx hidden" id="bbqgrNote" style="margin:-6px 0 8px;"></p>
+    <p class="lab" id="bbqgrSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+    <div class="lab" id="bbqCritL" data-i="bbqCritL" style="font-size:11.5px;margin:0 0 6px;"></div>
+    <div class="rng" id="bbqCrit" style="margin:0 0 12px;"></div>
+    <div id="bbqgrwrap" style="position:relative;width:100%;height:180px;margin:0 0 1.75rem;"><canvas id="bbqgrill" role="img" data-tt="ar_bbqgr"></canvas></div>
+    <div id="grSec" class="hidden">
+    <div class="hd" data-i="grH">GRILLING</div>
+    <p class="lab" id="grSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+    <div class="rng">
+      <button class="lbtn" id="btn-gh" data-i="grToday" onclick="setGRange('h')">TODAY</button>
+      <button class="lbtn" id="btn-g3" onclick="setGRange(3)">3d</button>
+      <button class="lbtn" id="btn-g7" onclick="setGRange(7)">7d</button>
+    </div>
+    <div id="grwrap" style="position:relative;width:100%;height:180px;margin:0 0 6px;">
+      <canvas id="grill" role="img" data-tt="ar_grill"></canvas>
+    </div>
+    <div class="lab" id="grLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
+    </div>
+    <div class="hd" data-i="bbqNonsense">THE NONSENSE NUMBERS</div>
+    <div class="cards" id="bbqCards"></div>
+    <div class="hd" data-i="bbqCheckH" style="margin-top:1.5rem;">PIT CHECKLIST</div>
+    <div class="cards" id="bbqCheck"></div>
+  </div>
+  <div id="ps-hike" class="hidden">
+    <div class="hd" data-i="hikeMetricsH">TODAY ON THE TRAIL</div>
+    <p class="ctx hidden" id="hikeMetNote" style="margin:-6px 0 8px;"></p>
+    <div class="cards" id="hikeCards" style="margin:0 0 1.75rem;"></div>
+    <div class="hd" data-i="hikeComfH">HOURLY COMFORT &amp; RAIN</div>
+    <p class="ctx hidden" id="hikeComfNote" style="margin:-6px 0 8px;"></p>
+    <p class="lab" id="hikeComfSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+    <div id="hikecwrap" style="position:relative;width:100%;height:200px;margin:0 0 6px;"><canvas id="hikecomf" role="img" data-tt="ar_hikec"></canvas></div>
+    <div id="hikeComfEmpty" class="hidden" style="margin:0 0 6px;"></div>
+    <div class="lab" id="hikecLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.75rem;font-size:12px;"></div>
+    <div class="hd" data-i="hikeWeekH">7-DAY TRAIL SCORE</div>
+    <p class="lab" id="hikeWeekSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+    <div id="hikewwrap" style="position:relative;width:100%;height:170px;margin:0 0 6px;"><canvas id="hikeweek" role="img" data-tt="ar_hikew"></canvas></div>
+    <div class="lab" id="hikewLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.75rem;font-size:12px;"></div>
+    <div class="hd" data-i="hikeFunH">TRAIL NONSENSE</div>
+    <div class="cards" id="hikeFun"></div>
+  </div>
+  <div id="ps-cards" class="hidden">
+    <div class="cards" id="planCards" style="margin:0 0 1.5rem;"></div>
+  </div>
+  </div>
+  <div id="planWeekends" class="hidden" style="background:var(--bg);border:0.5px solid var(--bd);border-radius:12px;padding:1rem 1.25rem;margin:0 0 1.5rem;">
     <div class="hd" data-i="wkB" style="margin-bottom:8px;">WEEKENDS</div>
-    <div class="lab" id="bbqWkTxt" style="line-height:1.7;color:var(--tp);"></div>
-    <div class="ctx" id="bbqPhase" style="margin-top:8px;"></div>
+    <div class="lab" id="planWkTxt" style="line-height:1.7;color:var(--tp);"></div>
   </div>
-  <div class="hd" data-i="bbqPrepH">PREP TIMELINE</div>
-  <p class="lab" id="bbqtlSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
-  <div class="cards" id="bbqPrep" style="margin:0 0 1.25rem;"></div>
-  <div id="bbqtlwrap" style="position:relative;width:100%;height:250px;margin:0 0 1.75rem;"><canvas id="bbqtl" role="img" data-tt="ar_bbqtl"></canvas></div>
-  <div class="hd" data-i="bbqGrillH">TODAY'S GRILL SCORE BY HOUR</div>
-  <p class="lab" id="bbqgrSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
-  <div class="lab" id="bbqCritL" data-i="bbqCritL" style="font-size:11.5px;margin:0 0 6px;"></div>
-  <div class="rng" id="bbqCrit" style="margin:0 0 12px;"></div>
-  <div id="bbqgrwrap" style="position:relative;width:100%;height:180px;margin:0 0 1.75rem;"><canvas id="bbqgrill" role="img" data-tt="ar_bbqgr"></canvas></div>
-  <div id="grSec" class="hidden">
-  <div class="hd" data-i="grH">GRILLING</div>
-  <p class="lab" id="grSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
-  <div class="rng">
-    <button class="lbtn" id="btn-gh" data-i="grToday" onclick="setGRange('h')">TODAY</button>
-    <button class="lbtn" id="btn-g3" onclick="setGRange(3)">3d</button>
-    <button class="lbtn" id="btn-g7" onclick="setGRange(7)">7d</button>
-  </div>
-  <div id="grwrap" style="position:relative;width:100%;height:180px;margin:0 0 6px;">
-    <canvas id="grill" role="img" data-tt="ar_grill"></canvas>
-  </div>
-  <div class="lab" id="grLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.5rem;font-size:12px;"></div>
-  </div>
-  <div class="hd" data-i="bbqNonsense">THE NONSENSE NUMBERS</div>
-  <div class="cards" id="bbqCards"></div>
-  <div class="hd" data-i="bbqCheckH" style="margin-top:1.5rem;">PIT CHECKLIST</div>
-  <div class="cards" id="bbqCheck"></div>
-</section>
-
-<section id="view-hike" class="hidden" role="tabpanel" aria-labelledby="tab-hike">
-  <div class="viewhead"><span data-i="hikeHead">🥾 Hiking</span><span id="hikeOnly" class="lab hidden" style="font-size:12px;font-weight:400;letter-spacing:0;margin-left:8px;"></span></div>
-  <p class="viewtag" data-i="hikeTag"></p>
-  <div class="cards" id="hikeHero" style="margin:0 0 1.5rem;"></div>
-  <div class="hd" data-i="hikeMetricsH">TODAY ON THE TRAIL</div>
-  <div class="cards" id="hikeCards" style="margin:0 0 1.75rem;"></div>
-  <div class="hd" data-i="hikeComfH">HOURLY COMFORT &amp; RAIN</div>
-  <p class="lab" id="hikeComfSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
-  <div id="hikecwrap" style="position:relative;width:100%;height:200px;margin:0 0 6px;"><canvas id="hikecomf" role="img" data-tt="ar_hikec"></canvas></div>
-  <div id="hikeComfEmpty" class="hidden" style="margin:0 0 6px;"></div>
-  <div class="lab" id="hikecLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.75rem;font-size:12px;"></div>
-  <div class="hd" data-i="hikeWeekH">7-DAY TRAIL SCORE</div>
-  <p class="lab" id="hikeWeekSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
-  <div id="hikewwrap" style="position:relative;width:100%;height:170px;margin:0 0 6px;"><canvas id="hikeweek" role="img" data-tt="ar_hikew"></canvas></div>
-  <div class="lab" id="hikewLeg" style="display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 1.75rem;font-size:12px;"></div>
-  <div class="hd" data-i="hikeFunH">TRAIL NONSENSE</div>
-  <div class="cards" id="hikeFun"></div>
 </section>
 
 <section id="view-map" class="hidden" role="tabpanel" aria-labelledby="tab-map">
   <div id="radarBox" role="img" data-tt="ar_radarBox"></div>
   <div id="mapTop">
-    <button class="lbtn" id="mapClose" onclick="location.hash='#weather'" data-tt="tt_mapClose">✕</button>
+    <button class="lbtn" id="mapClose" onclick="location.hash='#now'" data-tt="tt_mapClose">✕</button>
     <span id="mlyPills" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:auto;"></span>
     <button class="lbtn" id="mapThemeB" onclick="mapThemeToggle()" data-tt="tt_mapTheme">🌓</button>
   </div>
@@ -478,7 +525,7 @@ body{padding:20px;transition:background .2s}
 </section>
 
 <section id="view-info" class="hidden" role="tabpanel" aria-labelledby="tab-info">
-  <a href="#weather" class="lab" data-i="infoBack" style="display:inline-block;margin:0 0 12px;font-size:12.5px;text-decoration:none;color:var(--ts);">← Back</a>
+  <a href="#now" class="lab" data-i="infoBack" style="display:inline-block;margin:0 0 12px;font-size:12.5px;text-decoration:none;color:var(--ts);">← Back</a>
   <div class="viewhead" data-i="infoHead">ℹ️ About &amp; changelog</div>
   <p class="viewtag" id="infoTag"></p>
   <div id="infoAbout" class="card" style="margin:0 0 1.5rem;"></div>
@@ -541,6 +588,7 @@ function polLvl(v){return v<10?0:v<50?1:2;}
 let BRANGE='h';
 function setBRange(v){BRANGE=v;markBtns();if(D&&D.bio)drawBio();}
 let GRANGE='h';
+let PLAN={act:'bbq',date:null}; /* J2: PLANIRAJ - chosen activity (remembered in wd_prefs.act) and day (never saved) */
 function setGRange(v){GRANGE=v;markBtns();if(D&&D.days)drawGrill();}
 function bioLvl(s){return s<=1?0:s<=3?1:2;}
 function scoreBio(o){let s=0;const r=[];
@@ -556,7 +604,7 @@ let PREFS_LIVE=false; /* false during boot so reading the saved prefs never rewr
 let GROUPS={air:false,cmp:false,sea:false,bio:false}; /* P1: open state of the four collapsible groups on the Weather view (closed by default), remembered in wd_prefs.groups */
 function savePrefs(){ /* I2: language, theme and the switches survive a reload (MP is deliberately not saved) */
  if(!PREFS_LIVE)return;
- try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,CONF:CONF,MOON:MOON,TIDE:TIDE,PRES:PRES,BBQ:BBQ,CMODE:CMODE,VEGAN:VEGAN,groups:GROUPS}));}catch(e){}
+ try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,CONF:CONF,MOON:MOON,TIDE:TIDE,PRES:PRES,BBQ:BBQ,CMODE:CMODE,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS}));}catch(e){}
 }
 function loadPrefs(){
  let p=null;
@@ -573,6 +621,7 @@ function loadPrefs(){
  if(typeof p.PRES==='boolean')PRES=p.PRES;
  if(typeof p.BBQ==='boolean')BBQ=p.BBQ;
  if(typeof p.VEGAN==='boolean')VEGAN=p.VEGAN;
+ if(typeof p.act==='string'&&ACTS[p.act])PLAN.act=p.act;
  if(p.CMODE===0||p.CMODE===1||p.CMODE===2)CMODE=p.CMODE;
  if(p.groups&&typeof p.groups==='object'){['air','cmp','sea','bio'].forEach(k=>{if(typeof p.groups[k]==='boolean')GROUPS[k]=p.groups[k];});}
 }
@@ -632,25 +681,30 @@ function bbqScore(d){
  ded.sort((a,b)=>b[1]-a[1]);
  return{v:v,why:ded.length?ded[0][0]:null};
 }
-/* P1: ONE BBQ number for "today" - the hourly compound (grillCompound over D.grillRaw, all criteria unless `crit` is
-   given), the same engine as the BBQ view hero. peak = best hour still ahead, or the day's best once the day is over;
-   from..to = the stretch within 10 points of the peak. Falls back to the day-level bbqScore() when there is no hourly
-   data (reduced AI feed). Used by the daily text line, the tab badge (pk-bbq), the BBQ hero, the GRILLING summary and
-   the A-vs-B verdict. The OUTLOOK fire overlay and the GRILLING day bars deliberately stay day-level estimates
-   (bbqDay/bbqScore): they score future days, which have no hourly rows. */
-function bbqToday(d,crit){
+/* J2: the BBQ-by-hour series for TODAY (9-22 h) that the grill chart and the prep timeline need. The score of every hour is
+   grillCompound over D.grillRaw - exactly the per-hour maths the activity engine (scoreHour/scoreDay) uses, so with all
+   criteria ticked the series equals scoreDay('bbq',today).hours. The peak that the prep timeline back-times from is the best
+   hour INSIDE the engine's best window (or, once the day is over, the day's best), so the timeline never disagrees with the
+   Plan card; unticking a criterion (BBQCRIT) is a what-if and leaves the engine out of it. from..to = the stretch within 10
+   points of the peak. The headline number is no longer computed here: SADA's grilling line, the tab peek, the Plan card and
+   the weekends all call scoreDay. The OUTLOOK fire overlay and the GRILLING day bars stay day-level estimates (bbqDay). */
+function bbqHourly(d,crit){
  d=d||D;if(!d)return null;
  const raw=d.grillRaw||[];
- if(!raw.length){const q=bbqScore(d);return q?{v:q.v,tier:bbqTier(q.v),why:q.why,hourly:false,series:[],peak:null,peakH:null,from:null,to:null,dayOver:false}:null;}
+ if(!raw.length)return null;
  const series=raw.map(o=>{const r=grillCompound(o,crit||GRILLALL);return{h:o.hh,hi:o.h,s:r.v,parts:r.parts};});
+ const all=!crit||GRILLCRIT.every(k=>crit[k]);
+ const sd=all?scoreDay('bbq',todayIso(),d):null;
+ let cand=series;
+ if(sd){const lo=parseInt(sd.best.from,10),hi=parseInt(sd.best.to,10);const c=series.filter(x=>x.hi>=lo&&x.hi<hi);if(c.length)cand=c;}
  const nowM=nowMin();
  let peak=null,peakAny=null;
- series.forEach(x=>{if(!peakAny||x.s>peakAny.s)peakAny=x;if((x.hi*60+60)>nowM&&(!peak||x.s>peak.s))peak=x;});
- const dayOver=!peak&&!!peakAny;
- if(!peak)peak=peakAny;
+ cand.forEach(x=>{if(!peakAny||x.s>peakAny.s)peakAny=x;if((x.hi*60+60)>nowM&&(!peak||x.s>peak.s))peak=x;});
+ const dayOver=sd?sd.over:(!peak&&!!peakAny);
+ if(!peak||dayOver)peak=peakAny;
  let from=peak.h,to=peak.h;
  {const idx=series.indexOf(peak);let i=idx;while(i>0&&series[i-1].s>=peak.s-10)i--;let j=idx;while(j<series.length-1&&series[j+1].s>=peak.s-10)j++;from=series[i].h;to=series[j].h;}
- return{v:peak.s,tier:bbqTier(peak.s),why:null,hourly:true,series:series,peak:peak,peakH:mins2hm(peak.hi*60),from:from,to:to,dayOver:dayOver};
+ return{v:sd?sd.v:peak.s,series:series,peak:peak,peakH:mins2hm(peak.hi*60),from:from,to:to,dayOver:dayOver};
 }
 /* Per-hour grilling score (0–100), same rules as bbqScore applied to a single hour. */
 /* Time-of-day penalty for grilling: prime 12–18h, peak 14h, mornings/late evenings heavily penalised. */
@@ -673,19 +727,6 @@ function grillCompound(o,crit){
  if(crit.storm&&o.cond==='storm'){v=Math.min(v,15);parts.storm=true;}
  return{v:Math.max(1,Math.min(100,Math.round(v))),parts:parts};
 }
-/* Weekend activity suitability (0–100) for hiking/biking/running on one day. */
-function actScore(x,act){
- const pp=x.pp||0, hi=x.hi, w=x.w||0, storm=x.cond==='storm';
- let v=100;const why=[];
- v-=0.8*pp; if(pp>=40)why.push('rain');
- if(storm){v=Math.min(v,20);if(why.indexOf('storm')<0)why.push('storm');}
- let loId,hiId;
- if(act==='hike'){loId=12;hiId=24;}else if(act==='bike'){loId=14;hiId=26;}else{loId=6;hiId=18;}
- if(hi!=null){if(hi>hiId){v-=Math.min(35,3*(hi-hiId));if(hi-hiId>=4)why.push('hot');}else if(hi<loId){v-=Math.min(30,2.5*(loId-hi));if(loId-hi>=4)why.push('cold');}}
- const wf=act==='bike'?1.2:(act==='hike'?0.6:0.5);
- if(w>20){v-=Math.min(25,wf*(w-20));if(w>=30)why.push('wind');}
- return{v:Math.max(1,Math.min(100,Math.round(v))),why:why};
-}
 /* ---------- Activity engine (J1) ---------- */
 /* One consistent 1-100 score for bbq / hike / bike / run / sea on ANY forecast day, from the hourly rows in D.hr.
    Pure functions (they read only their arguments plus the location clock via todayIso()/nowMin(), overridable
@@ -694,6 +735,10 @@ function actScore(x,act){
    during which the activity is realistic. */
 const ACTS={bbq:{win:[9,22]},hike:{win:[6,20]},bike:{win:[6,21]},run:{win:[5,22]},sea:{win:[8,20]}};
 const ACTICON={bbq:'🔥',hike:'🥾',bike:'🚲',run:'🏃',sea:'🌊'};
+/* J2: the order of the PLANIRAJ pills, one colour per actTier band (great / good / okay / poor) and a dot icon per band for the tab peek */
+const ACTORDER=['bbq','hike','bike','run','sea'];
+const ACTCOL=[C.ok,'#7CB342',C.warn,C.bad];
+const TIERIC=['🟢','🟡','🟠','🔴'];
 /* Same four-way banding everywhere the new engine is shown: 0 great (80+), 1 good (60+), 2 okay (40+), 3 poor.
    (bbqTier is a different, five-way 90/70/50/30 scale for the legacy BBQ view and is deliberately left alone.) */
 function actTier(v){return v>=80?0:(v>=60?1:(v>=40?2:3));}
@@ -860,16 +905,17 @@ const T={
   vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
   zeroRain:"0% precip across the whole range",conf:"Confidence",relLeg:"coolest → warmest shown",myLoc:"My location",locThis:"This location",locSearchPh:"Search a place…",locDone:"Done",locSelLbl:"Location search",moonLeg:"moon phase",tideHi:"High tide",tideLo:"Low tide",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",wkB:"WEEKENDS",mapLoading:"Loading…",
   grpAir:"AIR",grpCmp:"COMPARISONS",grpSea:"SEA",grpBio:"BIO, PRESSURE & MOON",pillMoon:"🌙 Moon",pillTide:"🌊 Tide",pillBbq:"🔥 BBQ",pillConf:"Confidence",pillPres:"Pressure",cRain:"Rain",stAir:"Air",heroToday:"today",heroLbl:"Current weather",
-  tabWeather:"Weather",tabBbq:"BBQ",tabHike:"Hiking",tabMap:"Map",tabInfo:"Info",tShort:"Patrik's weather",
+  tabNow:"NOW",tabPlan:"PLAN",tabMap:"MAP",tabInfo:"Info",tShort:"Patrik's weather",
+  planHead:"PLAN",planNote:"Shown for today",dayToday:"Today",dayTomorrow:"Tomorrow",planBest:"Best",planOver:"Done for today — best was",planNoHr:"Hourly data is still loading — the plan appears in a moment.",planNoAi:"The planner needs the direct Open-Meteo feed — the reduced AI feed has no hourly data.",planNoDay:"No hourly forecast for this day.",planBars:"Score by hour",tt_actRow:"Pick an activity",tt_dayRow:"Pick a day",bikeTag:"Wind decides everything — pick the hours between the gusts.",runTag:"Cool, dry and daylight beat everything else.",seaTag:"Sea temperature, waves and tide for the day you pick.",
   infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",infoFeedsH:"DATA SOURCES · STATUS",infoBack:"← Back",infoLink:"Info & changelog",
   infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
   h2b:"HOUR BY HOUR",hAqi:"AIR QUALITY",
   cTom:"Tomorrow",vsTod:"vs today",
-  bbqHead:"🔥 ROŠTILJ COMMAND CENTRE",bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
+  bbqTag:"Tongs out. Today's best grill window, a meat-thawing battle plan, and a heap of nonsense the tofu lobby doesn't want you to see.",
   bbqPrepH:"PREP TIMELINE",bbqGrillH:"TODAY'S GRILL SCORE BY HOUR",bbqNonsense:"THE NONSENSE NUMBERS",bbqCheckH:"PIT CHECKLIST",
   bbqCritL:"Score = what you tick. Prime time is 12–18h (peak 14h); untick a factor to ignore it (grill at 9am if you must).",
   critTime:"Time of day",critTemp:"Temperature",critRain:"Rain",critWind:"Wind",critHumid:"Humidity",critStorm:"Storm",
-  hikeHead:"🥾 Hiking",hikeTag:"Trails within ~20 km — read the light, dodge the rain, mind the altitude.",
+  hikeTag:"Trails within ~20 km — read the light, dodge the rain, mind the altitude.",
   hikeMetricsH:"TODAY ON THE TRAIL",hikeComfH:"HOURLY COMFORT & RAIN",hikeWeekH:"7-DAY TRAIL SCORE",hikeFunH:"TRAIL NONSENSE",
   cBbq:"BBQ score",bioInfo:"<b>What it measures.</b> How hard today's weather leans on the weather-sensitive \u2014 a load score built from the same data the charts show.<br><br><b>Pressure.</b> A 24-hour swing over 4 hPa adds a point; over 8 hPa adds two. Fronts announce themselves in your sinuses first.<br><br><b>Heat &amp; cold.</b> Feels-like of 27\u00B0+ adds one, 30\u00B0+ two; \u22125\u00B0 or below adds one. Sultry air (humidity \u226585% when warm) adds another.<br><br><b>Wind &amp; storms.</b> Wind of 40+ km/h adds one; a thunderstorm adds two. A day swinging more than 14\u00B0 between low and high adds one more.<br><br><b>The smileys.</b> 0\u20131 \u2192 \uD83D\uDE42 favorable; 2\u20133 \u2192 \uD83D\uDE10 moderately unfavorable; 4+ \u2192 \u2639\uFE0F unfavorable. Triggers are listed on the card \u2014 so you know whether to blame the front, the heat, or simply Monday.",bbqTiers:['Grill god conditions','Prime grilling','Decent grilling','For the brave','Extinguisher weather'],bbqWhy:{rain:'rain risk',hot:'too hot',cold:'too cold',wind:'windy',bio:'biometeo',hum:'sultry',storm:'thunderstorm'},actName:{bbq:'BBQ',hike:'Hiking',bike:'Biking',run:'Running',sea:'Sea'},actTier:['great','good','okay','poor'],actWhy:{rain:'rain',hot:'too hot',cold:'too cold',wind:'wind',storm:'storm',night:'night',fog:'fog',uv:'strong UV',waves:'waves',coldsea:'cold sea',humid:'muggy',time:'late hour'},cBio:"Biometeo",cPres:"Pressure",presTrend:['Rising','Steady','Falling'],lgPr:"Pressure hPa",bioLevels:['Favorable','Moderately unfavorable','Unfavorable'],bioR:{rPress:'pressure swing',rHeat:'heat',rCold:'cold',rHum:'sultry',rWind:'wind',rStorm:'storm',rSwing:'temp swing'},aRun:'Running',aHike:'Hiking',runGo:'good — best ~',runCare:'easy does it (heat/biometeo) — if so ~',hikeGood:'good day',hikeRain:'rain risk — plan windows',uvNote:'high UV midday, protect',moonNames:['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent'],
   normFoot:"normal: ERA5 "+NORM_LBL+" ±"+WIN+"d",
@@ -900,16 +946,17 @@ const T={
   vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
   zeroRain:"0% oborina u cijelom rasponu",conf:"Pouzdanost",relLeg:"najhladnije → najtoplije",myLoc:"Moja lokacija",locThis:"Ova lokacija",locSearchPh:"Traži mjesto…",locDone:"Gotovo",locSelLbl:"Pretraga lokacije",moonLeg:"mjesečeve mijene",tideHi:"Plima",tideLo:"Oseka",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",wkB:"VIKENDI",
   grpAir:"ZRAK",grpCmp:"USPOREDBE",grpSea:"MORE",grpBio:"BIO, TLAK I MJESEC",pillMoon:"🌙 Mjesec",pillTide:"🌊 Plima",pillBbq:"🔥 Roštilj",pillConf:"Pouzdanost",pillPres:"Tlak",cRain:"Kiša",stAir:"Zrak",heroToday:"danas",heroLbl:"Trenutno vrijeme",mapLoading:"U\u010ditavam\u2026",
-  tabWeather:"Vrijeme",tabBbq:"Ro\u0161tilj",tabHike:"Planinarenje",tabMap:"Karta",tabInfo:"Info",tShort:"Patrikova prognoza",
+  tabNow:"SADA",tabPlan:"PLANIRAJ",tabMap:"KARTA",tabInfo:"Info",tShort:"Patrikova prognoza",
+  planHead:"PLANIRAJ",planNote:"Prikaz za danas",dayToday:"Danas",dayTomorrow:"Sutra",planBest:"Najbolje",planOver:"Danas gotovo — najbolje je bilo",planNoHr:"Satni podaci se još učitavaju — plan se pojavljuje za trenutak.",planNoAi:"Planiranje treba izravni Open-Meteo izvor — ograničeni AI izvor nema satne podatke.",planNoDay:"Nema satne prognoze za ovaj dan.",planBars:"Ocjena po satu",tt_actRow:"Odaberi aktivnost",tt_dayRow:"Odaberi dan",bikeTag:"Vjetar odlučuje sve — biraj sate između udara.",runTag:"Svježe, suho i dnevno svjetlo pobjeđuju sve ostalo.",seaTag:"Temperatura mora, valovi i plima za dan koji odabereš.",
   infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",infoFeedsH:"IZVORI PODATAKA \u00b7 STATUS",infoBack:"\u2190 Natrag",infoLink:"Info i izmjene",
   infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
   h2b:"SAT PO SAT",hAqi:"KVALITETA ZRAKA",
   cTom:"Sutra",vsTod:"vs danas",
-  bbqHead:"\ud83d\udd25 RO\u0160TILJ ZAPOVJEDNI CENTAR",bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
+  bbqTag:"Hvataljke van. Najbolji prozor za ro\u0161tilj, plan odmrzavanja mesa i hrpa gluposti koje ti tofu-lobi pre\u0161u\u0107uje.",
   bbqPrepH:"VREMENSKA CRTA PRIPREME",bbqGrillH:"DANA\u0160NJI RO\u0160TILJ INDEKS PO SATIMA",bbqNonsense:"BROJKE BEZ VEZE",bbqCheckH:"LISTA ZA RO\u0160TILJ",
   bbqCritL:"Indeks = \u0161to ozna\u010di\u0161. Zlatno doba je 12\u201318 h (vrh 14 h); odzna\u010di faktor da ga zanemari\u0161 (ro\u0161tilj u 9 ujutro ako ba\u0161 mora\u0161).",
   critTime:"Doba dana",critTemp:"Temperatura",critRain:"Ki\u0161a",critWind:"Vjetar",critHumid:"Sparina",critStorm:"Nevrijeme",
-  hikeHead:"\ud83e\udd7e Planinarenje",hikeTag:"Staze unutar ~20 km \u2014 uhvati svjetlo, izbjegni ki\u0161u, pazi na visinu.",
+  hikeTag:"Staze unutar ~20 km \u2014 uhvati svjetlo, izbjegni ki\u0161u, pazi na visinu.",
   hikeMetricsH:"DANAS NA STAZI",hikeComfH:"UGODA I KI\u0160A PO SATU",hikeWeekH:"INDEKS STAZE \u2014 7 DANA",hikeFunH:"STAZA BEZ VEZE",
   cBbq:"Ro\u0161tilj indeks",bioInfo:"<b>\u0160to mjeri.</b> Koliko dana\u0161nje vrijeme pritisak stavlja na meteoropate \u2014 indeks optere\u0107enja iz istih podataka koje vidite na grafovima.<br><br><b>Tlak.</b> Promjena ve\u0107a od 4 hPa u 24 h donosi bod; preko 8 hPa dva. Fronte se najprije najave u sinusima.<br><br><b>Vru\u0107ina i hladno\u0107a.</b> Osje\u0107aj od 27\u00B0+ donosi bod, 30\u00B0+ dva; \u22125\u00B0 ili ni\u017ee jo\u0161 jedan. Sparina (vlaga \u226585% uz toplo) dodaje bod.<br><br><b>Vjetar i nevrijeme.</b> Vjetar od 40+ km/h donosi bod; grmljavina dva. Dan koji se nji\u0161e vi\u0161e od 14\u00B0 izme\u0111u minimuma i maksimuma jo\u0161 jedan.<br><br><b>Smajli\u0107i.</b> 0\u20131 \u2192 \uD83D\uDE42 povoljno; 2\u20133 \u2192 \uD83D\uDE10 umjereno nepovoljno; 4+ \u2192 \u2639\uFE0F nepovoljno. Okida\u010di su navedeni na kartici \u2014 da znate krivite li frontu, vru\u0107inu ili jednostavno ponedjeljak.",bbqTiers:['Bo\u017eanski ro\u0161tilj','Odli\u010dno za ro\u0161tilj','Sasvim solidno','Za hrabre','Vrijeme za aparat'],bbqWhy:{rain:'rizik ki\u0161e',hot:'prevru\u0107e',cold:'prehladno',wind:'vjetrovito',bio:'biometeo',hum:'sparina',storm:'grmljavina'},actName:{bbq:'Roštilj',hike:'Planinarenje',bike:'Biciklizam',run:'Trčanje',sea:'More'},actTier:['odlično','dobro','osrednje','slabo'],actWhy:{rain:'kiša',hot:'prevruće',cold:'prehladno',wind:'vjetar',storm:'oluja',night:'noć',fog:'magla',uv:'jak UV',waves:'valovi',coldsea:'hladno more',humid:'sparina',time:'kasno'},cBio:"Biometeo",cPres:"Tlak zraka",presTrend:['Raste','Stabilno','Pada'],lgPr:"Tlak hPa",bioLevels:['Povoljno','Umjereno nepovoljno','Nepovoljno'],bioR:{rPress:'promjena tlaka',rHeat:'vrućina',rCold:'hladnoća',rHum:'sparina',rWind:'vjetar',rStorm:'nevrijeme',rSwing:'kolebanje temp.'},aRun:'Trčanje',aHike:'Planinarenje',runGo:'dobro — najbolje ~',runCare:'polako (vrućina/biometeo) — ako ideš ~',hikeGood:'dobar dan',hikeRain:'rizik kiše — planiraj prozore',uvNote:'jak UV oko podneva, zaštita',moonNames:['Mlađak','Rastući srp','Prva četvrt','Rastući mjesec','Puni mjesec','Opadajući mjesec','Zadnja četvrt','Opadajući srp'],
   normFoot:"normala: ERA5 "+NORM_LBL+" ±"+WIN+"d",
@@ -1798,15 +1845,20 @@ function buildSeaSum(l){
  if(Math.abs(dlt)>=0.5)out+=hrv?((dlt>0?'Zatopljava ':'Hladi se ')+sgn(dlt,'°',1)+' kroz tjedan.'):((dlt>0?'Warming ':'Cooling ')+sgn(dlt,'°',1)+' over the week.');
  return out.trim();
 }
-/* Compact bilingual waves/swell/current line for the Weather-view sea section (coastal, single location). */
-function buildSeaWaveLine(l){
+/* Compact bilingual waves/swell/current text for a sea location. buildSeaWaveLine() (Weather-view sea section, single location only) and
+   PLANIRAJ's sea cards share it. */
+function seaWaveText(l,noWave){
  const hrv=l==='hr';
- if(cmp()||!D.sea)return'';
+ if(!D||!D.sea)return'';
  const parts=[];
- if(D.sea.wave!=null)parts.push((hrv?'Valovi ':'Waves ')+D.sea.wave+' cm');
- if(D.sea.swell!=null)parts.push('swell '+D.sea.swell+' cm'+(D.sea.swellT!=null?(' / '+D.sea.swellT+' s'):''));
+ if(!noWave&&D.sea.wave!=null)parts.push((hrv?'Valovi ':'Waves ')+D.sea.wave+' cm');
+ if(D.sea.swell!=null)parts.push((hrv?'valovanje ':'swell ')+D.sea.swell+' cm'+(D.sea.swellT!=null?(' / '+D.sea.swellT+' s'):''));
  if(D.sea.current!=null)parts.push((hrv?'struja ':'current ')+D.sea.current+' km/h');
  return parts.join(' · ');
+}
+function buildSeaWaveLine(l){
+ if(cmp()||!D.sea)return'';
+ return seaWaveText(l);
 }
 function buildBioSum(l){
  const hrv=l==='hr';
@@ -1836,41 +1888,46 @@ function grillData(){
  const q=bbqScore(D);
  return{days:days,arr:arr,t0:t0,why:q?q.why:null,tier:bbqTier(t0),k:k,ranOut:!stopped,bestI:bestI,bestV:bestV};
 }
-/* P1: the grilling line of the daily text block - the SAME hourly number as the BBQ view hero and the tab badge (bbqToday). */
+/* J2: the grilling line of the daily text block - the engine's number for today (scoreDay), the same one the tab peek and the Plan card show. */
 function buildBbqLine(l){
- const b=bbqToday(D);if(!b)return'';
+ const sd=scoreDay('bbq',todayIso(),D);if(!sd)return'';
  const hrv=l==='hr';
- let s='🔥 '+(hrv?'Roštilj danas ':'Grilling today ')+b.v+'/100';
- if(b.hourly&&b.from){
-  const f=parseInt(b.from,10),t=parseInt(b.to,10);
-  s+=' · '+(b.dayOver?(hrv?'bilo najbolje ':'was best '):(hrv?'najbolje ':'best '))+(f===t?String(f):f+'–'+t)+' h';
- }
- return s;
+ const f=parseInt(sd.best.from,10),t=parseInt(sd.best.to,10);
+ return '🔥 '+(hrv?'Roštilj danas ':'Grilling today ')+sd.v+'/100 · '+(sd.over?(hrv?'bilo najbolje ':'was best '):(hrv?'najbolje ':'best '))+f+'–'+t+' h';
 }
 function buildGrillSum(l){
- const g=grillData();if(!g)return'';
  const hrv=l==='hr';
- const bt=bbqToday(D)||{v:g.t0,tier:g.tier,why:g.why,hourly:false}; /* P1: today's headline number is the shared hourly one; the "best day" comparison below stays day-level */
- let s=(hrv?'Danas ':'Today ')+BBQI[bt.tier]+' '+bt.v+'/100 — '+bbqName(bt.tier).toLowerCase()+((!bt.hourly&&bt.why)?(' ('+(LBL.bbqWhy[bt.why]||'')+')'):'')+'. ';
- const head=bt.hourly?bt.v:g.t0; /* compare later days against the number shown in the headline */
- if(g.bestI>0&&g.bestV>head){s+=hrv?('Bolje '+dayLab(g.days[g.bestI].dt)+' '+BBQI[bbqTier(g.bestV)]+' '+g.bestV+'/100.'):('Better on '+dayLab(g.days[g.bestI].dt)+' '+BBQI[bbqTier(g.bestV)]+' '+g.bestV+'/100.');}
+ const sds=scoreDays('bbq',D,16);
+ if(sds.length&&sds[0].date===todayIso()){ /* engine numbers for today AND the days after it, so the comparison is like for like */
+  const t0=sds[0];
+  let s=(hrv?'Danas ':'Today ')+ACTICON.bbq+' '+t0.v+'/100 — '+LBL.actTier[t0.tier]+'. ';
+  let bi=-1,bv=-1;
+  sds.forEach((x,i)=>{if(i>0&&x.v>bv){bv=x.v;bi=i;}});
+  let k=0,stopped=false;
+  for(let i=1;i<sds.length;i++){if(sds[i].v<t0.v){k++;}else{stopped=true;break;}}
+  if(bi>0&&bv>t0.v){s+=hrv?('Bolje '+dayLab(sds[bi].date)+' '+ACTICON.bbq+' '+bv+'/100.'):('Better on '+dayLab(sds[bi].date)+' '+ACTICON.bbq+' '+bv+'/100.');}
+  else if(k>=1){const span=stopped?k:(sds.length-1);s+=hrv?('Najbolji dan za roštilj u idućih '+span+' dana.'):('Best grilling day for the next '+span+' day'+(span===1?'':'s')+'.');}
+  return s.trim();
+ }
+ const g=grillData();if(!g)return''; /* reduced feed / snapshot without hourly rows: the old day-level wording */
+ let s=(hrv?'Danas ':'Today ')+BBQI[g.tier]+' '+g.t0+'/100 — '+bbqName(g.tier).toLowerCase()+(g.why?(' ('+(LBL.bbqWhy[g.why]||'')+')'):'')+'. ';
+ if(g.bestI>0&&g.bestV>g.t0){s+=hrv?('Bolje '+dayLab(g.days[g.bestI].dt)+' '+BBQI[bbqTier(g.bestV)]+' '+g.bestV+'/100.'):('Better on '+dayLab(g.days[g.bestI].dt)+' '+BBQI[bbqTier(g.bestV)]+' '+g.bestV+'/100.');}
  else if(g.k>=1){const span=g.ranOut?(g.arr.length-1):g.k;s+=hrv?('Najbolji dan za roštilj u idućih '+span+' dana.'):('Best grilling day for the next '+span+' day'+(span===1?'':'s')+'.');}
  return s.trim();
 }
-/* Shared weekend component (P1): both upcoming weekends x BBQ / hiking / biking / running, one row per activity with a
-   colour dot, grade word and the best day with its temperature and rain chance. Rendered by the Weather view's WEEKEND
-   PLANS and by the BBQ view's WEEKENDS block (same grouping + lone-Sunday skip via weekendGroups). */
+
+/* Shared weekend component: the next two weekends x BBQ / hiking / biking / running (+ sea on a coast), one row per activity with a
+   colour dot, the engine's tier word and the best day with its temperature, rain chance and score. Rendered by SADA's WEEKEND
+   PLANS and by PLANIRAJ's WEEKENDS block (same grouping + lone-Sunday skip via weekendGroups). J2: every number is scoreDay. */
 function buildWeekendBlock(l){
  const src=(D&&(D.daysFull||D.days))||[];
  if(!src.length)return'';
- const hrv=l==='hr';
+ const hrv=l==='hr',Lb=T[l];
  const{groups:wkGroups,gi}=weekendGroups(src);
  if(!wkGroups.length)return hrv?'Nema vikend-dana u trenutnom rasponu prognoze.':'No weekend days in the current forecast range.';
  const wks=wkGroups.slice(gi);
- const tiers=hrv?['odlično','solidno','slabo']:['great','okay','poor'];
- const tcol=[C.ok,C.warn,C.bad];
- const rea=hrv?{rain:'kiša',storm:'grmljavina',hot:'pretoplo',cold:'svježe',wind:'vjetrovito'}:{rain:'rain',storm:'storms',hot:'too warm',cold:'chilly',wind:'windy'};
- const acts=[{k:'bbq',icon:'🔥',n:hrv?'Roštilj':'BBQ',note:''},{k:'hike',icon:'🥾',n:hrv?'Planinarenje':'Hiking',note:hrv?' (do ~20 km)':' (within ~20 km)'},{k:'bike',icon:'🚴',n:hrv?'Biciklizam':'Biking',note:''},{k:'run',icon:'🏃',n:hrv?'Trčanje':'Running',note:''}];
+ const acts=['bbq','hike','bike','run'].concat(D.sea?['sea']:[]);
+ const notes={hike:hrv?' (do ~20 km)':' (within ~20 km)'};
  const labels=hrv?['Ovaj vikend','Sljedeći vikend','Vikend nakon toga']:['This weekend','Next weekend','Weekend after next'];
  let out='';
  for(let wi=0;wi<2;wi++){
@@ -1878,17 +1935,14 @@ function buildWeekendBlock(l){
   if(wi>=wks.length){out+='<div class="wkw"><div class="wkt"><b>'+lbl+'</b> — '+(hrv?'izvan trenutne prognoze (uključi raspon 14 dana u IZGLEDIMA).':'beyond the current forecast (set OUTLOOK to 14 days).')+'</div></div>';continue;}
   const days=wks[wi];
   out+='<div class="wkw"><div class="wkt"><b>'+lbl+'</b> <span class="lab" style="font-size:11.5px;">('+days.map(x=>dayLab(x.dt)).join(' · ')+')</span></div>';
-  acts.forEach(a=>{
-   let best=-1,bx=null,bw=[];
-   if(a.k==='bbq'){const wb=weekendBbq(days);if(wb){best=wb.s;bx=wb.x;}}
-   /* FIX-9: a day with no high temp can't be scored — skip it rather than let a stray 100 win. */
-   else days.forEach(x=>{if(x.hi==null)return;const sc=actScore(x,a.k);if(sc.v>best){best=sc.v;bx=x;bw=sc.why;}});
-   if(!bx)bx=days[0];
-   const t=best>=75?0:(best>=50?1:2);
-   const col=best<0?'var(--ts)':tcol[t],word=best<0?'—':tiers[t];
-   const whyTxt=bw.length?(' — '+bw.slice(0,2).map(k=>rea[k]||k).join(', ')):'';
-   const det=dayLab(bx.dt)+(bx.hi!=null?' '+bx.hi+'°':'')+', '+(bx.pp||0)+'% '+(hrv?'kiše':'rain')+((a.k==='bbq'&&best>=0)?(' · '+best+'/100'):'')+whyTxt;
-   out+='<div class="wkr"><span class="wkdot" style="background:'+col+'"></span><span>'+a.icon+' '+a.n+a.note+'</span><b style="color:'+col+'">'+word+'</b><span class="wkd">('+det+')</span></div>';
+  acts.forEach(k=>{
+   let best=null;
+   days.forEach(x=>{const sd=scoreDay(k,x.dt,D);if(sd&&(!best||sd.v>best.sd.v))best={sd:sd,x:x};}); /* a day the engine cannot score is skipped, never a stray 100 */
+   const bx=best?best.x:days[0];
+   const col=best?ACTCOL[best.sd.tier]:'var(--ts)',word=best?Lb.actTier[best.sd.tier]:'—';
+   const why=best?planReasons(best.sd).slice(0,2).map(r=>Lb.actWhy[r]||r):[];
+   const det=dayLab(bx.dt)+(bx.hi!=null?' '+bx.hi+'°':'')+', '+(bx.pp||0)+'% '+(hrv?'kiše':'rain')+(best?(' · '+best.sd.v+'/100'):'')+(why.length?(' — '+why.join(', ')):'');
+   out+='<div class="wkr"><span class="wkdot" style="background:'+col+'"></span><span>'+ACTICON[k]+' '+esc(Lb.actName[k])+(notes[k]||'')+'</span><b style="color:'+col+'">'+word+'</b><span class="wkd">('+det+')</span></div>';
   });
   out+='</div>';
  }
@@ -2150,7 +2204,7 @@ function statGo(k){
 /* charts inside a group are only drawn while it is open: opening it draws them from the data render() already prepared */
 let GSHOW={}; /* which group charts have data right now (set by renderGroups) */
 function drawGroupCharts(k){
- if(!D||active!=='weather')return;
+ if(!D||active!=='now')return;
  if(k==='air'){if(GSHOW.aqi)drawAqi();}
  else if(k==='sea'){if(GSHOW.sea)drawSea();if(GSHOW.tide)drawTide();}
  else if(k==='bio'){if(GSHOW.bio)drawBio();if(GSHOW.pres)drawPressure();if(GSHOW.moon)drawMoon();}
@@ -2747,6 +2801,7 @@ function markBtns(){
   'btn-r3':RANGE===3,'btn-r7':RANGE===7,'btn-r14':RANGE===14,'btn-r16':RANGE===16,
   'btn-c0':CMODE===0,'btn-c1':CMODE===1,'btn-c2':CMODE===2,'btn-moon':MOON,'btn-tide':TIDE,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7,
   'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7,'btn-vegan':VEGAN};
+ ACTORDER.forEach(k=>{states['btn-act-'+k]=(planAct()===k);}); /* J2: the PLANIRAJ activity pills */
  const paint=(b,on)=>{
   b.style.background=on?actBg:'transparent';b.style.color=on?actFg:inFg;b.style.border=bd;
   b.style.borderRadius='8px';b.style.padding='4px 10px';b.style.fontSize='12px';b.style.fontWeight='500';b.style.cursor='pointer';b.style.boxShadow='none';
@@ -2787,7 +2842,7 @@ function pickPoint(lat,lon,name){
  locStageA=name;locStageB=null;
  locUpdatePill();
  if(locOpenFlag)locRenderList();
- location.hash='#weather';
+ location.hash='#now';
  loadData();
  document.getElementById('wrap').scrollIntoView({behavior:'smooth'});
 }
@@ -2864,7 +2919,7 @@ function requestGeo(){
  window.addEventListener('resize',()=>{if(tip&&tip.style.display==='block'&&tip._icon)place(tip._icon);});
 })();
 
-/* ---------- v3 dashboards (BBQ now; Hiking/Swim next) + view router ---------- */
+/* ---------- v3 dashboards (PLANIRAJ: BBQ / Hiking sections + the unified planner) + view router ---------- */
 function clmp(x){return Math.max(0,Math.min(100,Math.round(x)));}
 function colByPct(p){return p>=66?C.ok:(p>=40?C.warn:C.bad);}
 function mins2hm(m){m=((Math.round(m)%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
@@ -2872,31 +2927,15 @@ function nowMin(){const d=locNow();return d.getHours()*60+d.getMinutes();}
 function cdownTxt(target,l){const hrv=l==='hr';let d=Math.round(target-nowMin());const ago=d<0;const a=Math.abs(d);const h=Math.floor(a/60),m=a%60;const s=(h?h+'h ':'')+m+'m';return ago?(hrv?('prije '+s):(s+' ago')):(hrv?('za '+s):('in '+s));}
 function gaugeBar(pct,color){return '<div class="gauge"><span style="width:'+clmp(pct)+'%;background:'+color+'"></span></div>';}
 function gcard(label,pct,ctx){return '<div class="card"><div class="lab">'+label+'</div><div style="display:flex;align-items:baseline;gap:6px;"><span class="big" style="font-size:26px;">'+clmp(pct)+'</span><span class="lab" style="font-size:11px;">/100</span></div>'+gaugeBar(pct,colByPct(pct))+(ctx?'<div class="ctx">'+ctx+'</div>':'')+'</div>';}
-const GRTCOL=['#1D9E75','#3DA35D','#BA7517','#C2632B','#A32D2D'];
 const WDIROPP={N:'S',NE:'SW',E:'W',SE:'NW',S:'N',SW:'NE',W:'E',NW:'SE'};
-const BWI=[
- {min:90,g:'A+',en:'Maximum Maillard',hr:'Maksimalni Maillard',ce:'Clear skies, perfect coals — the courtyard vibe is immaculate.',ch:'Vedro, savršen žar — atmosfera u dvorištu je besprijekorna.'},
- {min:70,g:'B',en:'Solid Coals',hr:'Čvrsti žar',ce:'Minor atmospheric interference. Solidify the guest list and prep the kitchen.',ch:'Manje smetnje u zraku. Potvrdi popis gostiju i pripremi kuhinju.'},
- {min:50,g:'C',en:'The Tarp Protocol',hr:'Protokol cerade',ce:'Risk of ash-in-the-eye or sudden showers. Adjust the shade sails, secure the apron.',ch:'Rizik od pepela u oku ili iznenadnog pljuska. Razapni cerade, učvrsti pregaču.'},
- {min:30,g:'D',en:'The Damp Squib',hr:'Mokri fitilj',ce:'Marginal. Keep the tarp within reach and expectations low.',ch:'Na rubu. Drži ceradu pri ruci, a očekivanja nisko.'},
- {min:0,g:'F',en:'Cast-Iron Backup',hr:'Lijevano-željezna rezerva',ce:'Condition Red. Evacuate to the indoor oven. Do not fight nature today.',ch:'Stanje crveno. Povlačenje na pećnicu. Danas se ne borimo s prirodom.'}
-];
-function bwiGrade(v){for(let i=0;i<BWI.length;i++){if(v>=BWI[i].min)return BWI[i];}return BWI[BWI.length-1];}
-/* FIX-7: shared Sat/Sun grouping (incl. lone-Sunday skip) used by buildWeekendBlock, which both the
-   Weather and the BBQ view render, so the two surfaces always agree on which weekend they mean. */
+/* FIX-7: shared Sat/Sun grouping (incl. lone-Sunday skip) used by buildWeekendBlock, which both SADA and
+   PLANIRAJ render, so the two surfaces always agree on which weekend they mean. */
 function weekendGroups(days){
  const groups=[];let cur=null;
  days.forEach(x=>{const g=new Date(x.dt+'T12:00').getDay();if(g===6||g===0){if(g===6||!cur){cur=[];groups.push(cur);}cur.push(x);}});
  let gi=0;
  if(groups.length&&groups[0].length===1&&groups[0][0].dt===todayIso()&&new Date(groups[0][0].dt+'T12:00').getDay()===0&&groups.length>1)gi=1;
  return{groups:groups,gi:gi};
-}
-/* P1: best BBQ day inside one weekend group (the day-level bbqDay engine, bio-adjusted): {x:day record, s:score} or null.
-   Feeds buildWeekendBlock(), the single weekend component shared by the Weather and BBQ views. */
-function weekendBbq(grp){
- const bm={};if(D&&D.bio&&D.bio.d)D.bio.d.forEach(b=>{bm[b.dt]=b.s;});
- let best=null;grp.forEach(x=>{const s=bbqDay(x,bm[x.dt]);if(s!=null&&(!best||s>best.s))best={x:x,s:s};});
- return best;
 }
 function bbqPhase(l){
  const hrv=l==='hr',d=locNow().getDay();
@@ -2922,7 +2961,169 @@ function smokeSVG(wdeg){
   '<circle cx="'+cx+'" cy="'+cy+'" r="11" fill="'+col+'"/><text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="13">🔥</text>'+
   '</svg>';
 }
-function toggleCheck(k){bbqCheck[k]=!bbqCheck[k];try{localStorage.setItem('wd_bbqcheck',JSON.stringify(bbqCheck));}catch(e){}if(active==='bbq')renderBbq();}
+/* ---------- PLANIRAJ (J2): one planner for every activity ---------- */
+/* PLAN = {act, date}: the chosen activity (remembered in wd_prefs.act) and day (today by default, never saved). Everything
+   headline-ish in this view comes from the one engine (scoreDay/scoreDays); the activity's own sections below keep their
+   own maths (grill compound, prep timeline, trail cards ...). */
+function planAct(){ /* the chosen activity, unless it needs a sea and this place has none (yet - marine data arrives async) */
+ return (PLAN.act==='sea'&&!(D&&D.sea))?'bbq':PLAN.act;
+}
+function planDates(){ /* today .. +15 that the hourly rows cover (falls back to the daily list for a snapshot without hourly rows) */
+ if(!D)return[];
+ const t=todayIso();
+ const ds=D.hrDay?Object.keys(D.hrDay):((D.daysFull||D.days||[]).map(x=>x.dt));
+ return ds.sort().filter(x=>x>=t).slice(0,16);
+}
+function planDate(){const ds=planDates();return(PLAN.date&&ds.indexOf(PLAN.date)>=0)?PLAN.date:(ds[0]||todayIso());}
+function setAct(a){
+ if(!ACTS[a])return;
+ PLAN.act=a;savePrefs();
+ try{history.replaceState(null,'','#plan-'+a);}catch(e){} /* keeps the link shareable without firing hashchange */
+ if(D)renderActive();
+}
+function setPlanDate(dt){PLAN.date=dt;if(D)renderActive();}
+function planDayLab(dt){
+ const t=todayIso();
+ if(dt===t)return LBL.dayToday;
+ const tm=new Date(t+'T12:00');tm.setDate(tm.getDate()+1);
+ if(dt===tm.getFullYear()+'-'+String(tm.getMonth()+1).padStart(2,'0')+'-'+String(tm.getDate()).padStart(2,'0'))return LBL.dayTomorrow;
+ return LBL.dows[new Date(dt+'T12:00').getDay()];
+}
+function planWinTxt(sd){return parseInt(sd.best.from,10)+'–'+parseInt(sd.best.to,10)+' h';}
+function planDayRows(date){const rg=D&&D.hr&&D.hrDay&&D.hrDay[date];return rg?D.hr.slice(rg[0],rg[1]):[];}
+function planReasons(sd){ /* "late hour" is noise when the window already sits in the prime afternoon band */
+ const f=parseInt(sd.best.from,10),t=parseInt(sd.best.to,10);
+ return sd.reasons.filter(k=>!(k==='time'&&f>=12&&t<=19));
+}
+function planUv(date){
+ if(date===todayIso()&&D.uv&&D.uv.max!=null)return D.uv.max;
+ const us=planDayRows(date).map(r=>r.uv).filter(x=>x!=null);
+ return us.length?Math.round(Math.max.apply(null,us)*10)/10:null;
+}
+function planNote(id,show){const e=document.getElementById(id);if(!e)return;e.textContent=show?LBL.planNote:'';e.classList.toggle('hidden',!show);}
+function renderPlanActs(){
+ const act=planAct();
+ ACTORDER.forEach(k=>{
+  const b=document.getElementById('btn-act-'+k);if(!b)return;
+  b.innerHTML='<span aria-hidden="true">'+ACTICON[k]+'</span><span>'+esc(LBL.actName[k])+'</span>';
+  b.setAttribute('aria-pressed',k===act?'true':'false');
+  b.title=LBL.actName[k];
+  if(k==='sea')b.classList.toggle('hidden',!(D&&D.sea));
+ });
+ const ar=document.getElementById('actRow');if(ar)ar.setAttribute('aria-label',LBL.tt_actRow);
+}
+function renderPlanDays(){
+ const row=document.getElementById('dayRow');if(!row)return;
+ const act=planAct(),cur=planDate(),ds=planDates();
+ const keep=row.scrollLeft;
+ row.setAttribute('aria-label',LBL.tt_dayRow);
+ row.innerHTML=ds.map(dt=>{
+  const sd=scoreDay(act,dt,D),on=dt===cur;
+  const dn=parseInt(dt.slice(8,10),10),wd=LBL.dows[new Date(dt+'T12:00').getDay()];
+  const full=wd+' '+dn+(sd?(' · '+sd.v+'/100 · '+LBL.actTier[sd.tier]):'');
+  return '<button type="button" class="dpill'+(on?' on':'')+'" onclick="setPlanDate(\''+dt+'\')" aria-pressed="'+on+'" aria-label="'+esc(full)+'" title="'+esc(full)+'"><span class="dl">'+esc(planDayLab(dt))+'</span><span class="dn">'+dn+'</span><span class="dd"'+(sd?(' style="background:'+ACTCOL[sd.tier]+'"'):'')+'></span></button>';
+ }).join('');
+ row.scrollLeft=keep; /* re-rendering must not throw the strip back to the start */
+ const s=row.querySelector('.dpill.on');
+ if(s){const l=s.offsetLeft,r=l+s.offsetWidth;if(l<row.scrollLeft+4)row.scrollLeft=Math.max(0,l-8);else if(r>row.scrollLeft+row.clientWidth-4)row.scrollLeft=r-row.clientWidth+8;}
+}
+function planFacts(date){
+ const day=(D.daysFull||D.days||[]).find(x=>x.dt===date);
+ const out=[];
+ if(day&&day.hi!=null)out.push('🌡️ '+day.hi+'° / '+day.lo+'°');
+ if(day)out.push('💧 '+(day.pp||0)+'%'+(day.mm!=null?' · '+mmTxt(day.mm):''));
+ let w=(day&&day.w!=null)?day.w:null;
+ if(w==null){const ws=planDayRows(date).map(r=>r.w).filter(x=>x!=null);if(ws.length)w=Math.round(Math.max.apply(null,ws));}
+ if(w!=null)out.push('💨 '+w+' km/h');
+ const uv=planUv(date);
+ if(uv!=null)out.push('☀️ UV '+uv);
+ if(date===todayIso()&&D.sun&&D.sun.rise&&D.sun.set)out.push('🌅 '+D.sun.rise+'–'+D.sun.set); /* only today has sunrise/sunset in the data */
+ return out;
+}
+/* the ONE card: score, tier word, best window, what holds it back, the hours, the day in numbers */
+function renderPlanCard(){
+ const el=document.getElementById('planCard');if(!el)return;
+ const act=planAct(),date=planDate();
+ const sd=scoreDay(act,date,D);
+ if(!sd){
+  const why=(D.mode==='ai')?LBL.planNoAi:(!D.hr?LBL.planNoHr:LBL.planNoDay);
+  el.innerHTML='<div style="margin:0 0 1.5rem;">'+emptyCard(ACTICON[act]+' '+esc(LBL.actName[act]),esc(why),'warn')+'</div>';
+  return;
+ }
+ const col=ACTCOL[sd.tier],word=LBL.actTier[sd.tier];
+ const win=planWinTxt(sd);
+ const f=parseInt(sd.best.from,10),t=parseInt(sd.best.to,10);
+ const chips=planReasons(sd).map(k=>'<span class="pc-chip">'+esc(LBL.actWhy[k]||k)+'</span>').join('');
+ const bars=sd.hours.map(x=>'<div class="hbc'+((x.hi>=f&&x.hi<t)?' best':'')+'" title="'+esc(x.h+' · '+x.v+'/100')+'"><div class="hbt"><div class="hb" style="height:'+Math.max(4,x.v)+'%;background:'+ACTCOL[actTier(x.v)]+'"></div></div><div class="hl">'+(x.hi%3===0?x.hi:'')+'</div></div>').join('');
+ const barsAria=LBL.planBars+': '+sd.hours.map(x=>x.hi+' h '+x.v).join(', ');
+ const facts=planFacts(date).map(s=>'<span>'+s+'</span>').join('');
+ const aria=LBL.actName[act]+' '+planDayLab(date)+' '+sd.v+'/100 '+word+' '+win;
+ el.innerHTML='<div class="card hero planCard" role="group" aria-label="'+esc(aria)+'">'+
+  '<div class="pc-top">'+
+   '<div class="pc-main"><span class="hero-ic" aria-hidden="true">'+ACTICON[act]+'</span><div><div class="pc-sc"><span class="hero-t">'+sd.v+'</span><span class="lab">/100</span></div><div class="pc-tier" style="color:'+col+'">'+esc(word)+'</div></div></div>'+
+   '<div class="pc-r"><div class="pc-best">'+esc(sd.over?LBL.planOver:LBL.planBest)+' '+win+'</div><div class="pc-name">'+esc(LBL.actName[act])+' · '+esc(planDayLab(date))+' '+parseInt(date.slice(8,10),10)+'.'+parseInt(date.slice(5,7),10)+'.</div>'+(chips?('<div class="pc-chips">'+chips+'</div>'):'')+'</div>'+
+  '</div>'+
+  '<div class="hbars" role="img" aria-label="'+esc(barsAria)+'">'+bars+'</div>'+
+  (facts?('<div class="pc-facts">'+facts+'</div>'):'')+
+ '</div>';
+}
+/* bike / run / sea: a few condition cards instead of the BBQ / Hiking sections */
+function renderCondCards(act,date){
+ const hrv=lang==='hr';
+ const sd=scoreDay(act,date,D);
+ const rows=planDayRows(date);
+ const out=[];
+ const uv=planUv(date);
+ const uvCard=()=>{if(uv==null)return card('☀️ UV','—','','');const lv=LBL.uvLevels[uvLvl(uv)];return card('☀️ '+(hrv?'UV zaštita':'UV window'),'UV '+uv,lv,uv>=6?(hrv?'Kapa + SPF ~10–16 h.':'Hat + SPF ~10:00–16:00.'):(hrv?'Umjeren UV — opusti se.':'Moderate UV — relax.'));};
+ if(act==='bike'||act==='run'){
+  const f=sd?parseInt(sd.best.from,10):0,t=sd?parseInt(sd.best.to,10):24;
+  const win=rows.filter(r=>r.hi>=f&&r.hi<t);
+  const ws=win.map(r=>r.w).filter(x=>x!=null),gs=win.map(r=>r.g).filter(x=>x!=null);
+  const wmax=ws.length?Math.round(Math.max.apply(null,ws)):null,gmax=gs.length?Math.round(Math.max.apply(null,gs)):null;
+  out.push(card('💨 '+(hrv?'Vjetar':'Wind'),wmax!=null?(wmax+' km/h'):'—',gmax!=null?((hrv?'udari ':'gusts ')+gmax+' km/h'):'',sd?((hrv?'u najboljem prozoru ':'in the best window ')+planWinTxt(sd)):''));
+  out.push(uvCard());
+  let dl=null;
+  if(date===todayIso()&&D.sun&&D.sun.rise&&D.sun.set&&D.sun.len)dl={txt:D.sun.rise+'–'+D.sun.set,len:Math.floor(D.sun.len/60)+'h '+(D.sun.len%60)+'m',est:false};
+  else{const dr=rows.filter(r=>!r.night);if(dr.length)dl={txt:'~'+dr[0].hi+'–'+(dr[dr.length-1].hi+1)+' h',len:'~'+dr.length+' h',est:true};}
+  out.push(dl?card('🌅 '+(hrv?'Dnevno svjetlo':'Daylight'),dl.txt,dl.len,dl.est?(hrv?'Procjena iz satnih podataka.':'Estimated from the hourly data.'):(hrv?'Planiraj povratak prije sumraka.':'Plan to be back before dusk.')):card('🌅 '+(hrv?'Dnevno svjetlo':'Daylight'),'—','',''));
+ }else if(act==='sea'&&D.sea){
+  const S=D.sea;
+  let st=S.cur;
+  if(S.days){const e=S.days.find(x=>x.dt===date);if(e&&e.t!=null)st=e.t;}
+  const cls=st>=20?(hrv?'ugodno za plivanje':'pleasant for swimming'):(st>=17?(hrv?'svježe':'fresh'):(hrv?'hladno — neopren':'cold — wetsuit'));
+  out.push(card('🌊 '+(hrv?'Temperatura mora':'Sea temperature'),st+'°',cls,''));
+  out.push(card('🌬️ '+(hrv?'Valovi':'Waves'),S.wave!=null?(S.wave+' cm'):'—',seaWaveText(lang,true),hrv?'Trenutno očitanje, ne prognoza za odabrani dan.':'Current reading, not a forecast for the picked day.'));
+  const td=(S.tide||[]).find(x=>x.dt===date);
+  out.push(card('↕️ '+(hrv?'Plima / oseka':'Tide high / low'),td?(td.hi+' / '+td.lo+' cm'):'—',td?(LBL.tideHi+' / '+LBL.tideLo):'',td?'':(hrv?'Plima nije dostupna za ovaj dan.':'No tide data for this day.')));
+  out.push(uvCard());
+ }
+ document.getElementById('planCards').innerHTML=out.join('');
+}
+function renderPlanSections(){
+ const act=planAct(),date=planDate(),isT=date===todayIso();
+ const sec=act==='bbq'?'bbq':(act==='hike'?'hike':'cards');
+ ['bbq','hike','cards'].forEach(k=>{const e=document.getElementById('ps-'+k);if(e)e.classList.toggle('hidden',k!==sec);});
+ if(act==='bbq'){planNote('bbqtlNote',!isT);planNote('bbqgrNote',!isT);renderBbqSections();}
+ else if(act==='hike'){planNote('hikeMetNote',!isT);planNote('hikeComfNote',!isT);renderHikeSections();}
+ else renderCondCards(act,date);
+}
+function renderPlan(){
+ if(!D)return;
+ setOnlyChip('planOnly');
+ const hrv=lang==='hr',act=planAct();
+ /* charts of the activity sections that are not showing must not stay alive */
+ if(act!=='bbq'){[bbqTlCh,bbqGrillCh,grillCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});bbqTlCh=bbqGrillCh=grillCh=null;}
+ if(act!=='hike'){[hikeCh,hikeWeekCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hikeCh=hikeWeekCh=null;}
+ const vg=document.getElementById('btn-vegan');if(vg)vg.classList.toggle('hidden',act!=='bbq');
+ const tags={bbq:VEGAN?(hrv?'Biljni alarm aktiviran. Salata moli za dobar char, panceta neka pričeka.':'Plant-based panic engaged. The lettuce prays for a good char; the pork belly can wait.'):LBL.bbqTag,hike:LBL.hikeTag,bike:LBL.bikeTag,run:LBL.runTag,sea:LBL.seaTag};
+ const tg=document.getElementById('planTag');if(tg)tg.textContent=tags[act]||'';
+ renderPlanActs();renderPlanDays();renderPlanCard();renderPlanSections();
+ const wk=buildWeekendBlock(lang);
+ const we=document.getElementById('planWeekends');
+ if(we){we.classList.toggle('hidden',!wk);const wt=document.getElementById('planWkTxt');if(wt)wt.innerHTML=wk;}
+ markBtns();
+}
+function toggleCheck(k){bbqCheck[k]=!bbqCheck[k];try{localStorage.setItem('wd_bbqcheck',JSON.stringify(bbqCheck));}catch(e){}if(active==='plan')renderBbqCheck();}
 function checkKey(e,k){if(e.key==='Enter'){toggleCheck(k);}else if(e.key===' '||e.key==='Spacebar'){e.preventDefault();toggleCheck(k);}}
 function renderBbqCheck(){
  const hrv=lang==='hr';
@@ -2930,7 +3131,7 @@ function renderBbqCheck(){
  document.getElementById('bbqCheck').innerHTML=items.map(it=>{const on=!!bbqCheck[it[0]];return '<div class="card" role="button" tabindex="0" aria-pressed="'+on+'" onclick="toggleCheck(\''+it[0]+'\')" onkeydown="checkKey(event,\''+it[0]+'\')" style="cursor:pointer;display:flex;align-items:center;gap:10px;'+(on?'opacity:0.6;':'')+'"><span style="font-size:18px;">'+(on?'✅':'⬜')+'</span><div style="font-weight:500;font-size:13.5px;'+(on?'text-decoration:line-through;':'')+'">'+it[2]+' '+it[1]+'</div></div>';}).join('');
 }
 
-function setBbqCrit(k){BBQCRIT[k]=!BBQCRIT[k];if(active==='bbq')renderBbq();}
+function setBbqCrit(k){BBQCRIT[k]=!BBQCRIT[k];if(active==='plan'&&planAct()==='bbq')renderBbqSections();}
 /* Day-level GRILLING chart (Today/3d/7d), moved from the Weather view into the BBQ view. */
 function updateGrSec(){
  const grillShow=D&&D.days&&D.days.length>0;
@@ -2939,18 +3140,14 @@ function updateGrSec(){
  if(grillShow){drawGrill();const gs=document.getElementById('grSum');if(gs)gs.textContent=buildGrillSum(lang);}
  else if(grillCh){grillCh.destroy();grillCh=null;}
 }
-function setOnlyChip(id){ /* I2: BBQ and Hiking score the first location only; say so when a comparison is set */
+function setOnlyChip(id){ /* I2: PLANIRAJ scores the first location only; say so when a comparison is set */
  const el=document.getElementById(id);if(!el)return;
  const on=!!(selB&&D);
  el.textContent=on?LBL.onlyA.replace('{A}',()=>(D.loc||locA())):'';
  el.classList.toggle('hidden',!on);
 }
-function renderBbq(){
- if(!D)return;
- setOnlyChip('bbqOnly');
+function renderBbqSections(){
  const hrv=lang==='hr';
- document.getElementById('bbqTag').textContent=VEGAN?(hrv?'Biljni alarm aktiviran. Salata moli za dobar char, panceta neka pričeka.':'Plant-based panic engaged. The lettuce prays for a good char; the pork belly can wait.'):LBL.bbqTag;
- {const wt=document.getElementById('bbqWkTxt');if(wt)wt.innerHTML=buildWeekendBlock(lang);} /* day-level, so it also works on the reduced feed */
  {const pe=document.getElementById('bbqPhase');if(pe)pe.textContent=bbqPhase(lang);}
  const raw=D.grillRaw||[];
  if(!raw.length){
@@ -2958,32 +3155,21 @@ function renderBbq(){
   if(bbqTlCh){bbqTlCh.destroy();bbqTlCh=null;}
   if(bbqGrillCh){bbqGrillCh.destroy();bbqGrillCh=null;}
   bbqSeries=[];bbqPeak=null;
-  document.getElementById('bbqHero').innerHTML='<div style="grid-column:1/-1;">'+emptyCard(LBL.cBbq,hrv?'Satni roštilj podaci zahtijevaju izravni Open-Meteo izvor — trenutno radi ograničeni AI izvor, pa je zapovjedni centar na pauzi. Lista ispod i dalje radi.':'Hourly grill data needs the direct Open-Meteo feed — the reduced AI feed is active, so the Command Centre is off duty. The checklist below still works.','warn')+'</div>';
-  ['bbqPrep','bbqCards','bbqCrit'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='';});
+  document.getElementById('bbqPrep').innerHTML='<div style="grid-column:1/-1;">'+emptyCard(LBL.cBbq,hrv?'Satni roštilj podaci zahtijevaju izravni Open-Meteo izvor — trenutno radi ograničeni AI izvor, pa su vremenska crta i satni graf na pauzi. Lista ispod i dalje radi.':'Hourly grill data needs the direct Open-Meteo feed — the reduced AI feed is active, so the prep timeline and the hourly chart are off duty. The checklist below still works.','warn')+'</div>';
+  ['bbqCards','bbqCrit'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='';});
   ['bbqtlSum','bbqgrSum','bbqCritL'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='';});
   renderBbqCheck();
   updateGrSec();
   return;
  }
- const bt=bbqToday(D,BBQCRIT); /* P1: the same function that feeds the Weather view line and the tab badge; here with the criteria ticked below (all ticked = the shared number) */
+ const bt=bbqHourly(D,BBQCRIT); /* the what-if hourly series (criteria ticked below) + the peak, snapped to the engine's best window; bt.v is the engine's number when everything is ticked */
  bbqSeries=bt.series;
- const peak=bt.peak,dayOver=bt.dayOver;
+ const peak=bt.peak;
  bbqPeak=peak;
- const g=peak?peak.hi*60:18*60, peakH=mins2hm(g), v=bt.v, tier=bt.tier;
+ const g=peak?peak.hi*60:18*60, peakH=mins2hm(g), v=bt.v, tier=bbqTier(v);
  const wfrom=bt.from||peakH, wto=bt.to||peakH;
- const critLbl={time:hrv?'doba dana':'time of day',temp:hrv?'temperatura':'temperature',rain:hrv?'kiša':'rain',wind:hrv?'vjetar':'wind',humid:hrv?'sparina':'humidity',storm:hrv?'nevrijeme':'storm'};
- let culprit=null,cmax=0;const pp0=peak?peak.parts:{};for(const k in pp0){if(k==='storm'){culprit='storm';break;}if(pp0[k]>cmax){cmax=pp0[k];culprit=k;}}
- const culpritTxt=(culprit&&(culprit==='storm'||cmax>=8))?(' · '+(hrv?'koči':'limited by')+': '+critLbl[culprit]):'';
  const wind=(D.now&&D.now.wind)||0, t=(D.now&&D.now.t!=null)?D.now.t:18, pp=(D.now&&D.now.pp)||0, hum=(D.now&&D.now.hum)||0, wdir=(D.now&&D.now.wdir)||'', wdeg=(D.now&&D.now.wdeg!=null)?D.now.wdeg:null, uv=(D.uv&&D.uv.cur!=null)?D.uv.cur:0;
  const stormy=(D.alerts||[]).some(a=>a.type==='storm');
- const grade=bwiGrade(v), glow=Math.round(v*0.28), glowA=v>=70?'77':(v>=45?'44':'22');
- document.getElementById('bbqHero').innerHTML='<div class="card" style="grid-column:1/-1;box-shadow:0 0 '+glow+'px '+Math.round(glow/3)+'px '+C.hi+glowA+';">'+
-  '<div class="lab">'+LBL.cBbq+' · <b style="color:'+GRTCOL[tier]+'">'+grade.g+'</b> '+(hrv?grade.hr:grade.en)+'</div>'+
-  '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="font-size:30px;">'+BBQI[tier]+'</span><span class="big" style="font-size:36px;">'+v+'</span><span class="lab" style="font-size:13px;">/100 · '+esc(bbqName(tier))+'</span></div>'+
-  gaugeBar(v,GRTCOL[tier])+
-  '<div class="ctx">'+(hrv?grade.ch:grade.ce)+'</div>'+
-  '<div class="ctx">'+(dayOver?(hrv?('Vrhunac je bio ranije danas ('+peakH+', '+(peak?peak.s:0)+'/100) — planiraj za sutra.'):("Today's peak was earlier ("+peakH+", "+(peak?peak.s:0)+"/100) — plan for tomorrow.")):((hrv?'Najbolji preostali termin danas oko ':'Best remaining slot today around ')+peakH+(peak?(' ('+peak.s+'/100)'):'')+culpritTxt))+'</div>'+
-  '<div class="ctx">'+(hrv?'Satni kompozitni indeks — isti broj kao u retku o roštilju na tabu Vrijeme; crta 🔥 na grafu IZGLEDI je dnevna procjena.':'Hourly compound index — the same number as the grilling line on the Weather tab; the 🔥 line on the OUTLOOK chart is the day-level estimate.')+'</div></div>';
  if(document.getElementById('bbqCritL'))document.getElementById('bbqCritL').textContent=LBL.bbqCritL;
  const critLabels={time:LBL.critTime,temp:LBL.critTemp,rain:LBL.critRain,wind:LBL.critWind,humid:LBL.critHumid,storm:LBL.critStorm};
  document.getElementById('bbqCrit').innerHTML=GRILLCRIT.map(k=>{const on=BBQCRIT[k];return '<button class="lbtn" onclick="setBbqCrit(\''+k+'\')" aria-pressed="'+on+'" style="border:1px solid var(--bd);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;'+(on?('background:'+strong+';color:'+BG+';border-color:'+strong+';'):'opacity:0.5;')+'">'+(on?'✓ ':'')+critLabels[k]+'</button>';}).join('');
@@ -3073,10 +3259,7 @@ function drawBbqGrill(){
 }
 
 function magnusDew(t,rh){if(rh<=0)rh=1;const a=17.27,b=237.7;const g=(a*t)/(b+t)+Math.log(rh/100);return (b*g)/(a-g);}
-const HIKESKY={sun:100,partcloud:85,cloud:65,fog:30,wind:60,rain:20,storm:0,snow:25};
-function renderHike(){
- if(!D)return;
- setOnlyChip('hikeOnly');
+function renderHikeSections(){
  const hrv=lang==='hr';
  const n=D.now||{}, fl=(n.fl!=null)?n.fl:(n.t!=null?n.t:15), wind=n.wind||0, cond=n.cond||'cloud', hum=n.hum||0, t=(n.t!=null)?n.t:15, wdir=n.wdir||'';
  const raw=D.grillRaw||[];
@@ -3101,22 +3284,6 @@ function renderHike(){
  let lowMax=null,highSum=0,highCnt=0;
  hx.forEach(o=>{const hh=parseInt(o.h.slice(0,2),10);if(hh>=6&&hh<=20&&o.cl!=null&&(lowMax===null||o.cl>lowMax))lowMax=o.cl;if(o.ch!=null){highSum+=o.ch;highCnt++;}});
  const highAvg=highCnt?Math.round(highSum/highCnt):null;
- const sComfort=clmp(100-Math.min(100,Math.abs(fl-14)*4));
- const sDry=clmp(100-maxPp);
- const windEff=(gustMaxVal!=null)?Math.max(wind,gustMaxVal*0.6):wind;
- const sWind=clmp(100-Math.min(100,Math.max(0,windEff-10)*3));
- let sSky=HIKESKY[cond]!=null?HIKESKY[cond]:60;
- if(hasVis){if(isFoggyReal)sSky=Math.min(sSky,HIKESKY.fog);else if(cond==='fog')sSky=HIKESKY.cloud;} /* measured visibility is authoritative both ways */
- if(lowMax!=null)sSky=Math.min(sSky,100-lowMax*0.7); /* low cloud hides the trail views */
- const sVis=hasVis?clmp(visKm*10):null;
- const trail=hasVis?clmp((sComfort+sDry+sWind+sSky+sVis)/5):clmp((sComfort+sDry+sWind+sSky)/4);
- const tband=trail>=80?(hrv?'Vrhunski dan za stazu':'Prime trail day'):trail>=60?(hrv?'Veži cipele':'Lace up'):trail>=40?(hrv?'Izvedivo':'Doable'):(hrv?'Možda ipak kafić':'Maybe a café');
- const tcolH=trail>=66?C.ok:trail>=40?C.warn:C.bad;
- document.getElementById('hikeHero').innerHTML='<div class="card" style="grid-column:1/-1;">'+
-  '<div class="lab">'+(hrv?'Trail indeks':'Trail score')+'</div>'+
-  '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span class="big" style="font-size:36px;">'+trail+'</span><span class="lab" style="font-size:13px;">/100 · '+tband+'</span></div>'+
-  gaugeBar(trail,tcolH)+
-  '<div class="ctx">'+(hrv?'Ugoda':'Comfort')+' '+sComfort+' · '+(hrv?'suho':'dry')+' '+sDry+' · '+(hrv?'vjetar':'wind')+' '+sWind+' · '+(hrv?'nebo':'sky')+' '+sSky+(hasVis?(' · '+(hrv?'vidljivost':'visibility')+' '+sVis):'')+'</div></div>';
  const sun=D.sun||{};
  let bi=0,bj=0,ci=0;
  if(raw.length){for(let i=0;i<raw.length;i++){if((raw[i].pp||0)<=20){if(i===0||(raw[i-1].pp||0)>20)ci=i;if(i-ci>bj-bi){bi=ci;bj=i;}}}}
@@ -3175,7 +3342,6 @@ function renderHike(){
  ];
  document.getElementById('hikeFun').innerHTML=fun.join('');
  document.getElementById('hikeComfSum').textContent=raw.length?(hrv?'Osjet temperature (linija) i šansa kiše (stupci) kroz dan.':'Feels-like (line) and rain chance (bars) through the day.'):'';
- document.getElementById('hikeWeekSum').textContent=hrv?'Dnevna razina — druga osnova od Trail indeksa gore (koji koristi trenutne uvjete).':'Day-level outlook — a different basis than the live Trail Score above (which uses now-conditions).';
  drawHikeComfort();drawHikeWeek();
 }
 function drawHikeComfort(){
@@ -3210,20 +3376,24 @@ function drawHikeComfort(){
 }
 function drawHikeWeek(){
  if(hikeWeekCh){hikeWeekCh.destroy();hikeWeekCh=null;}
- const days=(D.daysFull||D.days||[]).slice(0,7);if(!days.length)return;
- const arr=days.map(x=>actScore(x,'hike').v), labels=days.map(x=>dayLab(x.dt));
- const cols=arr.map(v=>v>=66?C.ok:v>=40?C.warn:C.bad);
+ const hrv=lang==='hr';
+ const sds=scoreDays('hike',D,7); /* J2: the very same numbers as the Plan card, one bar per forecast day */
+ const wrap=document.getElementById('hikewwrap'),wl=document.getElementById('hikewLeg'),sm=document.getElementById('hikeWeekSum');
+ if(wrap)wrap.classList.toggle('hidden',!sds.length);
+ if(!sds.length){if(wl)wl.innerHTML='';if(sm)sm.textContent=hrv?'Satni podaci još nisu stigli.':'Hourly data has not arrived yet.';return;}
+ if(sm)sm.textContent=hrv?'Najbolji 3-satni prozor svakog dana — isti izračun kao kartica gore.':'Best 3-hour window of each day — the same calculation as the card above.';
+ const arr=sds.map(s=>s.v), labels=sds.map(s=>dayLab(s.date));
+ const cols=sds.map(s=>ACTCOL[s.tier]);
  const M=layout==='mobile';
  hikeWeekCh=new Chart(document.getElementById('hikeweek'),{type:'bar',
   data:{labels:labels,datasets:[{data:arr,backgroundColor:cols,borderRadius:4,barPercentage:0.62,categoryPercentage:0.9}]},
   options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
-   plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>dayLab(days[c[0].dataIndex].dt),label:c=>(lang==='hr'?'Dnevni izgled: ':'Day outlook: ')+c.parsed.y+'/100'}}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>dayLab(sds[c[0].dataIndex].date),label:c=>{const s=sds[c.dataIndex];return c.parsed.y+'/100 · '+LBL.actTier[s.tier]+' · '+(hrv?'najbolje ':'best ')+planWinTxt(s);}}}},
    scales:{x:{grid:{display:false},ticks:{color:txt,font:{size:M?9:11}}},y:{display:false,min:0,max:118}}},
   plugins:[bgPlug,{id:'hwl',afterDatasetsDraw(ch){const ctx=ch.ctx;ctx.save();ctx.textAlign='center';ctx.font=(M?'600 9px ':'600 11px ')+'sans-serif';ctx.fillStyle=strong;ch.getDatasetMeta(0).data.forEach((bar,i)=>{ctx.fillText(arr[i],bar.x,bar.y-4);});ctx.restore();}}]
  });
- const wl=document.getElementById('hikewLeg');
- if(wl){const sq=c=>'<span style="width:10px;height:10px;border-radius:2px;background:'+c+';"></span>';const hrv2=lang==='hr';
-  wl.innerHTML=legSwatch(sq(C.ok),(hrv2?'dobro':'good')+' ≥66')+legSwatch(sq(C.warn),(hrv2?'osrednje':'okay')+' 40–65')+legSwatch(sq(C.bad),(hrv2?'slabo':'poor')+' <40');}
+ if(wl){const sq=c=>'<span style="width:10px;height:10px;border-radius:2px;background:'+c+';"></span>';
+  wl.innerHTML=[['≥80',0],['60–79',1],['40–59',2],['<40',3]].map(a=>legSwatch(sq(ACTCOL[a[1]]),LBL.actTier[a[1]]+' '+a[0])).join('');}
 }
 /* ---------- TODAY strip + AQI (v3.05) ---------- */
 function renderStripWindow(el){
@@ -3272,7 +3442,7 @@ function renderTodayStrip(){
 }
 /* drag-to-scroll with the mouse for every .dragx strip (touch scrolls natively); delegated, so re-renders keep working */
 (function(){
- var act=null,sx=0,sl=0,moved=false;
+ var act=null,sx=0,sl=0,moved=false,swallow=false;
  document.addEventListener('mousedown',function(e){
   var t=e.target.closest&&e.target.closest('.dragx');if(!t||e.button!==0)return;
   act=t;sx=e.pageX;sl=t.scrollLeft;moved=false;t.classList.add('dragging');
@@ -3281,7 +3451,8 @@ function renderTodayStrip(){
   if(!act)return;var dx=e.pageX-sx;if(Math.abs(dx)>3)moved=true;
   if(moved){act.scrollLeft=sl-dx;e.preventDefault();}
  });
- document.addEventListener('mouseup',function(){if(act){act.classList.remove('dragging');act=null;}});
+ document.addEventListener('mouseup',function(){if(act){act.classList.remove('dragging');if(moved){swallow=true;setTimeout(function(){swallow=false;},0);}act=null;}});
+ document.addEventListener('click',function(e){if(swallow){e.stopPropagation();e.preventDefault();}},true); /* J2: dragging a strip of buttons (the day pills) must not select one */
  document.addEventListener('keydown',function(e){
   var t=document.activeElement;if(!t||!t.classList||!t.classList.contains('dragx'))return;
   if(e.key==='ArrowRight'){t.scrollLeft+=112;e.preventDefault();}
@@ -4009,24 +4180,26 @@ function renderFeeds(){
 }
 
 /* ---------- view router ---------- */
-const ROUTES={'':'weather','#weather':'weather','#bbq':'bbq','#hike':'hike','#swim':'weather','#map':'map','#radar':'map','#info':'info'};
-const VIEWS={weather:{el:'view-weather',render:render},bbq:{el:'view-bbq',render:renderBbq},hike:{el:'view-hike',render:renderHike},map:{el:'view-map',render:renderMapFull},info:{el:'view-info',render:renderInfo}};
-let active='weather';
-function route(){return ROUTES[(location.hash||'').split('?')[0]]||'weather';}
+const ROUTES={'':'now','#now':'now','#weather':'now','#swim':'now','#plan':'plan','#plan-bbq':'plan','#plan-hike':'plan','#plan-bike':'plan','#plan-run':'plan','#plan-sea':'plan','#bbq':'plan','#hike':'plan','#map':'map','#radar':'map','#info':'info'};
+const ROUTEACT={'#plan-bbq':'bbq','#bbq':'bbq','#plan-hike':'hike','#hike':'hike','#plan-bike':'bike','#plan-run':'run','#plan-sea':'sea'}; /* the hash suffix picks the activity inside PLANIRAJ */
+const VIEWS={now:{el:'view-now',render:render},plan:{el:'view-plan',render:renderPlan},map:{el:'view-map',render:renderMapFull},info:{el:'view-info',render:renderInfo}};
+let active='now';
+function hashKey(){return (location.hash||'').split('?')[0];}
+function route(){return ROUTES[hashKey()]||'now';}
 function destroyAllCharts(){[hourlyCh,weekCh,seaCh,mtCh,tideCh,bioCh,grillCh,bbqTlCh,bbqGrillCh,hikeCh,hikeWeekCh,aqiCh,presCh].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});hourlyCh=weekCh=seaCh=mtCh=tideCh=bioCh=grillCh=bbqTlCh=bbqGrillCh=hikeCh=hikeWeekCh=aqiCh=presCh=null;}
 function updateTabs(){
  document.querySelectorAll('#tabs .tab').forEach(a=>{const on=a.dataset.view===active;a.classList.toggle('on',on);a.setAttribute('aria-selected',on?'true':'false');a.setAttribute('tabindex',on?'0':'-1');});
  if(D){try{const el=id=>document.getElementById(id);
-  if(el('pk-weather'))el('pk-weather').textContent=(D.now&&D.now.t!=null)?D.now.t+'°':'';
-  const bq=bbqToday(D);if(el('pk-bbq'))el('pk-bbq').textContent=bq?BBQI[bq.tier]:'';
-  if(el('pk-hike'))el('pk-hike').textContent='🥾';
+  if(el('pk-now'))el('pk-now').textContent=(D.now&&D.now.t!=null)?D.now.t+'°':'';
+  if(el('pk-plan')){const pa=planAct(),ps=scoreDay(pa,todayIso(),D);el('pk-plan').textContent=ACTICON[pa]+(ps?TIERIC[ps.tier]:'');}
   if(el('pk-map'))el('pk-map').textContent=(D.hours||[]).some(h=>(h.pp||0)>=40)?'🌧️':'🗺️';
  }catch(e){}}
  const cap=active.charAt(0).toUpperCase()+active.slice(1);
  document.title=(LBL.tShort||"Patrik's weather")+' v'+APPV+' · '+(LBL['tab'+cap]||'');
 }
 function showView(name){
- if(!VIEWS[name])name='weather';active=name;
+ if(!VIEWS[name])name='now';active=name;
+ if(name==='plan'){const ra=ROUTEACT[hashKey()];if(ra){PLAN.act=ra;savePrefs();}} /* #plan-hike, #bbq ... pick the activity */
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
  document.getElementById('tabs').classList.toggle('onmap',name==='map'); /* v3.19: the bar stays on the full-screen map; desktop hides the top tabs there */
  destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
@@ -4045,7 +4218,11 @@ function updateAlertBox(){
   }else{ab.classList.add('hidden');ab.innerHTML='';}}
 }
 function renderActive(){if(!D)return;try{VIEWS[active].render();}catch(e){console.log('renderActive',e);}try{updateAlertBox();}catch(e){}try{updateFoot();}catch(e){}updateTabs();}
-addEventListener('hashchange',()=>{const r=route();if(r!==active)showView(r);});
+addEventListener('hashchange',()=>{
+ const r=route(),ra=ROUTEACT[hashKey()];
+ if(r==='plan'&&ra&&ra!==PLAN.act&&r===active){PLAN.act=ra;savePrefs();renderActive();return;}
+ if(r!==active)showView(r);
+});
 /* FIX-8: roving-tabindex arrow-key navigation for the tab bar (ArrowLeft/Right wrap, Home/End). */
 document.getElementById('tabs').addEventListener('keydown',function(e){
  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight'&&e.key!=='Home'&&e.key!=='End')return;
