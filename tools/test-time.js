@@ -193,18 +193,12 @@ console.log('F1 Tokyo (UTC+9), now 2026-10-08T20:45, all days 24 rows');
   eq(r.yest.hum, valueAt(fx, 'relative_humidity_2m', '2026-10-07T20:00'), 'yest.hum = yesterday 20:00');
   eq(r.hx.length, 24, 'hx has 24 rows'); eq(r.hx[0].h, '00:00', 'hx starts at 00:00');
   eq(r.hours[0].night, true, 'I2: the 21:00 hours row is night:true');
-  eq(r.h3ext.find(p => p.dt === '2026-10-08' && p.h === '21:00').night, true, 'I2: the 21:00 h3ext row is night:true');
-  ok(!r.h3ext.find(p => p.dt === '2026-10-08' && p.h === '12:00').night, 'I2: the 12:00 h3ext row is not night');
   eq(app.iconFor({ cond: 'sun', night: true }), '🌙', 'I2: iconFor night + clear = moon');
   eq(app.iconFor({ cond: 'sun' }), app.ICON.sun, 'I2: iconFor day + clear = sun');
   eq(app.iconFor({ cond: 'rain', night: true }), app.ICON.rain, 'I2: iconFor night + rain keeps the rain icon');
   ok(/is_day/.test(extractFunction(script, 'fetchOpenMeteo')), 'I2: the hourly request asks for is_day');
   eq(r.daysFull[0].dt, '2026-10-08', 'daysFull[0] is the Tokyo today');
   eq(r.days[0].dt, '2026-10-08', 'days[0] is the Tokyo today');
-  eq(r.h3ext[0].dt, '2026-10-08', 'h3ext[0].dt is today'); eq(r.h3ext[0].a, 0, 'h3ext[0].a is 0'); eq(r.h3ext[0].h, '00:00', 'h3ext[0] is 00:00');
-  eq(r.h3ext.length, 33, 'h3ext covers today + 4 days in 3 h steps (33 points)');
-  eq(r.h3ext[r.h3ext.length - 1].a, 96, 'h3ext last a = 96'); eq(r.h3ext[r.h3ext.length - 1].dt, '2026-10-12', 'h3ext last date');
-  ok(r.h3ext.every((p, i) => p.a === i * 3), 'h3ext a = 0,3,6,...');
   eq(r.grillRaw.length, 14, 'grillRaw has the 14 hours 09..22');
   ok(r.grillRaw.every(g => g.t === valueAt(fx, 'temperature_2m', '2026-10-08T' + g.hh)), 'every grillRaw row is from 2026-10-08 (temperature matches that date)');
   eq(r.days[0].p, Math.round(meanP(fx, '2026-10-08')), 'days[0].p = mean pressure of 2026-10-08 rows');
@@ -235,9 +229,6 @@ console.log('F2 DST fall-back, Europe/Zagreb (UTC+1), yesterday 2026-10-25 has 2
   eq(r.yest.t, 9, 'yest.t is 9 (not the 08:00 value an index-24 shortcut would give)');
   eq(r.days[0].p, Math.round(meanP(fx, '2026-10-26')), 'days[0].p = mean over exactly the 24 rows of 2026-10-26');
   eq(rowsOf(fx, '2026-10-26').length, 24, 'fixture: 2026-10-26 has 24 rows');
-  const t27 = r.h3ext.filter(p => p.dt === '2026-10-27');
-  eq(t27.map(p => p.a).join(','), '24,27,30,33,36,39,42,45', 'h3ext entries for 2026-10-27 have a = 24..45 (not 25-based)');
-  eq(r.h3ext[0].dt, '2026-10-26', 'h3ext starts today'); eq(r.h3ext[0].a, 0, 'h3ext[0].a = 0');
   eq(r.bio.d[0].dt, '2026-10-26', 'bio.d starts today');
   eq(r.presNowIdx, 11, 'presNowIdx anchored on the string-based now index (row 35 -> position 11)');
   eq(r.presH[0].dt, '2026-10-25', 'presH starts at yesterday');
@@ -256,8 +247,6 @@ console.log('F3 DST fall-back, today IS the 25-row day (now 2026-10-25T09:10)');
   eq(r.daysFull[0].dt, '2026-10-25', 'daysFull[0] = 2026-10-25');
   eq(r.yest.t, valueAt(fx, 'temperature_2m', '2026-10-24T09:00'), 'yest.t = 2026-10-24 09:00');
   eq(r.days[0].p, Math.round(meanP(fx, '2026-10-25')), 'days[0].p = mean over the 25 rows');
-  eq(r.h3ext.filter(p => p.dt === '2026-10-26').map(p => p.a).join(','), '24,27,30,33,36,39,42,45', 'h3ext next-day a stays wall-clock based (24..45)');
-  eq(r.h3ext.filter(p => p.dt === '2026-10-25').map(p => p.h).join(','), '00:00,03:00,06:00,09:00,12:00,15:00,18:00,21:00', 'h3ext on the 25-row day has no duplicate 3 h points');
 }
 
 console.log('F4 DST spring-forward, today is the 23-row day (now 2026-03-29T09:10)');
@@ -270,7 +259,6 @@ console.log('F4 DST spring-forward, today is the 23-row day (now 2026-03-29T09:1
   eq(r.hours[0].h, '10:00', 'hours[0].h = 10:00');
   eq(r.days[0].p, Math.round(meanP(fx, '2026-03-29')), 'days[0].p = mean over the 23 rows');
   eq(r.yest.t, valueAt(fx, 'temperature_2m', '2026-03-28T09:00'), 'yest.t = 2026-03-28 09:00');
-  eq(r.h3ext.filter(p => p.dt === '2026-03-30').map(p => p.a).join(','), '24,27,30,33,36,39,42,45', 'h3ext next-day a = 24..45');
 }
 
 console.log('location clock (locNow / locNowStr / todayIso)');

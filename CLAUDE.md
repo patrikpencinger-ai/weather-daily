@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~4,300 lines). Current version: **v3.21** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~4,700 lines). Current version: **v3.22** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
@@ -29,7 +29,7 @@ the activity-bearing hashes to an activity; `showView('plan')` and the `hashchan
 v3.21 (their render functions, `renderBbq`/`renderHike`, are gone). Info has no tab: it is reached only
 through the footer's "Info & changelog" link (`#info`), with a "← Back" link inside the view; the route also
 works directly. One shared data fetch (`D`, plus `D2` for a comparison
-location) feeds all views. `showView(name)` toggles the `#view-*` sections, calls `destroyAllCharts()`,
+location; always `FCDAYS` = 16 days, see "Data sources") feeds all views. `showView(name)` toggles the `#view-*` sections, calls `destroyAllCharts()`,
 then dispatches the active view's render via `setTimeout(0)` (NOT rAF — throttled in background tabs).
 The global hooks `applyTheme`/`setLang`/`applyResponsive` (plus the switch toggles) call
 `renderActive()`, so only the visible view re-renders. Both `showView` and `renderActive` also refresh the
@@ -82,7 +82,7 @@ browser's, so Tokyo seen from Zagreb is right and 23- or 25-hour clock-change da
   response's zone.
 - Open-Meteo `is_day` marks night hours (`hours[].night`); `nightOf(d)` is the same test for "now" from
   the sunrise/sunset strings. `iconFor(r)` returns `ICON[cond]` or, when `r.night`, `ICON_NIGHT[cond]`
-  (moon for clear, cloud for partly cloudy); the hero, the hour strip and the charts use it.
+  (moon for clear, cloud for partly cloudy); the hero, the timeline readout and the sticky now-bar use it.
 
 ### PWA support files
 
@@ -96,7 +96,7 @@ never intercepts or caches an API or map-tile request — those always go straig
 untouched, exactly as if the service worker did not exist. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.21`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.22`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -107,27 +107,31 @@ footer chip instead.
 
 ### NOW view (`#view-now`, tab SADA) — DOM order
 
+Above everything, outside `#dash`, sits `#nowBarW` (a zero-height sticky wrapper) holding the sticky now-bar
+`#nowBar` (see below).
+
 1. `#cmpNote` — in comparison mode, one line saying what is compared (`T.cmpNote`, `{A}`/`{B}`).
 2. `.toprow` — `#hero` (`renderHero()`: temperature, feels like, low–high, rain % + mm, icon, and the
    day verdict from `todayVerdict(l)`; two columns when comparing) and `#stats` (`renderStats()`: four
    chips — wind, UV, air quality, pressure; two values with A/B dots when comparing). Each chip is a
-   button: `statGo(k)` scrolls to the hour chart / OUTLOOK, or opens the `air` / `bio` group and scrolls
-   to it.
-3. `#todaySec` — HOUR BY HOUR: `#todayStrip`, drawn by `renderTodayStrip()` → `renderStripWindow()`. No
-   slider and no `TOFF`: every 3-hour point of `D.h3ext` from now (about 4 days) in one horizontal
-   `.dragx` strip — touch scrolls natively, a delegated mouse-drag handler scrolls it with the mouse,
-   arrow keys when focused; any element with class `dragx` gets this behaviour.
-4. The daily text block (`#todayLbl`, `#badge`, `#recTxt`: day sentence, traffic-light badge, advice and
-   the grilling line `buildBbqLine()` — the engine's number for today and its best window; when comparing, a `buildVersus()` line and both places' sentences, no badge).
-5. `#wxGrid` (a plain wrapper — charts are full width on foldables too): `#hrSec` NEXT 24 HOURS
-   (pressure-overlay switch `btn-pr`/`togglePres()` on its heading; pressure overlay ON by default) →
-   `#outlookSec` OUTLOOK → `#weekendSec` (WEEKEND PLANS, `buildWeekendBlock(l)`). OUTLOOK has two
-   control rows: range pills 3d / 7d / 14d / 16d (`btn-r3`…`btn-r16`; 16 days is the real Open-Meteo
-   maximum) + the chart-colour modes STD / °C / Δ° (`btn-c0/1/2`, `CMODE`); then the overlay pills
-   🌙 Moon, 🌊 Tide, 🔥 BBQ (`btn-moon`/`btn-tide`/`btn-bbq`, labels from T keys `pillMoon`, `pillTide`,
-   `pillBbq`) and the confidence switch `btn-cf`.
-6. Four collapsible `<details class="grp">` groups, **closed by default**, each with a one-line live
-   summary in its header (`grpSum-*`): `grp-air` (AQI, PM2.5, PM10 and dominant-pollutant cards via
+   button: `statGo(k)` switches the timeline's wind / UV layer on and scrolls to `#tlSec`, or opens the
+   `air` / `bio` group and scrolls to it.
+3. `#tlRow.tlrow` — the timeline and its story column side by side:
+   - `#tlSec` — the **timeline** (VREMENSKA OS), see the next section. When the data has no hourly rows
+     (AI feed) `#tlSec` stays hidden and `render()` adds `.notl` to `#tlRow`, so the story column takes the
+     full width.
+   - `#story` (`<aside>`, the **story column**) — `.storyblk` boxes: the daily text block (`#todayLbl`,
+     `#badge`, `#recTxt`: day sentence, traffic-light badge, advice and the grilling line `buildBbqLine()` —
+     the engine's number for today and its best window; when comparing, a `buildVersus()` line and both
+     places' sentences, no badge); `#tomBlk` (the TOMORROW line, `renderTomorrow()`: range, icon, rain %
+     + mm, wind; one row per place when comparing); `#outlookSec` (the one-line outlook sentence `#wkSum`
+     from `buildWkSum(l)`, plus the long-range note `#wkNote` when the forecast runs past 10 days) and
+     `#weekendSec` (WEEKEND PLANS, `#weekendTxt`, `buildWeekendBlock(l)`). Desktop (≥ 1100 px): a 2/3 +
+     1/3 grid — timeline left, `#story` is `display:contents` so its blocks stack in the right third and the
+     weekend table takes the full row below both; `mid`/`mobile`: everything stacks (timeline, then story).
+4. `#wxGrid` (a plain wrapper — charts are full width on foldables too): the four collapsible
+   `<details class="grp">` groups, **closed by default**, each with a one-line live summary in its header
+   (`grpSum-*`): `grp-air` (AQI, PM2.5, PM10 and dominant-pollutant cards via
    `aqiCardHtml()`/`pmCardHtml()`, plus the AIR QUALITY chart `#aqiSec`), `grp-cmp` (today's max with
    vs-yesterday / last-year / normal context, the TOMORROW card, humidity, the Chance-of-rain card with
    the daily mm), `grp-sea` (SEA TEMPERATURE `#seaSec` + waves/swell/current line `buildSeaWaveLine()`,
@@ -136,22 +140,113 @@ footer chip instead.
    (which group charts have data right now); `GROUPS` is the open state, saved in `wd_prefs.groups`;
    `initGroups()` wires each group's `toggle` event; `openGroup(k)`/`grpOpen(k)` open/test a group;
    `drawGroupCharts(k)` draws a group's charts when it opens (`drawAqi`, `drawSea`, `drawTide`,
-   `drawBio`, `drawPressure`, `drawMoon` — `drawTide` and `drawMoon` were split out of the old
-   `drawMT`). **Charts inside a closed group are not drawn**: each drawer returns early unless
-   `grpOpen`.
-7. `#factSec` — INTERESTING FACT.
+   `drawBio`, `drawPressure`, `drawMoon`). **Charts inside a closed group are not drawn**: each drawer
+   returns early unless `grpOpen`.
+5. `#factSec` — INTERESTING FACT.
 
-The old `#nowCards` grid, the RIGHT NOW heading, the station line, the GRILLING section on NOW (it now lives in PLAN) and
-the map launcher card are gone. The warning banner `#alertBox` sits above `#tabs`.
+Gone from NOW: the `#nowCards` grid, the RIGHT NOW heading, the station line, the GRILLING section (it now
+lives in PLAN) and the map launcher card (v3.18–v3.20); and, replaced by the timeline in v3.22, the
+HOUR BY HOUR strip (`#todaySec`, `renderStripWindow()`, `D.h3ext` — a 3-hourly strip of the next ~4 days),
+the NEXT 24 HOURS chart (`#hrSec`, `drawHourly`) and the OUTLOOK chart (`drawWeek`; `#outlookSec` is now just
+the story's sentence block). The switches that belonged to them — the OUTLOOK range pills 3d/7d/14d/16d
+(`RANGE`, `btn-r3`…`btn-r16`), the chart-colour modes (`CMODE`), the Moon / Tide / BBQ overlays
+(`MOON`/`TIDE`/`BBQ`), the confidence switch (`CONF`) and the pressure-overlay switch (`PRES`,
+`togglePres()`) — were removed with them; their roles live on as timeline layers (pressure,
+normal-for-the-date, the day-8+ confidence band) or in the day readout (moon phase). In PLAN, the hiking
+comfort and 7-day trail-score charts (`drawHikeComfort`, `drawHikeWeek`) were dropped too; `#ps-hike` keeps
+the trail cards and the nonsense numbers. The warning banner `#alertBox` sits above `#tabs`.
+
+### Timeline (VREMENSKA OS, `#tlSec`)
+
+One continuous, zoomable, layered time axis on NOW from six hours ago to the end of the forecast (about 16
+days). It is a **custom Canvas 2D** drawing (`#tlCanvas` inside `#tlWrap`), not Chart.js. Banner
+`/* ---------- VREMENSKA OS / TIMELINE (K1) ... ---------- */`. Only built when `tlOk()` (direct-mode data with
+`D.hr` longer than 24 rows).
+
+- **DOM.** `#tlSec`: heading (`T.tlTitle`), summary `#tlSum` (one line for the visible window, `tlSummary()`,
+  written only when the text changes), zoom pills `#tlZoom` (`btn-tlz-h` / `btn-tlz-3` / `btn-tlz-d`), layer
+  pills `#tlLayers` (`btn-tll-temp`/`-rain`/`-wind`/`-pres`/`-uv`/`-air`/`-sea`/`-score`/`-norm`, a swipeable row on
+  mobile), the canvas wrapper `#tlWrap` (height set by `applyResponsive()`: 340 / 300 / 250 px for
+  desktop / mid / mobile) with the readout box `#tlReadout`, the legend `#tlLeg` (custom DOM, built by
+  `tlLegend()`), and the screen-reader live region `#tlLive` (`role=status`). The canvas has `tabindex=0`,
+  `role=img` and `data-tt="ar_tl"`; the pill groups use `tlZoomAria` / `tlLayersAria`.
+- **State.** `TL={zoom,layers,x0,cursor}`: `zoom` is `'h'` (hours), `'3'` (every 3 h) or `'d'` (days; the
+  order is `TLZ`); `layers` has the nine flags of `TLLAYERS` (`temp, rain, wind, pres, uv, air, sea, score,
+  norm`); `x0` is the left edge and `cursor` the selected column, both in "location-local wall-clock
+  minutes × 60000" (the `tsMin()` of Open-Meteo's time strings, so a day is always 1440 minutes wide and DST
+  never shifts the axis); `cursor===null` means nothing selected. **Only `zoom` and `layers` are remembered**
+  (`wd_prefs.tl`; `x0` and `cursor` never are). **Defaults** with no stored preference: exactly temperature, rain
+  and score are on; stored preferences win. `TLC` is the derived cache (row minutes `tm`, temperature and
+  pressure scale ranges, per-day wind/gust/UV maxima `ag`, the AQI series, the per-hour and per-day scores
+  `rs`/`ds`, the pending frame ids `raf`/`to`).
+- **Scale.** `TLPX[zoom]=[desktop/mid, mobile]` pixels per hour: hours 34 / 26, 3 h 12 / 9, days 3.2 / 2.6
+  (`tlPpm()` = px per minute). A row is drawn centred on its timestamp; `tlSnap(m)` maps a free minute to the
+  column it belongs to (the hour, the 3-hour row, or noon of the day).
+- **Lanes.** `tlDraw()` lays out lanes top to bottom and collapses lanes that are off: the main area (rain
+  columns + pressure line + temperature line/bars, whichever of those layers are on), then wind (speed
+  with gusts), UV, air (AQI), sea (SST) and the activity-score lane (each its own small band), above a
+  time axis. Day bands, midnight lines with sticky day labels (month labels at day zoom), night shading from
+  `hr[].night`, storm-alert windows from `D.alerts`, the "now" line and the cursor column are drawn under/over
+  the lanes. Rain: bars of rain % plus mm amounts (plus the next-2h `D.rain15` strip at hours zoom). The
+  **score lane** is the planner's activity (`planAct()`): per-hour `scoreHour` bars and the best-window mark
+  from `scoreDay`, so the timeline never disagrees with PLAN; its pill is relabelled with the activity
+  (`tlSyncUi()`). The **norm layer** (day zoom only; its pill is hidden at the other zooms and without
+  `D.climo.byDay`) draws the climatological normal of the daily maximum as a dotted line. Day zoom adds a
+  confidence band for day 8+ on the temperature bars. In comparison mode the temperature lane draws A and B
+  (`TLC.hr2`/`tm2`, `CMP.a`/`CMP.b`); every other lane shows A only.
+- **Interaction** (`tlInit()`, one-time listeners on the canvas). Pointer events: drag pans (`TL.x0`, clamped
+  by `tlClamp()` to now − 6 h … the end of the data), a quick tap (< 5 px, < 700 ms) calls `tlTap(px)`;
+  horizontal wheel / shift+wheel pans. Keyboard (canvas focused): ←/→ `tlMoveCursor(±1)` (one column), Home
+  `tlHome()` (cursor to now), +/− `tlSetZoom` one step, Enter/Space toggles the readout, Esc `tlHide()`.
+  `tlSetZoom(z)` keeps the view centred on the cursor (or the view centre); `tlSetLayer(k)` toggles a layer;
+  both save the prefs and refresh pills + legend. **The cursor is always a column inside the pannable range**
+  (now − 6 h … the last row): `tlCurClamp(m)` snaps and clamps, and `tlTap`, `tlMoveCursor`, `tlHome`,
+  `tlSetZoom` and `tlSyncFromMap` all go through it, so `#tlLive` never announces an off-canvas column.
+- **Readout.** Tap/Enter opens `#tlReadout` next to the cursor column (`tlPlaceReadout()`); its content comes
+  from `tlReadoutLines()` → `{title, lines:[[icon,text]]}` for the **active layers only**, and the same text
+  is mirrored into `#tlLive`. A line whose value is missing is skipped (never a lone `°` or an empty rain
+  line); numbers go through `tlN()` (HR decimal comma) and mm through `tlMm()` in every zoom. Hour/3 h
+  readouts show temperature (+ feels like), rain % · mm (3 h: max % and summed mm), wind (+ gust), pressure,
+  UV, AQI, sea, the score; the day readout shows low … high, rain, wind, pressure, UV, peak AQI, sea, the
+  normal with its delta, **the moon phase** (`moonIcon`/`moonName`/`moonIllum`; it replaces the removed Moon
+  overlay) and the score with its best window.
+- **Programmatic access.** `tlGoto(ts)` centres the view on a location-local time string; `tlCursorTs()` returns
+  the cursor as `YYYY-MM-DDTHH:MM` (or `null`); `tlInvalidate()` drops the score / AQI / row caches and
+  redraws (called by `setAct()` so the score lane follows the planner); `tlRender()` (called from
+  `render()`) shows/hides the section, refreshes pills and legend and draws.
+- **Drawing and performance.** `tlSchedule()` coalesces redraws into one `requestAnimationFrame`, with a 160 ms
+  timeout fallback because rAF is throttled in background tabs; `tlDraw()` first cancels a still-pending
+  frame, so `tlSchedule(); tlRender()` draws once. `tlPrep()` and `tlScores()` rebuild their caches only when
+  `D.hr` / `D2.hr` / the activity change (identity checks), never per frame; per frame only the rows between
+  `iA` and `iB` (binary search `tlLb`) are touched. The canvas backing store is `W×dpr` with
+  `dpr=min(3,devicePixelRatio)` and is only resized when the size changes; a `ResizeObserver` on `#tlWrap`
+  redraws on layout changes. **Theme colours are read at draw time** (`C`, `BG`, `txt`, `strong`, `grid`,
+  `halo`, `theme`), so `applyTheme`/`setLang` just trigger a redraw.
+
+**Sticky now-bar.** `#nowBar` (inside `#nowBarW`, a 36 px bar pinned to the top of the viewport while the page
+scrolls) shows the place, the current temperature, feels like and today's range (both places when comparing)
+while `#hero` is scrolled out of view; tapping it scrolls to the top (`nowBarTop()`, honours
+reduced-motion). `HERO_OUT` is driven by an `IntersectionObserver` on `#hero`; `updateNowBar()` rebuilds the
+text and visibility (shown only when `active==='now'` and `D` exists — never on PLAN, MAP or Info; `showView`
+and every render call it); its label is `T.nowBarAria`.
+
+**Map ⏱ sync.** `mapSyncFromTl()` (called by `showView('map')`) puts the map's time-scrub slider
+(`#gridSlider`, `gridSeek`) on the hour of the timeline cursor when it lies 0–23 h ahead; `tlSyncFromMap()`
+(after `showView('now')` renders) moves the cursor to the hour the map was left on (`GRIDHR` > 0) and centres
+the view with `tlGoto`. Both are wrapped in try/catch.
+
+**Fixed 16-day forecast.** `FCDAYS=16` (the Open-Meteo maximum) is the only forecast span: `fetchFor`, the cache
+keys (`FCDAYS|place`), the AI-feed fallback and `hardRefresh()` all use it; there is no range selector any more.
 
 ### Logic shared between views
 
 - **One scoring engine** (next section): the grilling line, the `pk-plan` tab peek, the PLAN card, the day
-  pills, the weekend block and the GRILLING summary all call `scoreDay`/`scoreDays`, so the same day shows
-  the same number everywhere. The day-level estimates `bbqScore(d)`/`bbqDay(x,bs)` remain only for the
-  OUTLOOK fire overlay and the GRILLING day bars.
+  pills, the timeline's score lane, the weekend block and the GRILLING summary all call
+  `scoreHour`/`scoreDay`/`scoreDays`, so the same day shows the same number everywhere. The day-level
+  estimates `bbqScore(d)`/`bbqDay(x,bs)` remain only for the GRILLING day bars and as the fallback for data
+  without hourly rows.
 - **One weekend block.** `buildWeekendBlock(l)` (shared Sat/Sun grouping with the lone-Sunday skip via
-  `weekendGroups()`) is the single component rendered into `#weekendTxt` on NOW and `#planWkTxt` on PLAN:
+  `weekendGroups()`) is the single component rendered into `#weekendTxt` (the story column) on NOW and `#planWkTxt` on PLAN:
   this & next weekend, one row per activity (BBQ, hiking, biking, running, plus sea on a coast) with a tier
   dot and word, and the best day by `scoreDay` with its temperature, rain chance, score and top reasons
   (`planReasons`). A day the engine cannot score is skipped, never shown as a stray 100. It reads
@@ -162,8 +257,8 @@ the map launcher card are gone. The warning banner `#alertBox` sits above `#tabs
   from the browser. `updateAlertBox()` rebuilds `#alertBox` on every view render (icon, message,
   "today at HH:MM"/"tomorrow at HH:MM"), or hides it.
 - **Daily precipitation amount:** `fullDs[].mm` (Open-Meteo `precipitation_sum`, mm/day), formatted by
-  `mmTxt()`; shown on the OUTLOOK chart labels + tooltip + summary total, the hero, the Tomorrow card and
-  the Chance-of-rain card.
+  `mmTxt()`; shown on the timeline's day-zoom rain lane and readout, the hero, the TOMORROW line, the
+  Tomorrow card and the Chance-of-rain card.
 
 ### Activity engine (one score for every activity)
 
@@ -236,8 +331,11 @@ weekends, and destroys the charts of activity sections that are not showing.
 ### Preferences and local storage
 
 `wd_prefs` (`PREFS_KEY`) is written by `savePrefs()` and read once at boot by `loadPrefs()`. It stores
-`lang`, `theme`, the switches `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`VEGAN`, the chart mode `CMODE`, `act` (the
-PLAN activity, `PLAN.act`) and `groups` (open state of the four groups). **MP (Monty Python) is deliberately not stored.** `PREFS_LIVE`
+`lang`, `theme`, `VEGAN`, `act` (the PLAN activity, `PLAN.act`), `groups` (open state of the four groups) and
+`tl` (`{zoom,layers}` of the timeline; `loadPrefs()` accepts only known zoom values and 0/1/boolean layer flags
+for known layers). The v3.21 keys `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`CMODE` are no longer written; only a stored
+`PRES` is migrated once into `tl.layers.pres` (only when no timeline pressure choice is stored) and disappears
+with the next save. **MP (Monty Python) is deliberately not stored.** `PREFS_LIVE`
 is `false` during boot, so reading the saved prefs never rewrites them; it flips to `true` at the end of
 boot. **First visit** (no `wd_prefs`): `lang` follows `navigator.language` (`hr*` → Croatian, otherwise
 English) and the theme follows the OS preference. A new switch must be added to both `savePrefs` and
@@ -250,9 +348,9 @@ direct-mode forecast snapshot `{v:APPV,key,loc,t,D}` with `D.hr` stored columnar
 ### Comparison mode (location A vs B)
 
 Reaching two selections starts comparison. **What compares:** the hero and stat chips, the group cards,
-the NEXT 24 HOURS chart, the sea chart and the OUTLOOK (A and B series), plus the versus line in the
-daily text block. **What shows A only:** the hour strip, the weekend block, the air, tide, bio, pressure
-and moon charts, and the whole PLAN view. `#cmpNote` states this on NOW; PLAN shows a `setOnlyChip(id)` chip
+the timeline's temperature lane (A and B series), the TOMORROW line, the sea chart, plus the versus line in
+the daily text block. **What shows A only:** the timeline's other lanes (rain, pressure, wind, UV, air, sea,
+scores), the weekend block, the air, tide, bio, pressure and moon charts, and the whole PLAN view. `#cmpNote` states this on NOW; PLAN shows a `setOnlyChip(id)` chip
 (`#planOnly`, text `T.onlyA` "only {A}"). If the second place
 fails to load, `FOOT_NOTE` holds its name and the footer chip adds a bilingual "⚠ Second location
 failed: …" note (`T.secFail`) until the next location change. `buildLegends()` draws each legend to match
@@ -279,8 +377,8 @@ fallback for the AI feed.
 Static markup uses `data-i="key"` (sets `textContent` from `LBL[key]`) and `data-tt="key"` (sets `title`
 **and** `aria-label` from `LBL[key]`; canvases and `role=img` boxes get `aria-label` only).
 `applyTitles()` applies the `data-tt` keys on `setLang` and also sets the tooltips of the header/switch
-buttons from the `tt_lang`, `tt_theme`, `tt_pr`, `tt_cf`, `tt_mp`, `tt_vegan` keys; chart aria-labels are
-the `ar_*` keys. `.lbtn`, `.rbtn` and `.mly` are `min-height:36px` on desktop and **44 px in `mobile` and
+buttons from the `tt_lang`, `tt_theme`, `tt_mp`, `tt_vegan` keys; chart aria-labels are
+the `ar_*` keys. `.lbtn` and `.mly` are `min-height:36px` on desktop and **44 px in `mobile` and
 `mid`** (as is `.locsel`; the `.stat` chips and the group summaries are 44 px everywhere); toggles and pills use text labels from T
 keys, not bare emoji.
 
@@ -299,7 +397,7 @@ cloud cover; cache keyed to a zoom-scaled cell so high-zoom pans stay accurate).
 24 h of hourly temperature/wind/gusts/cloud/precip per point, and a **⏱ time-scrub slider** in the bottom
 panel (0 = now … +24 h) redraws the heatmap, labels and rain/cloud blobs for the chosen hour straight
 from that cached response — no refetch while scrubbing; the legend and the next-2h rain strip's pill
-re-label to match. Wind labels show gusts in parentheses when they clear speed+5. Also the next-2h rain
+re-label to match; opening the map puts the slider on the hour chosen on the NOW timeline, and coming back moves the timeline cursor to the hour the map was left at (see "Map ⏱ sync" above). Wind labels show gusts in parentheses when they clear speed+5. Also the next-2h rain
 strip, click-to-forecast (`onMapClick`/`pickPoint`: reverse-geocodes the tapped point with Nominatim and
 loads its forecast) and a **📍 my-location** Leaflet control (`locateOnMap`) that geolocates and
 recentres/pins the map. Layout: on `mobile` only, `#mlyPills` (the layer buttons) is a fixed swipeable
@@ -351,7 +449,7 @@ prints `SCORE TESTS OK` and exits 1 on any failure.
 
 ## Data sources (all keyless, all client-side)
 
-- **Open-Meteo forecast** — `api.open-meteo.com` (`timezone=auto`, `past_days=1`; hourly + daily +
+- **Open-Meteo forecast** — `api.open-meteo.com` (`timezone=auto`, `past_days=1`, a fixed `FCDAYS` = 16 forecast days; hourly + daily +
   `minutely_15` precipitation for the next-2h rain strip, `D.rain15`; hourly carries `pressure_msl`
   (72 h pressure trend, `D.presH`), `is_day` (night icons), `visibility`, `freezing_level_height`,
   `wind_gusts_10m` and `snowfall` (today's values in `D.hx`), plus daily `wind_gusts_10m_max`
@@ -429,6 +527,11 @@ These are the non-negotiable house rules for any change:
    here"); a failed side source is recorded with `noteSrcFail()` so the footer says so; never swallow a
    failure into an empty-looking section.
 10. **Tap targets.** Interactive controls are ≥ 36 px tall on desktop and 44 px on `mobile`/`mid`.
+11. **The timeline is canvas, not Chart.js — read theme colours at draw time.** `tlDraw()` takes `C`, `BG`,
+    `txt`, `strong`, `grid`, `halo` and `theme` on every frame (no colours cached across frames or hard-coded),
+    keeps the summary above (`#tlSum`) and the legend below (`#tlLeg`, custom DOM), and every user-visible
+    string it draws or announces (labels, readout, legend, aria) exists in both languages. Keep the cursor
+    inside the pannable range (`tlCurClamp`) and redraw through `tlSchedule()`.
 
 ## Code layout within the single file
 
@@ -460,25 +563,28 @@ Roughly top-to-bottom:
   `mid` (700–1099 px, foldables/tablets; falls through to the desktop branch of most
   `layout==='mobile'` checks but gets the bottom bar), `desktop` (≥ 1100 px).
 - `<script>` — organized by `/* ---------- ... ---------- */` banners: state/helpers (`FEEDS`/
-  `feedMark()`, location clock, prefs, BBQ scoring) · **activity engine** (`ACTS`, `scoreHour`/`scoreDay`/`scoreDays`, `hrPack`/`hrRow`) · `T` translations · data sources (the pure
+  `feedMark()`, location clock, prefs, BBQ scoring, `FCDAYS`) · **activity engine** (`ACTS`, `scoreHour`/`scoreDay`/`scoreDays`, `hrPack`/`hrRow`) · `T` translations · data sources (the pure
   `buildOpenMeteo`, forecast / marine / air / climatology / AI fetchers) · orchestration (`loadData`,
   `fetchFor`, `loadSecondary`, `wd_last` save/restore) · recents/selection/location selector · rendering
   (`render`, `renderHero`, `renderStats`, `renderGroups`, `updateFoot`, `card`) · **PLAN view** (`planAct`,
   `setAct`, `renderPlan`, `renderPlanCard`, `renderPlanSections`, `renderBbqSections`, `renderHikeSections`,
   `renderCondCards`) · chart drawers
-  (`drawHourly`, `drawSea`, `drawTide`, `drawMoon`, `drawWeek`, `drawBio`, `drawPressure`, `drawAqi`,
-  `drawGrill`, `drawBbqTimeline`, `drawBbqGrill`, `drawHikeComfort`, `drawHikeWeek`) · maps
+  (`drawSea`, `drawTide`, `drawMoon`, `drawBio`, `drawPressure`, `drawAqi`, `drawGrill`, `drawBbqTimeline`,
+  `drawBbqGrill`) · **timeline** (`tlInit`, `tlRender`, `tlDraw`, `tlSchedule`, `tlSetZoom`, `tlSetLayer`, `tlGoto`,
+  `tlCursorTs`, `tlInvalidate`, `tlHome`, `tlMoveCursor`, `tlTap`, `tlReadoutLines`; state `TL`, cache `TLC`) · maps
   (`loadLeaflet`, the weather map incl. `locateOnMap`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/
   `showView`/`renderActive`/`updateAlertBox`) · Info panel (`renderInfo`, `renderFeeds`, `CHANGELOG`).
 
-Notable globals: `lang`, `theme`, `layout` (`'mobile'`/`'mid'`/`'desktop'`), `RANGE`, comparison state
-(`selB`/`D2`), location caches (`LOCHINT`, `GEO_LOC`, `MAP_LOC`, `LOCTZ`), `GROUPS`, `PLAN`, and the feature
-toggles (`CONF`, `MOON`, `TIDE`, `PRES`, `BBQ`, `VEGAN`, `MP`). `MP` is a "Monty Python" easter-egg
-label set.
+Notable globals: `lang`, `theme`, `layout` (`'mobile'`/`'mid'`/`'desktop'`), `FCDAYS` (16), comparison state
+(`selB`/`D2`), location caches (`LOCHINT`, `GEO_LOC`, `MAP_LOC`, `LOCTZ`), `GROUPS`, `PLAN`, `TL`/`TLC` (the
+timeline), `HERO_OUT` (sticky now-bar), and the feature toggles (`VEGAN`, `MP`). `MP` is a "Monty Python"
+easter-egg label set.
 
 ## Making changes
 
 - Edit `weather-dashboard.html` directly; keep the section-banner organization.
+- When touching the timeline: draw through `tlSchedule()`, set the cursor only through `tlCurClamp`, and check all
+  three zooms, both themes, both languages and keyboard use (arrows, +/−, Home, Esc).
 - When touching a chart: update its summary, legend, and `aria-label` together, and make sure it
   redraws correctly across theme switch and language switch, and that it is not drawn while its group is
   closed.
