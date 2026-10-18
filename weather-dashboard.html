@@ -195,16 +195,50 @@ body{padding:20px;transition:background .2s}
 #tlCanvas{display:block;width:100%;height:100%;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
 #tlCanvas.drag{cursor:grabbing}
 #tlCanvas:focus-visible{outline:2px solid var(--tp);outline-offset:-2px}
-#tlLayers .lbtn,#tlZoom .lbtn{gap:5px;flex:0 0 auto}
-#wrap.mobile #tlLayers{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-#wrap.mobile #tlLayers::-webkit-scrollbar{display:none}
+#tlZoom .lbtn,#tlFit .lbtn,#tlStyle .lbtn{gap:5px;flex:0 0 auto}
+.tltools{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:0 0 10px}
+.tltools .rng{margin:0}
+.tlhd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#btn-tlfs,#btn-tlfsx{padding:4px 9px;flex:0 0 auto}
+#btn-tlfs svg{display:block}
 #tlReadout{position:absolute;z-index:3;pointer-events:none;background:var(--bg);color:var(--tp);border:1px solid var(--bd);border-radius:10px;padding:7px 10px;font-size:12px;line-height:1.35;box-shadow:0 4px 14px rgba(0,0,0,0.22);max-width:min(240px,calc(100% - 8px));box-sizing:border-box}
 #tlReadout.hidden{display:none}
 .tlrt{font-weight:600;margin:0 0 4px;white-space:nowrap}
 .tlrl{display:flex;gap:6px;align-items:baseline;margin:1px 0}
 .tlrl span:first-child{flex:0 0 auto;width:1.4em;text-align:center}
-#tlLeg{display:flex;flex-wrap:wrap;gap:6px 14px;margin:4px 0 0;font-size:12px}
-.tlli{display:inline-flex;align-items:center;gap:5px}
+#tlLeg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:4px 0 0;font-size:12px}
+.tlli{display:inline-flex;align-items:center;gap:5px;margin:0 4px}
+/* F1: the legend is the series control - filled swatch = visible + labels, hollow = visible, grey + struck through = hidden */
+.tlk{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:2px 10px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:var(--tp);font:inherit;font-size:12px;font-weight:500;cursor:pointer;box-sizing:border-box}
+#wrap.mobile .tlk,#wrap.mid .tlk{min-height:44px}
+.tlk:hover{border-color:var(--tp)}
+.tlk:focus-visible{outline:2px solid var(--tp);outline-offset:2px}
+.tlk .tlsw{width:14px;height:10px;box-sizing:border-box;border:2px solid var(--c);background:var(--c)}
+.tlk.s1 .tlsw{background:transparent}
+.tlk.s0{color:var(--ts)}
+.tlk.s0 .tlsw{border-color:#9a9a96;background:#9a9a96;opacity:.55}
+.tlk.s0 span{text-decoration:line-through}
+.tlhint{color:var(--ts);font-size:11.5px;margin-left:4px}
+@media (hover:none),(pointer:coarse){.tlhint{display:none}}
+/* F1: fullscreen shell - the same #tlWrap / #tlLeg / #tlSum / tools nodes are moved in here, nothing is duplicated */
+#tlFull{position:fixed;inset:0;z-index:1200;background:var(--bg);color:var(--tp);display:flex;flex-direction:column;gap:6px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-sizing:border-box}
+#tlFull.hidden{display:none}
+#tlFullHead{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap}
+#tlFullHead .hd{margin:0}
+#tlFullTools{display:flex;flex:1 1 auto;flex-wrap:wrap;gap:6px 14px;align-items:center}
+#tlFull .tltools{margin:0}
+#wrap.mobile #tlFullTitle{order:1}
+#wrap.mobile #btn-tlfsx{order:2;margin-left:auto}
+#wrap.mobile #tlFullTools{order:3;flex:1 1 100%}
+#tlFullHint{margin:0;font-size:12.5px}
+#tlFullBody{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:6px}
+#tlFull #tlSum{margin:0!important}
+#tlFull #tlWrap{flex:1 1 0;height:auto!important;min-height:140px;margin:0!important}
+#tlFull #tlCanvas{touch-action:none}
+#tlFull #tlLeg{max-height:34vh;overflow-y:auto;flex:0 0 auto}
+#tlFull #tlReadout{max-width:min(320px,calc(100% - 8px));font-size:13px}
+html.tlfs,html.tlfs body{overflow:hidden}
+#tabs.onfull,#wrap.mobile #tabs.onfull,#wrap.mid #tabs.onfull{display:none}
 .tlsw{display:inline-block;width:12px;height:8px;border-radius:2px;flex:0 0 auto}
 .tlsr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* K2: story column next to the timeline (desktop 2/3 + 1/3, stacked below that), sticky now-bar */
@@ -321,23 +355,23 @@ body{padding:20px;transition:background .2s}
 
 <div class="tlrow" id="tlRow">
 <div id="tlSec" class="hidden" style="margin:0 0 2rem;">
-<div class="hd" data-i="tlTitle">TIMELINE</div>
+<div class="hd tlhd"><span data-i="tlTitle">TIMELINE</span><button type="button" class="lbtn" id="btn-tlfs" onclick="tlFullOpen()" data-tt="tt_tlfs" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
 <p class="lab" id="tlSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
+<div class="tltools" id="tlTools">
 <div class="rng" id="tlZoom" role="group" data-tt="tlZoomAria">
   <button class="lbtn" id="btn-tlz-h" onclick="tlSetZoom('h')" aria-pressed="true" data-i="tlZ_h">Hours</button>
   <button class="lbtn" id="btn-tlz-3" onclick="tlSetZoom('3')" aria-pressed="false" data-i="tlZ_3">3 h</button>
   <button class="lbtn" id="btn-tlz-d" onclick="tlSetZoom('d')" aria-pressed="false" data-i="tlZ_d">Days</button>
 </div>
-<div class="rng" id="tlLayers" role="group" data-tt="tlLayersAria">
-  <button class="lbtn" id="btn-tll-temp" onclick="tlSetLayer('temp')" aria-pressed="true"><span aria-hidden="true">🌡️</span><span data-i="tlL_temp">Temp</span></button>
-  <button class="lbtn" id="btn-tll-rain" onclick="tlSetLayer('rain')" aria-pressed="true"><span aria-hidden="true">🌧️</span><span data-i="tlL_rain">Rain</span></button>
-  <button class="lbtn" id="btn-tll-wind" onclick="tlSetLayer('wind')" aria-pressed="false"><span aria-hidden="true">💨</span><span data-i="tlL_wind">Wind</span></button>
-  <button class="lbtn" id="btn-tll-pres" onclick="tlSetLayer('pres')" aria-pressed="false"><span aria-hidden="true">📈</span><span data-i="tlL_pres">Pressure</span></button>
-  <button class="lbtn" id="btn-tll-uv" onclick="tlSetLayer('uv')" aria-pressed="false"><span aria-hidden="true">☀️</span><span data-i="tlL_uv">UV</span></button>
-  <button class="lbtn" id="btn-tll-air" onclick="tlSetLayer('air')" aria-pressed="false"><span aria-hidden="true">🍃</span><span data-i="tlL_air">Air</span></button>
-  <button class="lbtn hidden" id="btn-tll-sea" onclick="tlSetLayer('sea')" aria-pressed="false"><span aria-hidden="true">🌊</span><span data-i="tlL_sea">Sea</span></button>
-  <button class="lbtn" id="btn-tll-score" onclick="tlSetLayer('score')" aria-pressed="true"><span aria-hidden="true">🔥</span><span data-i="tlL_score">Scores</span></button>
-  <button class="lbtn hidden" id="btn-tll-norm" onclick="tlSetLayer('norm')" aria-pressed="false"><span aria-hidden="true">📏</span><span data-i="tlL_norm">Normal</span></button>
+<div class="rng" id="tlFit" role="group" data-tt="tlFitAria">
+  <button class="lbtn" id="btn-tlf-auto" onclick="tlSetFit('auto')" aria-pressed="true" data-i="tlFit_auto">Auto</button>
+  <button class="lbtn" id="btn-tlf-full" onclick="tlSetFit('full')" aria-pressed="false" data-i="tlFit_full">Full</button>
+</div>
+<div class="rng" id="tlStyle" role="group" data-tt="tlStyleAria">
+  <button class="lbtn" id="btn-tls-linear" onclick="tlSetStyle('linear')" aria-pressed="false" data-i="tlSty_linear">Linear</button>
+  <button class="lbtn" id="btn-tls-step" onclick="tlSetStyle('step')" aria-pressed="false" data-i="tlSty_step">Step</button>
+  <button class="lbtn" id="btn-tls-smooth" onclick="tlSetStyle('smooth')" aria-pressed="true" data-i="tlSty_smooth">Smooth</button>
+</div>
 </div>
 <div id="tlWrap" style="position:relative;width:100%;height:340px;margin:0 0 6px;">
   <canvas id="tlCanvas" tabindex="0" role="img" data-tt="ar_tl"></canvas>
@@ -564,6 +598,11 @@ body{padding:20px;transition:background .2s}
 
 <p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.22 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
+<div id="tlFull" class="hidden" role="dialog" aria-modal="true" aria-labelledby="tlFullTitle">
+<div id="tlFullHead"><span class="hd" id="tlFullTitle" data-i="tlTitle">TIMELINE</span><div id="tlFullTools"></div><button type="button" class="lbtn" id="btn-tlfsx" onclick="tlFullClose()" data-tt="tt_tlfsx">✕</button></div>
+<p class="lab hidden" id="tlFullHint" data-i="tlRotate">Rotate the phone for a wider view</p>
+<div id="tlFullBody"></div>
+</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" defer></script>
@@ -612,7 +651,7 @@ function polLvl(v){return v<10?0:v<50?1:2;}
 let BRANGE='h';
 function setBRange(v){BRANGE=v;markBtns();if(D&&D.bio)drawBio();}
 let GRANGE='h';
-let TL={zoom:'h',layers:{temp:1,rain:1,wind:0,pres:0,uv:0,air:0,sea:0,score:1,norm:0},x0:null,cursor:null}; /* K1/K2: VREMENSKA OS state; default layers = temperature + rain + score; only zoom + layers are remembered (wd_prefs.tl) */
+let TL={zoom:'h',layers:{temp:2,rain:2,wind:0,pres:0,uv:0,air:0,sea:0,score:2,norm:0},style:'smooth',axis:{temp:{mode:'auto',lo:null,hi:null},pres:{mode:'auto',lo:null,hi:null}},x0:null,cursor:null,full:false}; /* K1/K2/F1: VREMENSKA OS state. layers: 0 hidden / 1 visible / 2 visible + value labels (default temperature + rain + score at 2); style = line style; axis = value-axis fit mode + manual override; zoom + layers + style + axis are remembered (wd_prefs.tl), x0 / cursor / full never are */
 let PLAN={act:'bbq',date:null}; /* J2: PLANIRAJ - chosen activity (remembered in wd_prefs.act) and day (never saved) */
 function setGRange(v){GRANGE=v;markBtns();if(D&&D.days)drawGrill();}
 function bioLvl(s){return s<=1?0:s<=3?1:2;}
@@ -631,7 +670,7 @@ let GROUPS={air:false,cmp:false,sea:false,bio:false}; /* P1: open state of the f
    migrated once into the timeline's pressure layer (loadPrefs) and disappears with the next save; the other stale keys are simply ignored. */
 function savePrefs(){ /* I2: language, theme and the switches survive a reload (MP is deliberately not saved) */
  if(!PREFS_LIVE)return;
- try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS,tl:{zoom:TL.zoom,layers:TL.layers}}));}catch(e){}
+ try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS,tl:{v:2,zoom:TL.zoom,layers:TL.layers,style:TL.style,axis:TL.axis}}));}catch(e){}
 }
 function loadPrefs(){
  let p=null;
@@ -647,10 +686,22 @@ function loadPrefs(){
  if(p.groups&&typeof p.groups==='object'){['air','cmp','sea','bio'].forEach(k=>{if(typeof p.groups[k]==='boolean')GROUPS[k]=p.groups[k];});}
  if(p.tl&&typeof p.tl==='object'){
   if(['h','3','d'].indexOf(p.tl.zoom)>=0)TL.zoom=p.tl.zoom;
-  if(p.tl.layers&&typeof p.tl.layers==='object'){Object.keys(TL.layers).forEach(k=>{if(p.tl.layers[k]===0||p.tl.layers[k]===1||typeof p.tl.layers[k]==='boolean')TL.layers[k]=p.tl.layers[k]?1:0;});}
+  if(p.tl.layers&&typeof p.tl.layers==='object'){ /* F1: layers are 0 / 1 / 2 now; an older snapshot (no tl.v) stored 0 / 1 / boolean where 1 meant "on", which becomes 2 (visible + labels) */
+   const v2=p.tl.v>=2;
+   Object.keys(TL.layers).forEach(k=>{const x=p.tl.layers[k];
+    if(x===true||x===2)TL.layers[k]=2;
+    else if(x===false||x===0)TL.layers[k]=0;
+    else if(x===1)TL.layers[k]=v2?1:2;});
+  }
+  if(TLSTYLES.indexOf(p.tl.style)>=0)TL.style=p.tl.style;
+  if(p.tl.axis&&typeof p.tl.axis==='object'){['temp','pres'].forEach(w=>{
+   const a=p.tl.axis[w],ax=TL.axis[w];if(!a||typeof a!=='object')return;
+   if(a.mode==='auto'||a.mode==='full')ax.mode=a.mode;
+   if(typeof a.lo==='number'&&typeof a.hi==='number'&&isFinite(a.lo)&&isFinite(a.hi)&&a.hi>a.lo){ax.lo=a.lo;ax.hi=a.hi;}
+  });}
  }
  /* K2 migration: the removed pressure overlay (PRES) becomes the timeline's pressure layer, once - only when no timeline pressure choice was stored */
- if(typeof p.PRES==='boolean'&&!(p.tl&&p.tl.layers&&typeof p.tl.layers==='object'&&p.tl.layers.pres!=null))TL.layers.pres=p.PRES?1:0;
+ if(typeof p.PRES==='boolean'&&!(p.tl&&p.tl.layers&&typeof p.tl.layers==='object'&&p.tl.layers.pres!=null))TL.layers.pres=p.PRES?2:0;
 }
 let MP=false;
 function toggleMP(){MP=!MP;markBtns();if(D)renderActive();}
@@ -951,10 +1002,12 @@ const T={
   ar_grill:"Grilling score forecast (today\'s grilling hours or upcoming days) as colored bars with tier icons",
   ar_radarBox:"Full-screen weather map with radar, lightning, temperature, wind, rain and cloud layers",ar_rainStrip:"Rain expected in the next two hours in 15-minute steps",ar_heatLeg:"Temperature layer colour legend",
   ar_bioInfo:"Biometeo criteria",
-  tlTitle:"TIMELINE",tlZ_h:"Hours",tlZ_3:"3 h",tlZ_d:"Days",tlL_temp:"Temp",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV",tlL_air:"Air",tlL_sea:"Sea",tlL_score:"Scores",tlL_norm:"Normal",
-  tlZoomAria:"Timeline zoom",tlLayersAria:"Timeline layers",
+  tlTitle:"TIMELINE",tlZ_h:"Hours",tlZ_3:"3 h",tlZ_d:"Days",tlL_temp:"Temperature",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV index",tlL_air:"Air quality",tlL_sea:"Sea",tlL_norm:"Normal",
+  tlZoomAria:"Timeline zoom",tlFitAria:"Value-axis scale: fit the visible window or all data",tlFit_auto:"Auto",tlFit_full:"Full",tlStyleAria:"Line style",tlSty_linear:"Linear",tlSty_step:"Step",tlSty_smooth:"Smooth",
+  tlSt0:"hidden",tlSt1:"visible, no labels",tlSt2:"visible with labels",tlHint:"drag an axis to rescale · double-click resets",
+  tt_tlfs:"Full screen",tt_tlfsx:"Close full screen",tlRotate:"Rotate the phone for a wider view",
   ar_story:"Today, tomorrow, outlook and weekend in words",nowBarAria:"Back to the top, current weather",
-  ar_tl:"Timeline from now to the end of the forecast with temperature, rain, wind and other layers; drag or use the arrow keys to move, plus and minus to zoom, Home for now",
+  ar_tl:"Timeline from now to the end of the forecast with temperature, rain, wind and other series; the legend below switches series and value labels; drag or use the arrow keys to move, plus and minus to zoom, Home for now",
   dows:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']},
  hr:{title:"PATRIKOVA DNEVNA PROGNOZA",h3:"IZGLEDI",h4:"TEMPERATURA MORA",
   loading:"Dohvaćam prognozu…",errTitle:"Prognoza se nije učitala",
@@ -993,10 +1046,12 @@ const T={
   ar_grill:"Prognoza ocjene roštilja (današnji sati za roštilj ili nadolazeći dani) u obojenim stupcima s ikonama razina",
   ar_radarBox:"Vremenska karta preko cijelog zaslona s radarom, munjama te slojevima temperature, vjetra, kiše i oblaka",ar_rainStrip:"Očekivana kiša u sljedeća dva sata u koracima od 15 minuta",ar_heatLeg:"Legenda boja sloja temperature",
   ar_bioInfo:"Kriteriji biometeorologije",
-  tlTitle:"VREMENSKA OS",tlZ_h:"Sati",tlZ_3:"3 h",tlZ_d:"Dani",tlL_temp:"Temp",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV",tlL_air:"Zrak",tlL_sea:"More",tlL_score:"Ocjene",tlL_norm:"Normala",
-  tlZoomAria:"Zoom vremenske osi",tlLayersAria:"Slojevi vremenske osi",
+  tlTitle:"VREMENSKA OS",tlZ_h:"Sati",tlZ_3:"3 h",tlZ_d:"Dani",tlL_temp:"Temperatura",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV indeks",tlL_air:"Kvaliteta zraka",tlL_sea:"More",tlL_norm:"Normala",
+  tlZoomAria:"Zoom vremenske osi",tlFitAria:"Mjerilo osi vrijednosti: vidljivi prozor ili svi podaci",tlFit_auto:"Auto",tlFit_full:"Puni",tlStyleAria:"Stil linije",tlSty_linear:"Ravno",tlSty_step:"Stepenasto",tlSty_smooth:"Glatko",
+  tlSt0:"skriveno",tlSt1:"vidljivo bez oznaka",tlSt2:"vidljivo s oznakama",tlHint:"povuci os za mjerilo · dvoklik vraća",
+  tt_tlfs:"Cijeli zaslon",tt_tlfsx:"Zatvori cijeli zaslon",tlRotate:"Okreni telefon za širi prikaz",
   ar_story:"Danas, sutra, izgledi i vikend riječima",nowBarAria:"Natrag na vrh, trenutno vrijeme",
-  ar_tl:"Vremenska os od sada do kraja prognoze s temperaturom, kišom, vjetrom i drugim slojevima; povucite ili koristite strelice za pomicanje, plus i minus za zoom, Home za sada",
+  ar_tl:"Vremenska os od sada do kraja prognoze s temperaturom, kišom, vjetrom i drugim serijama; legenda ispod uključuje serije i oznake vrijednosti; povucite ili koristite strelice za pomicanje, plus i minus za zoom, Home za sada",
   dows:['Ned','Pon','Uto','Sri','Čet','Pet','Sub']}
 };
 let LBL=T.en, D=null, D2=null, seaCh=null, mtCh=null, tideCh=null, bioCh=null, grillCh=null, bbqTlCh=null, bbqGrillCh=null, aqiCh=null, presCh=null, lastErrs=null;
@@ -2155,7 +2210,7 @@ function grpOpen(k){const e=grpEl(k);return !!(e&&e.open);}
 function openGroup(k){const e=grpEl(k);if(e&&!e.open)e.open=true;} /* the toggle listener saves the state and draws the group's charts */
 /* stat chip tap: wind / UV -> the timeline with that layer switched on (K2), air -> group AIR, pressure -> group BIO, PRESSURE & MOON */
 function statGo(k){
- if(k==='wind'||k==='uv'){if(!TL.layers[k])tlSetLayer(k);scrollToEl(document.getElementById('tlSec'));}
+ if(k==='wind'||k==='uv'){if(!TL.layers[k])tlSetLayer(k,2);scrollToEl(document.getElementById('tlSec'));}
  else if(k==='air'){openGroup('air');scrollToEl(grpEl('air'));}
  else if(k==='pres'){openGroup('bio');scrollToEl(grpEl('bio'));}
 }
@@ -2648,8 +2703,9 @@ function setLang(l){
 const TLZ=['h','3','d'];
 const TLPX={h:[34,26],'3':[12,9],d:[3.2,2.6]}; /* px per hour: [desktop/mid, mobile] */
 const TLLAYERS=['temp','rain','wind','pres','uv','air','sea','score','norm'];
+const TLSTYLES=['linear','step','smooth'];
 const TLIC={temp:'🌡️',rain:'🌧️',wind:'💨',pres:'📈',uv:'☀️',air:'🍃',sea:'🌊',norm:'📏'};
-const TLC={hr:null,hr2:null,dd:null,tm:null,tm2:null,ag:null,tLo:0,tHi:1,pLo:1000,pHi:1020,air:[],airSrc:undefined,airHr:null,scD:null,scK:'',scH:null,rs:null,ds:null,act:'bbq',raf:0,to:0,sum:null,pm:0,xm:0,W:0,H:0};
+const TLC={hr:null,hr2:null,dd:null,tm:null,tm2:null,ag:null,tMin:0,tMax:10,pMin:1000,pMax:1020,preview:null,hov:null,dom:null,lay:null,air:[],airSrc:undefined,airHr:null,scD:null,scK:'',scH:null,rs:null,ds:null,act:'bbq',raf:0,to:0,sum:null,pm:0,xm:0,W:0,H:0};
 let tlRO=false; /* is the readout box open */
 let tlPtr=null;
 function tlOk(){return !!(D&&D.mode!=='ai'&&D.hr&&D.hr.length>24);}
@@ -2669,10 +2725,9 @@ function tlPrep(){
  (D.daysFull||[]).forEach(d=>{tmx(d.hi);tmx(d.lo);if(nmOn)tmx(D.climo.byDay[d.dt.slice(5)]);});
  if(hr2){TLC.tm2=Float64Array.from(hr2,r=>tsMin(r.ts));hr2.forEach(r=>tmx(r.t));if(D2.daysFull)D2.daysFull.forEach(d=>{tmx(d.hi);tmx(d.lo);});}else TLC.tm2=null;
  if(tl>th){tl=0;th=10;}
- TLC.tLo=Math.floor(tl)-1;TLC.tHi=Math.ceil(th)+1;
+ TLC.tMin=tl;TLC.tMax=th; /* F1: raw data ranges; the axes (tlAxisCalc) pad / snap them and fit the visible window in Auto */
  if(pl>ph){pl=1005;ph=1020;}
- if(ph-pl<8){const c=(ph+pl)/2;pl=c-4;ph=c+4;}
- TLC.pLo=pl;TLC.pHi=ph;TLC.tm=tm;
+ TLC.pMin=pl;TLC.pMax=ph;TLC.tm=tm;
  const ag={};
  Object.keys(D.hrDay||{}).forEach(dt=>{const rg=D.hrDay[dt];let w=null,g=null,uv=null;
   for(let i=rg[0];i<rg[1];i++){const r=hr[i];if(!r)continue;if(r.w!=null&&(w==null||r.w>w))w=r.w;if(r.g!=null&&(g==null||r.g>g))g=r.g;if(r.uv!=null&&!r.night&&(uv==null||r.uv>uv))uv=r.uv;}
@@ -2725,10 +2780,21 @@ function tlSetZoom(z){
  TL.x0=(cenM-W/2/tlPpm())*60000;
  tlClamp(W);savePrefs();markBtns();tlSyncUi();tlLegend();tlSchedule();
 }
-function tlSetLayer(k){
+function tlSetLayer(k,st){ /* F1: st = 0 hidden / 1 visible / 2 visible + labels; without st the legend cycle 2 -> 1 -> 0 -> 2 */
  if(TLLAYERS.indexOf(k)<0)return;
- TL.layers[k]=TL.layers[k]?0:1;
+ const cur=TL.layers[k]|0;
+ TL.layers[k]=(st==null)?(cur===2?1:(cur===1?0:2)):Math.max(0,Math.min(2,st|0));
+ TLC.preview=null;
  savePrefs();markBtns();tlSyncUi();tlLegend();tlSchedule();
+}
+function tlSetFit(mode){ /* C-18: Auto = fit the visible window, Full = fit all data; choosing one also drops a manual axis override */
+ if(mode!=='auto'&&mode!=='full')return;
+ ['temp','pres'].forEach(w=>{TL.axis[w].mode=mode;TL.axis[w].lo=null;TL.axis[w].hi=null;});
+ savePrefs();markBtns();tlSyncUi();tlSchedule();
+}
+function tlSetStyle(st){ /* C-03 */
+ if(TLSTYLES.indexOf(st)<0)return;
+ TL.style=st;savePrefs();markBtns();tlSyncUi();tlSchedule();
 }
 function tlSnap(m){ /* a free minute -> the column it belongs to (hour / 3 h row, or noon of the day) */
  const tm=TLC.tm;if(!tm||!tm.length)return m;
@@ -2786,9 +2852,10 @@ function tlHide(){if(!tlRO&&TL.cursor==null)return;tlRO=false;TL.cursor=null;tlS
 function tlRowAt(m){const i=tlNearest(m);return{i:i,r:D.hr[i]};}
 function tlN(v,d){if(v==null||!isFinite(v))return'';const s=d?(Math.round(v*Math.pow(10,d))/Math.pow(10,d)).toFixed(d):String(Math.round(v));return lang==='hr'?s.replace('.',','):s;}
 function tlMm(v){return v==null||!isFinite(v)?'':((v>=10?tlN(v):tlN(v,1))+' mm');} /* K3: one mm formatter for every zoom (HR decimal comma) */
-function tlReadoutLines(){ /* -> {title, lines:[[icon,text]]} for the cursor column, active layers only */
- if(TL.cursor==null||!TLC.tm)return null;
- const hrv=lang==='hr',La=TL.layers,m=TL.cursor/60000,act=planAct(),out=[];
+function tlReadoutLines(cm){ /* -> {title, lines:[[icon,text]]} for the column at minute cm (default: the cursor), visible layers only */
+ if(cm==null)cm=(TL.cursor==null)?null:TL.cursor/60000;
+ if(cm==null||!TLC.tm)return null;
+ const hrv=lang==='hr',La=TL.layers,m=cm,act=planAct(),out=[];
  const sst=dt=>{const s=D.sea&&D.sea.days;if(!s)return null;for(let i=0;i<s.length;i++)if(s[i].dt===dt)return s[i].t;return null;};
  const scoreLine=(v,extra)=>{const t=actTier(v);return[ACTICON[act]||'',LBL.actName[act]+' '+v+'/100 '+TIERIC[t]+' '+LBL.actTier[t]+(extra||'')];};
  if(TL.zoom==='d'){
@@ -2802,7 +2869,7 @@ function tlReadoutLines(){ /* -> {title, lines:[[icon,text]]} for the cursor col
   if(La.uv&&ag.uv!=null)out.push([TLIC.uv,'UV '+tlN(ag.uv,1)]);
   if(La.air){let mx=null;tlAir().forEach(a=>{if(tlStr(a.m).slice(0,10)===dt&&(mx==null||a.v>mx))mx=a.v;});if(mx!=null){out.push([TLIC.air,'AQI '+mx+' · '+aqiName(aqiBand(mx))]);}}
   if(La.sea&&D.sea){const s=sst(dt);if(s!=null)out.push([TLIC.sea,tlN(s,1)+'°']);}
-  if(La.norm&&La.temp&&D.climo&&D.climo.byDay){const nv=D.climo.byDay[dt.slice(5)];if(nv!=null)out.push([TLIC.norm,(hrv?'normala ':'normal ')+tlN(nv,1)+'°'+(dd.hi!=null?' ('+sgn(dd.hi-nv,'°',1)+')':'')]);}
+  if(La.norm&&D.climo&&D.climo.byDay){const nv=D.climo.byDay[dt.slice(5)];if(nv!=null)out.push([TLIC.norm,(hrv?'normala ':'normal ')+tlN(nv,1)+'°'+(dd.hi!=null?' ('+sgn(dd.hi-nv,'°',1)+')':'')]);}
   out.push([moonIcon(dt),moonName(dt)+' · '+Math.round(moonIllum(dt))+' %']); /* K2: replaces the removed Moon overlay */
   if(La.score){const sd=TLC.ds&&TLC.ds[dt];if(sd)out.push(scoreLine(sd.v,' · '+planWinTxt(sd)));}
   return{title:dayLab(dt)+' '+(ICON[dd.cond]||''),lines:out};
@@ -2827,15 +2894,15 @@ function tlReadoutLines(){ /* -> {title, lines:[[icon,text]]} for the cursor col
 function tlReadoutHtml(ro){
  return '<div class="tlrt">'+esc(ro.title)+'</div>'+ro.lines.map(l=>'<div class="tlrl"><span aria-hidden="true">'+l[0]+'</span><span>'+esc(l[1])+'</span></div>').join('');
 }
-function tlPlaceReadout(x){
+function tlPlaceReadout(x,m,hover){ /* m = the column (minute) to describe, hover = a mouse is over it (shown even without a tap; not mirrored into #tlLive) */
  const box=document.getElementById('tlReadout'),wrap=document.getElementById('tlWrap'),live=document.getElementById('tlLive');
  if(!box||!wrap)return;
- const ro=tlRO?tlReadoutLines():null;
+ const ro=(m!=null&&(hover||tlRO))?tlReadoutLines(m):null;
  if(!ro){box.classList.add('hidden');if(live&&!tlRO)live.textContent='';return;}
  box.innerHTML=tlReadoutHtml(ro);
- if(live)live.textContent=ro.title+'. '+ro.lines.map(l=>l[1]).join('. ');
+ if(live&&!hover)live.textContent=ro.title+'. '+ro.lines.map(l=>l[1]).join('. ');
  const W=wrap.clientWidth,H=wrap.clientHeight;
- if(x<-4||x>W+4){box.classList.add('hidden');return;}
+ if(x==null||x<-4||x>W+4){box.classList.add('hidden');return;}
  box.classList.remove('hidden');box.style.visibility='hidden';box.style.left='0px';box.style.top='0px';
  const bw=box.offsetWidth,bh=box.offsetHeight;
  let l=x+12;if(l+bw>W-4)l=x-12-bw;
@@ -2871,30 +2938,134 @@ function tlSummary(xm,mR,nowM){
  return a+' → '+b+' · '+fact;
 }
 function tlSyncUi(){
- const sea=!!(D&&D.sea&&D.sea.days&&D.sea.days.length);
  TLZ.forEach(z=>{const b=document.getElementById('btn-tlz-'+z);if(b)b.setAttribute('aria-pressed',TL.zoom===z?'true':'false');});
- TLLAYERS.forEach(k=>{const b=document.getElementById('btn-tll-'+k);if(!b)return;b.setAttribute('aria-pressed',TL.layers[k]?'true':'false');if(k==='sea')b.classList.toggle('hidden',!sea);if(k==='norm')b.classList.toggle('hidden',!(TL.zoom==='d'&&D&&D.climo&&D.climo.byDay));});
- const sb=document.getElementById('btn-tll-score');
- if(sb&&D){const act=D.hr?planAct():PLAN.act;sb.innerHTML='<span aria-hidden="true">'+(ACTICON[act]||'')+'</span><span>'+esc(LBL.actName?LBL.actName[act]:'')+'</span>';}
+ ['auto','full'].forEach(m=>{const b=document.getElementById('btn-tlf-'+m);if(b)b.setAttribute('aria-pressed',TL.axis.temp.mode===m?'true':'false');});
+ TLSTYLES.forEach(s=>{const b=document.getElementById('btn-tls-'+s);if(b)b.setAttribute('aria-pressed',TL.style===s?'true':'false');});
+}
+/* F1: the legend IS the series control. One button per layer cycles 2 (visible + value labels, filled swatch) -> 1 (visible, no labels,
+   hollow swatch) -> 0 (hidden, grey + struck through) -> 2. A hidden series is previewed faintly while a mouse hovers its chip. */
+const TLUNIT={temp:'°C',rain:'% · mm',wind:'km/h',pres:'hPa',uv:'',air:'EAQI',sea:'°C',score:'',norm:''};
+function tlLayerName(k){
+ if(k==='score'){const a=D&&D.hr?planAct():PLAN.act;return (LBL.actName&&LBL.actName[a])||'';}
+ if(k==='norm')return LBL.tlL_norm+' '+NORM_LBL;
+ return LBL['tlL_'+k]||k;
+}
+function tlLayerCol(k){
+ return k==='temp'?C.hi:k==='rain'?C.sky:k==='wind'?strong:k==='pres'?C.pres:k==='uv'?AQICOL[1]:k==='air'?AQICOL[2]:k==='sea'?C.sea:k==='score'?ACTCOL[1]:strong;
 }
 function tlLegend(){
  const el=document.getElementById('tlLeg');if(!el||!D)return;
  const hrv=lang==='hr',La=TL.layers,isC=cmp(),h=[];
- const sw=(css,txt)=>'<span class="tlli"><i class="tlsw" style="'+css+'"></i>'+esc(txt)+'</span>';
- if(La.temp){
-  if(isC){h.push(sw('background:'+CMP.a,esc(D.loc||locA())));h.push(sw('border-top:2px dashed '+CMP.b+';background:none',esc(D2.loc||selB)));}
-  else{h.push(sw('background:'+C.hi,'°C'));if(TL.zoom==='h')h.push(sw('border-top:2px dotted '+C.hi+';background:none',hrv?'osjet':'feels like'));}
+ const sea=!!(D.sea&&D.sea.days&&D.sea.days.length),nm=!!(TL.zoom==='d'&&D.climo&&D.climo.byDay);
+ const ae=document.activeElement,fk=(ae&&ae.classList&&ae.classList.contains('tlk'))?ae.getAttribute('data-k'):null;
+ const sw=(css,txt2)=>'<span class="tlli"><i class="tlsw" style="'+css+'"></i>'+esc(txt2)+'</span>';
+ TLLAYERS.forEach(k=>{
+  if(k==='sea'&&!sea)return;
+  if(k==='norm'&&!nm)return;
+  const s=La[k]|0,nmx=tlLayerName(k),unit=TLUNIT[k];
+  const label=(k==='score'?((ACTICON[planAct()]||'')+' '):'')+nmx+(unit?' '+unit:'');
+  h.push('<button type="button" class="tlk s'+s+'" data-k="'+k+'" aria-pressed="'+(s>0?'true':'false')+'" aria-label="'+esc(nmx+': '+LBL['tlSt'+s])+'" title="'+esc(nmx+': '+LBL['tlSt'+s])+'" style="--c:'+tlLayerCol(k)+'"><i class="tlsw" aria-hidden="true"></i><span>'+esc(label)+'</span></button>');
+ });
+ if(La.temp>0){
+  if(isC){h.push(sw('background:'+CMP.a,D.loc||locA()));h.push(sw('border-top:2px dashed '+CMP.b+';background:none',D2.loc||selB));}
+  else{
+   if(TL.zoom==='h')h.push(sw('border-top:2px dotted '+C.hi+';background:none',hrv?'osjet':'feels like'));
+   if(TL.zoom==='d')h.push(sw('background:'+C.hi+'33',hrv?'pouzdanost (od 8. dana)':'confidence band (day 8+)'));
+  }
  }
- if(La.rain){h.push(sw('background:'+C.sky+'88',hrv?'vjerojatnost kiše %':'rain chance %'));h.push(sw('background:'+(theme==='dark'?'#5fb0ee':'#0b5aa8'),'mm'));}
- if(La.wind)h.push(sw('background:'+txt,hrv?'vjetar km/h (nalet)':'wind km/h (gust)'));
- if(La.pres)h.push(sw('background:'+C.pres,'hPa'));
- if(La.uv)h.push(sw('background:'+AQICOL[1]+';border-radius:50%','UV'));
- if(La.air)h.push(sw('background:'+AQICOL[2],hrv?'zrak (EAQI)':'air (EAQI)'));
- if(La.sea&&D.sea)h.push(sw('background:'+C.sea,hrv?'more °C':'sea °C'));
- if(TL.zoom==='d'&&La.temp&&!isC)h.push(sw('background:'+C.hi+'33',hrv?'pouzdanost (od 8. dana)':'confidence band (day 8+)'));
- if(TL.zoom==='d'&&La.norm&&La.temp&&D.climo&&D.climo.byDay)h.push(sw('border-top:2px dotted '+txt+';background:none',(hrv?'normala ':'normal ')+NORM_LBL+(hrv?' (maks.)':' (max)')));
- if(La.score){const act=planAct();h.push('<span class="tlli">'+(ACTICON[act]||'')+' '+esc(LBL.actName[act])+' '+ACTCOL.map((c,i)=>'<i class="tlsw" style="background:'+c+'" title="'+esc(LBL.actTier[i])+'"></i>').join('')+'</span>');}
+ if(La.score>0){h.push('<span class="tlli">'+ACTCOL.map((c,i)=>'<i class="tlsw" style="background:'+c+'" title="'+esc(LBL.actTier[i])+'"></i>').join('')+'</span>');}
+ h.push('<span class="tlhint">'+esc(LBL.tlHint)+'</span>');
+ TLC.preview=null;
  el.innerHTML=h.join('');
+ if(fk){const nb=el.querySelector('.tlk[data-k="'+fk+'"]');if(nb){try{nb.focus({preventScroll:true});}catch(e){}}}
+}
+
+/* --- series helpers (F1) --- */
+function tlTextOn(c){ /* C-06: black or white, whichever contrasts more with the cell colour c ('#rgb' / '#rrggbb', an alpha suffix is ignored) */
+ let r=255,g=255,b=255;
+ if(typeof c==='string'&&c.charAt(0)==='#'){
+  let hx=c.slice(1);if(hx.length===3||hx.length===4)hx=hx.split('').map(q=>q+q).join('');
+  if(hx.length>=6){r=parseInt(hx.slice(0,2),16);g=parseInt(hx.slice(2,4),16);b=parseInt(hx.slice(4,6),16);}
+ }
+ const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};
+ const L=0.2126*f(r)+0.7152*f(g)+0.0722*f(b);
+ return(1.05/(L+0.05)>=(L+0.05)/0.05)?'#fff':'#111';
+}
+function tlTrace(ctx,seg,style){ /* C-03: continue the current path through seg=[[x,y]..] - linear, step-after or monotone cubic (no overshoot) */
+ const n=seg.length;if(!n)return;
+ ctx.moveTo(seg[0][0],seg[0][1]);
+ if(n===1){ctx.lineTo(seg[0][0]+0.01,seg[0][1]);return;}
+ if(style==='step'){for(let i=1;i<n;i++){ctx.lineTo(seg[i][0],seg[i-1][1]);ctx.lineTo(seg[i][0],seg[i][1]);}return;}
+ if(style==='smooth'&&n>2){
+  const dx=[],s=[],m=new Array(n);
+  for(let i=0;i<n-1;i++){dx[i]=seg[i+1][0]-seg[i][0];s[i]=dx[i]?(seg[i+1][1]-seg[i][1])/dx[i]:0;}
+  m[0]=s[0];m[n-1]=s[n-2];
+  for(let i=1;i<n-1;i++){m[i]=(s[i-1]*s[i]<=0)?0:3*(dx[i-1]+dx[i])/((2*dx[i]+dx[i-1])/s[i-1]+(dx[i]+2*dx[i-1])/s[i]);} /* Fritsch-Butland: monotone */
+  for(let i=0;i<n-1;i++){const t3=dx[i]/3;ctx.bezierCurveTo(seg[i][0]+t3,seg[i][1]+m[i]*t3,seg[i+1][0]-t3,seg[i+1][1]-m[i+1]*t3,seg[i+1][0],seg[i+1][1]);}
+  return;
+ }
+ for(let i=1;i<n;i++)ctx.lineTo(seg[i][0],seg[i][1]);
+}
+function tlStroke(ctx,segs,style){ctx.beginPath();segs.forEach(sg=>tlTrace(ctx,sg,style));ctx.stroke();}
+function tlNiceStep(raw){if(!(raw>0))return 1;const pw=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/pw;return Math.max(1,(f<=1?1:f<=2?2:f<=5?5:10)*pw);}
+/* C-16/C-18: the raw data range an axis fits. Auto = the visible window, Full = everything; hidden series do not matter, the data always do. */
+function tlRange(which,iA,iB,xm,mR,normOn){
+ const hr=D.hr,z=TL.zoom,full=TL.axis[which].mode==='full';
+ let lo=1e9,hi=-1e9;
+ const mx=v=>{if(v!=null&&isFinite(v)){if(v<lo)lo=v;if(v>hi)hi=v;}};
+ const win=d=>{const m=tsMin(d.dt+'T12:00');return m>=xm-720&&m<=mR+720;};
+ if(full){
+  if(which==='temp'){mx(TLC.tMin);mx(TLC.tMax);if(normOn)(D.daysFull||[]).forEach(d=>mx(D.climo.byDay[d.dt.slice(5)]));}
+  else{mx(TLC.pMin);mx(TLC.pMax);}
+ }else if(which==='temp'){
+  const isC=cmp()&&!!TLC.tm2,hr2=isC?TLC.hr2:null;
+  if(z==='d'){
+   (D.daysFull||[]).forEach(d=>{if(!win(d))return;mx(d.hi);mx(d.lo);if(normOn)mx(D.climo.byDay[d.dt.slice(5)]);});
+   if(isC&&D2.daysFull)D2.daysFull.forEach(d=>{if(win(d)){mx(d.hi);mx(d.lo);}});
+  }else{
+   for(let i=iA;i<=iB;i++){mx(hr[i].t);if(z==='h')mx(hr[i].fl);}
+   if(hr2){const tm2=TLC.tm2,j0=Math.max(0,tlLb(tm2,xm-120)-1),j1=Math.min(hr2.length-1,tlLb(tm2,mR+120));for(let j=j0;j<=j1;j++)mx(hr2[j].t);}
+  }
+ }else{
+  if(z==='d')(D.daysFull||[]).forEach(d=>{if(win(d))mx(d.p);});
+  else for(let i=iA;i<=iB;i++)mx(hr[i].p);
+ }
+ if(lo>hi){if(which==='temp'){lo=TLC.tMin;hi=TLC.tMax;}else{lo=TLC.pMin;hi=TLC.pMax;}}
+ return[lo,hi];
+}
+function tlAxisCalc(which,rng,zoneH){ /* -> {lo,hi,step,ticks,manual,mode}: a manual override (C-17) wins over the refit */
+ const ax=TL.axis[which],minSp=which==='temp'?6:8;
+ const manual=ax.lo!=null&&ax.hi!=null&&ax.hi>ax.lo;
+ let lo=rng[0],hi=rng[1];
+ if(manual){lo=ax.lo;hi=ax.hi;}
+ else{
+  if(hi-lo<minSp){const c=(hi+lo)/2;lo=c-minSp/2;hi=c+minSp/2;}
+  const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;
+ }
+ const step=tlNiceStep((hi-lo)/Math.max(2,Math.floor(zoneH/34)));
+ if(!manual){lo=Math.floor(lo/step+1e-9)*step;hi=Math.ceil(hi/step-1e-9)*step;}
+ const ticks=[];
+ for(let v=Math.ceil(lo/step-1e-9)*step;v<=hi+1e-9&&ticks.length<40;v+=step)ticks.push(Math.round(v*1000)/1000);
+ return{lo:lo,hi:hi,step:step,ticks:ticks,manual:manual,mode:ax.mode};
+}
+function tlAxisScale(which,base,f){ /* f>1: larger max (drag/wheel down), f<1: smaller max. Auto keeps lo, Full scales around the middle */
+ const ax=TL.axis[which],minSp=which==='temp'?3:4,sp=base.hi-base.lo;
+ const nsp=Math.min(sp*8,Math.max(minSp,sp*f));
+ if(base.mode==='full'){const c=(base.lo+base.hi)/2;ax.lo=c-nsp/2;ax.hi=c+nsp/2;}
+ else{ax.lo=base.lo;ax.hi=base.lo+nsp;}
+}
+function tlAxisBase(which){
+ const ax=TL.axis[which];
+ if(ax.lo!=null&&ax.hi!=null&&ax.hi>ax.lo)return{lo:ax.lo,hi:ax.hi,mode:ax.mode};
+ const d=TLC.dom&&TLC.dom[which];
+ return d?{lo:d.lo,hi:d.hi,mode:ax.mode}:null;
+}
+function tlAxisAt(px,py){
+ const L=TLC.lay;if(!L||!TLC.W)return null;
+ if(py<L.my||py>L.my+L.mh)return null;
+ if(px<=L.sl)return'temp';
+ if(px>=TLC.W-L.sr)return'pres';
+ return null;
 }
 
 /* --- main draw --- */
@@ -2907,6 +3078,7 @@ function tlDraw(){
  if(W<60||H<60)return;
  tlPrep();tlScores();
  const hr=D.hr,tm=TLC.tm,n=hr.length,hrv=lang==='hr',M=layout==='mobile',z=TL.zoom,La=TL.layers;
+ const F=TL.full?2:0; /* fullscreen: +2 px type and taller lanes */
  const pxH=TLPX[z][M?1:0],pm=pxH/60,nowM=tsMin(locNowStr());
  tlClamp(W);
  const xm=TL.x0/60000,mR=xm+W/pm,X=m=>(m-xm)*pm;
@@ -2917,24 +3089,30 @@ function tlDraw(){
  ctx.setTransform(dpr,0,0,dpr,0,0);
  ctx.clearRect(0,0,W,H);
  ctx.textBaseline='middle';
- const FNT=(s,w)=>(w||400)+' '+s+'px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+ const FNT=(s,w)=>(w||400)+' '+(s+F)+'px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
  const dark=theme==='dark';
  const cNight=dark?'rgba(0,0,0,0.28)':'rgba(40,50,110,0.09)',cBand=dark?'rgba(255,255,255,0.035)':'rgba(0,0,0,0.03)';
  const cRain=dark?'#5fb0ee':'#0b5aa8';
  const rr=(x,y,w,h,r)=>{ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h);};
- const tx=(s,x,y,col,al,font,hal)=>{ctx.font=font;ctx.textAlign=al||'center';if(hal!==false){ctx.lineWidth=3;ctx.lineJoin='round';ctx.strokeStyle=halo;ctx.strokeText(s,x,y);}ctx.fillStyle=col;ctx.fillText(s,x,y);};
- /* ---- lane layout (lanes that are off collapse) ---- */
- const HEAD=16,AX=18,GAP=3;
+ const tx=(s,x,y,col,al2,font,hal)=>{ctx.font=font;ctx.textAlign=al2||'center';if(hal!==false){ctx.lineWidth=3;ctx.lineJoin='round';ctx.strokeStyle=halo;ctx.strokeText(s,x,y);}ctx.fillStyle=col;ctx.fillText(s,x,y);};
+ const tlw=(s,font)=>{ctx.font=font;return ctx.measureText(s).width;};
+ const lastR={};
+ const fits=(key,x,w)=>{const l=x-w/2;if(lastR[key]!=null&&l<lastR[key]+3)return false;lastR[key]=x+w/2;return true;}; /* never two overlapping labels */
+ /* ---- series state: La[k] 0 hidden / 1 visible / 2 visible + value labels; a hovered legend chip previews a hidden series at 35 % ---- */
+ const pv=TLC.preview,LB={},vis={};
+ TLLAYERS.forEach(k=>{const s2=La[k]|0;vis[k]=s2>0||pv===k;LB[k]=s2===2;});
+ const al=k=>(pv===k&&!(La[k]>0))?0.35:1;
+ /* ---- lane layout (lanes that are off collapse; the main lane and its two axes are always there: C-16) ---- */
+ const HEAD=16+F,AX=18+F,GAP=3;
  const sea=!!(D.sea&&D.sea.days&&D.sea.days.length);
- const on={temp:!!La.temp,rain:!!La.rain,pres:!!La.pres,wind:!!La.wind,uv:!!La.uv,air:!!La.air,sea:!!(La.sea&&sea),score:!!La.score};
- const fx=[['wind',24],['uv',14],['air',14],['sea',24],['score',12]].filter(a=>on[a[0]]);
- const mainOn=on.temp||on.rain||on.pres;
+ const on={temp:vis.temp,rain:vis.rain,pres:vis.pres,wind:vis.wind,uv:vis.uv,air:vis.air,sea:!!(vis.sea&&sea),score:vis.score};
+ const LS=TL.full?Math.max(1,Math.min(2.4,(H-130)/230)):1;
+ const fx=[['wind',24],['uv',14],['air',14],['sea',24],['score',12]].filter(a=>on[a[0]]).map(a=>[a[0],Math.round(a[1]*LS)]);
  const fixSum=fx.reduce((s,a)=>s+a[1]+GAP,0),avail=H-HEAD-AX-GAP;
- const mainH=mainOn?Math.max(64,avail-fixSum):0;
- const kk=(!mainOn&&fixSum>0)?Math.min(2.6,avail/fixSum):1;
+ const mainH=Math.max(64,avail-fixSum);
  let yy=HEAD+GAP;const lane={};
- if(mainOn){lane.main=[yy,mainH];yy+=mainH+GAP;}
- fx.forEach(a=>{const hh=Math.round(a[1]*kk);lane[a[0]]=[yy,hh];yy+=hh+GAP;});
+ lane.main=[yy,mainH];yy+=mainH+GAP;
+ fx.forEach(a=>{lane[a[0]]=[yy,a[1]];yy+=a[1]+GAP;});
  const plotB=H-AX; /* bottom of the plot area = axis line */
  /* ---- background ---- */
  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
@@ -2951,8 +3129,8 @@ function tlDraw(){
   ctx.fillStyle=grid;ctx.fillRect(Math.round(xl),0,1,plotB);
   if(z!=='d'){
    const lab=dayLab(dt)+(dt===today?(hrv?' · danas':' · today'):'');
-   ctx.font=FNT(11,dt===today?700:500);const tw=ctx.measureText(lab).width;
-   let lx=Math.max(xl+5,5);if(lx+tw>xr-4)lx=xr-4-tw;
+   const lw=tlw(lab,FNT(11,dt===today?700:500));
+   let lx=Math.max(xl+5,5);if(lx+lw>xr-4)lx=xr-4-lw;
    if(xr>10)tx(lab,lx,HEAD/2,strong,'left',FNT(11,dt===today?700:500),false);
   }else if(dt.slice(8,10)==='01'||dm===d0){monthStarts.push({x:xl,dt:dt,first:dm===d0});}
  }
@@ -2966,210 +3144,283 @@ function tlDraw(){
   });
  }
  /* storm alert windows */
- (D.alerts||[]).forEach(al=>{
-  if(al.type!=='storm'||!al.from||!al.to||!al.d)return;
-  const a=tsMin(al.d+'T'+al.from)-30,b=tsMin(al.d+'T'+al.to)+30;
+ (D.alerts||[]).forEach(al2=>{
+  if(al2.type!=='storm'||!al2.from||!al2.to||!al2.d)return;
+  const a=tsMin(al2.d+'T'+al2.from)-30,b=tsMin(al2.d+'T'+al2.to)+30;
   if(!isFinite(a)||!isFinite(b)||b<xm||a>mR)return;
   ctx.fillStyle=C.bad+'24';ctx.fillRect(X(a),HEAD,Math.max(3,X(b)-X(a)),plotB-HEAD);
  });
  /* lane tints */
  ['wind','uv','air','sea','score'].forEach(k=>{if(!lane[k])return;ctx.fillStyle=cBand;ctx.fillRect(0,lane[k][0],W,lane[k][1]);});
- /* ---- MAIN area: rain columns, pressure, temperature ---- */
- let zoneTop=0,zoneBot=0,rainTop=0,rainBase=0;
- const yTemp=t=>zoneBot-(t-TLC.tLo)/(TLC.tHi-TLC.tLo)*(zoneBot-zoneTop);
+ /* ---- MAIN area geometry, then the two value axes (C-16/17/18) ---- */
+ const SL=30,SR=34; /* axis strips: temperature left, pressure right */
+ const my=lane.main[0],mh=lane.main[1],my2=my+mh;
  const isC=cmp()&&!!TLC.tm2;
- if(mainOn){
-  const my=lane.main[0],mh=lane.main[1],my2=my+mh;
-  const r15=(z==='h'&&on.rain&&D.rain15&&D.rain15.length)?D.rain15:null;
-  rainBase=my2-(r15?8:2);
-  const rainH=on.rain?((on.temp||on.pres)?Math.round(mh*0.3):mh-14):0;
-  rainTop=rainBase-rainH;
-  zoneTop=my+13;zoneBot=on.rain?(rainTop-5):(my2-7);
-  if(zoneBot-zoneTop<24)zoneBot=zoneTop+24;
-  ctx.save();ctx.beginPath();ctx.rect(0,my,W,mh);ctx.clip();
-  /* rain */
-  if(on.rain){
-   ctx.fillStyle=grid;ctx.fillRect(0,rainBase,W,1);
-   const colPP=C.sky+'70';
-   if(z==='h'){
-    for(let i=iA;i<=iB;i++){const r=hr[i];const x=X(tm[i]),bw=pxH*0.66;
-     if(r.pp>0){const h1=r.pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
-     if(r.mm>0.04){const h2=Math.max(1.5,Math.min(1,r.mm/3)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.32,rainBase-h2,bw*0.64,h2);
-      if(r.mm>=0.5)tx(tlN(r.mm,1),x,rainBase-h2-6,txt,'center',FNT(9,500));}}
-   }else if(z==='3'){
-    for(let i=iA;i<=iB;i++){const r=hr[i];if(r.hi%3!==0)continue;let pp=null,mm=0;
-     for(let k=i-1;k<=i+1;k++){const q=hr[k];if(!q)continue;if(q.pp!=null&&(pp==null||q.pp>pp))pp=q.pp;if(q.mm!=null)mm+=q.mm;}
-     const x=X(tm[i]),bw=pxH*3*0.8;
-     if(pp>0){const h1=pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
-     if(mm>0.04){const h2=Math.max(1.5,Math.min(1,mm/8)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.3,rainBase-h2,bw*0.6,h2);
-      if(mm>=1)tx(tlN(mm,mm>=10?0:1),x,rainBase-h2-6,txt,'center',FNT(9,500));}}
-   }else{
-    (D.daysFull||[]).forEach(d=>{const x=X(tsMin(d.dt+'T12:00'));if(x<-60||x>W+60)return;const bw=pxH*24*0.62;
-     if(d.pp>0){const h1=d.pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
-     if(d.mm!=null&&d.mm>0.04){const h2=Math.max(1.5,Math.min(1,d.mm/25)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.3,rainBase-h2,bw*0.6,h2);
-      if(d.mm>=1)tx(tlN(d.mm,d.mm>=10?0:1),x,rainBase-h2-6,txt,'center',FNT(9,500));}});
-   }
-   if(r15){ /* next-2h rain in 15-minute slots, a thin strip under the baseline */
-    const mx=Math.max(0.6,...r15.map(s=>s.v||0));
-    let prev=-1,dOff=0;const base=tsMin(today+'T00:00');
-    r15.forEach(s=>{const hhmm=parseInt(s.h.slice(0,2),10)*60+parseInt(s.h.slice(3,5),10);if(hhmm<prev)dOff+=1440;prev=hhmm;
-     const m=base+dOff+hhmm;if(!(s.v>0))return;
-     ctx.globalAlpha=Math.max(0.3,Math.min(1,s.v/mx));ctx.fillStyle=cRain;ctx.fillRect(X(m),rainBase+2,Math.max(1,15*pm-1),6);ctx.globalAlpha=1;});
-   }
+ const r15=(z==='h'&&on.rain&&D.rain15&&D.rain15.length)?D.rain15:null;
+ const rainBase=my2-(r15?8:2);
+ const rainH=on.rain?Math.round(mh*((on.temp||on.pres)?0.3:0.45)):0;
+ const rainTop=rainBase-rainH;
+ const zoneTop=my+13;let zoneBot=on.rain?(rainTop-5):(my2-7);
+ if(zoneBot-zoneTop<24)zoneBot=zoneTop+24;
+ const normOn=!!(vis.norm&&z==='d'&&D.climo&&D.climo.byDay);
+ const dT=tlAxisCalc('temp',tlRange('temp',iA,iB,xm,mR,normOn),zoneBot-zoneTop);
+ const dP=tlAxisCalc('pres',tlRange('pres',iA,iB,xm,mR,false),zoneBot-zoneTop);
+ TLC.dom={temp:dT,pres:dP};TLC.lay={my:my,mh:mh,sl:SL,sr:SR};
+ const yTemp=t=>zoneBot-(t-dT.lo)/(dT.hi-dT.lo)*(zoneBot-zoneTop);
+ const yP=p=>zoneBot-(p-dP.lo)/(dP.hi-dP.lo)*(zoneBot-zoneTop);
+ const sty=TL.style;
+ const seg=(arr,get,timeOf,i0,i1,yf)=>{const segs=[];let cur=null;for(let i=i0;i<=i1;i++){const v=get(arr[i]);if(v==null){cur=null;continue;}if(!cur){cur=[];segs.push(cur);}cur.push([X(timeOf(i)),yf(v)]);}return segs;};
+ ctx.save();ctx.beginPath();ctx.rect(0,my,W,mh);ctx.clip();
+ /* temperature grid (belongs to the axis, so it is always there) */
+ ctx.fillStyle=grid;
+ dT.ticks.forEach(v=>{const y=yTemp(v);if(y>=zoneTop-4&&y<=zoneBot+4)ctx.fillRect(SL,Math.round(y),W-SL-SR,1);});
+ /* rain */
+ if(on.rain){
+  ctx.save();ctx.globalAlpha=al('rain');
+  ctx.fillStyle=grid;ctx.fillRect(0,rainBase,W,1);
+  const colPP=C.sky+'70',rf=FNT(9,500);
+  lastR.rain=null;
+  if(z==='h'){
+   for(let i=iA;i<=iB;i++){const r=hr[i];const x=X(tm[i]),bw=pxH*0.66;
+    if(r.pp>0){const h1=r.pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
+    if(r.mm>0.04){const h2=Math.max(1.5,Math.min(1,r.mm/3)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.32,rainBase-h2,bw*0.64,h2);
+     if(LB.rain&&r.mm>=0.5){const s2=tlN(r.mm,1);if(fits('rain',x,tlw(s2,rf)))tx(s2,x,rainBase-h2-6,txt,'center',rf);}}}
+  }else if(z==='3'){
+   for(let i=iA;i<=iB;i++){const r=hr[i];if(r.hi%3!==0)continue;let pp=null,mm=0;
+    for(let k=i-1;k<=i+1;k++){const q=hr[k];if(!q)continue;if(q.pp!=null&&(pp==null||q.pp>pp))pp=q.pp;if(q.mm!=null)mm+=q.mm;}
+    const x=X(tm[i]),bw=pxH*3*0.8;
+    if(pp>0){const h1=pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
+    if(mm>0.04){const h2=Math.max(1.5,Math.min(1,mm/8)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.3,rainBase-h2,bw*0.6,h2);
+     if(LB.rain&&mm>=1){const s2=tlN(mm,mm>=10?0:1);if(fits('rain',x,tlw(s2,rf)))tx(s2,x,rainBase-h2-6,txt,'center',rf);}}}
+  }else{
+   (D.daysFull||[]).forEach(d=>{const x=X(tsMin(d.dt+'T12:00'));if(x<-60||x>W+60)return;const bw=pxH*24*0.62;
+    if(d.pp>0){const h1=d.pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
+    if(d.mm!=null&&d.mm>0.04){const h2=Math.max(1.5,Math.min(1,d.mm/25)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.3,rainBase-h2,bw*0.6,h2);
+     if(LB.rain&&d.mm>=1){const s2=tlN(d.mm,d.mm>=10?0:1);if(fits('rain',x,tlw(s2,rf)))tx(s2,x,rainBase-h2-6,txt,'center',rf);}}});
   }
-  /* pressure (right-hand scale) */
-  if(on.pres){
-   const yP=p=>zoneBot-(p-TLC.pLo)/(TLC.pHi-TLC.pLo)*(zoneBot-zoneTop);
-   ctx.strokeStyle=C.pres;ctx.lineWidth=1.6;ctx.setLineDash([]);ctx.beginPath();let st=false;
-   if(z==='d'){(D.daysFull||[]).forEach(d=>{if(d.p==null){st=false;return;}const x=X(tsMin(d.dt+'T12:00'));if(!st){ctx.moveTo(x,yP(d.p));st=true;}else ctx.lineTo(x,yP(d.p));});ctx.stroke();
-    (D.daysFull||[]).forEach(d=>{if(d.p==null)return;ctx.fillStyle=C.pres;ctx.beginPath();ctx.arc(X(tsMin(d.dt+'T12:00')),yP(d.p),2.2,0,6.283);ctx.fill();});}
-   else{for(let i=iA;i<=iB;i++){const p=hr[i].p;if(p==null){st=false;continue;}const x=X(tm[i]);if(!st){ctx.moveTo(x,yP(p));st=true;}else ctx.lineTo(x,yP(p));}ctx.stroke();}
-   tx(Math.round(TLC.pHi)+' hPa',W-4,zoneTop+1,C.pres,'right',FNT(9,600));
-   tx(Math.round(TLC.pLo)+' hPa',W-4,zoneBot-1,C.pres,'right',FNT(9,600));
-  }
-  /* temperature */
-  if(on.temp){
-   const colA=isC?CMP.a:C.hi;
-   const smooth=(arr,get,timeOf)=>{ctx.beginPath();let px=null,py=null,st=false;
-    for(let i=iA;i<=iB;i++){const v=get(arr[i]);if(v==null){st=false;continue;}const x=X(timeOf(i)),y=yTemp(v);
-     if(!st){ctx.moveTo(x,y);st=true;}else{ctx.quadraticCurveTo(px,py,(px+x)/2,(py+y)/2);}px=x;py=y;}
-    if(st)ctx.lineTo(px,py);ctx.stroke();};
-   if(z==='d'){
-    const drawBars=(days,off,col,dashed,lab)=>{
-     const bw=Math.min(isC?20:34,pxH*24*(isC?0.28:0.5));
-     days.forEach((d,idx)=>{const xc=X(tsMin(d.dt+'T12:00'))+off;if(xc<-50||xc>W+50)return;
-      const y1=yTemp(d.hi),y2=yTemp(d.lo);
-      if(!lab&&!isC&&idx>=7){const w=(100-confD(idx))/10;ctx.fillStyle=col+'22';rr(xc-bw/2-3,yTemp(d.hi+w),bw+6,yTemp(d.lo-w)-yTemp(d.hi+w),6);ctx.fill();}
-      ctx.lineWidth=dashed?1.6:1.2;ctx.strokeStyle=col;ctx.setLineDash(dashed?[4,3]:[]);
-      ctx.fillStyle=dashed?col+'30':col+'88';rr(xc-bw/2,y1,bw,Math.max(4,y2-y1),Math.min(8,bw/2));ctx.fill();ctx.stroke();ctx.setLineDash([]);
-      if(!lab){tx(d.hi+'°',xc,y1-8,strong,'center',FNT(11,600));tx(d.lo+'°',xc,y2+8,txt,'center',FNT(10,500));}
-      else{tx(d.hi+'°',xc,y1-7,txt,'center',FNT(9,500));}
-     });};
-    drawBars(D.daysFull||[],isC?-12:0,isC?CMP.a:C.hi,false,false);
-    if(isC&&D2.daysFull)drawBars(D2.daysFull,12,CMP.b,true,true);
-    if(La.norm&&D.climo&&D.climo.byDay){ /* K2: climatology normal of the daily maximum, dotted */
-     ctx.lineWidth=1.8;ctx.strokeStyle=strong;ctx.setLineDash([2,4]);ctx.beginPath();let nst=false;
-     (D.daysFull||[]).forEach(d=>{const nv=D.climo.byDay[d.dt.slice(5)];if(nv==null){nst=false;return;}const nx=X(tsMin(d.dt+'T12:00')),ny=yTemp(nv);if(!nst){ctx.moveTo(nx,ny);nst=true;}else ctx.lineTo(nx,ny);});
-     ctx.stroke();ctx.setLineDash([]);
-    }
-   }else{
-    if(!isC&&z==='h'){ctx.lineWidth=1.3;ctx.strokeStyle=C.hi+'99';ctx.setLineDash([2,3]);smooth(hr,r=>r.fl,i=>tm[i]);ctx.setLineDash([]);}
-    if(isC){
-     const hr2=TLC.hr2,tm2=TLC.tm2;
-     ctx.lineWidth=2;ctx.strokeStyle=CMP.b;ctx.setLineDash([6,4]);
-     {const j0=Math.max(0,tlLb(tm2,xm-120)-1),j1=Math.min(hr2.length-1,tlLb(tm2,mR+120));
-      ctx.beginPath();let px=null,py=null,st=false;
-      for(let j=j0;j<=j1;j++){const v=hr2[j].t;if(v==null){st=false;continue;}const x=X(tm2[j]),y=yTemp(v);if(!st){ctx.moveTo(x,y);st=true;}else ctx.quadraticCurveTo(px,py,(px+x)/2,(py+y)/2);px=x;py=y;}
-      if(st)ctx.lineTo(px,py);ctx.stroke();}
-     ctx.setLineDash([]);
-    }
-    ctx.lineWidth=2.6;ctx.strokeStyle=colA;ctx.lineJoin='round';smooth(hr,r=>r.t,i=>tm[i]);
-    const ls=(z==='h')?3:6;
-    for(let i=iA;i<=iB;i++){const r=hr[i];if(r.t==null||r.hi%ls!==0||tm[i]<xm-30||tm[i]>mR+30)continue;
-     const x=X(tm[i]),y=yTemp(r.t);ctx.fillStyle=colA;ctx.beginPath();ctx.arc(x,y,2.8,0,6.283);ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle=BG;ctx.stroke();
-     tx(Math.round(r.t)+'°',x,y-9,strong,'center',FNT(11,600));}
-   }
+  if(r15){ /* next-2h rain in 15-minute slots, a thin strip under the baseline */
+   const mx=Math.max(0.6,...r15.map(s=>s.v||0));
+   let prev=-1,dOff=0;const base=tsMin(today+'T00:00');
+   r15.forEach(s=>{const hhmm=parseInt(s.h.slice(0,2),10)*60+parseInt(s.h.slice(3,5),10);if(hhmm<prev)dOff+=1440;prev=hhmm;
+    const m=base+dOff+hhmm;if(!(s.v>0))return;
+    ctx.globalAlpha=al('rain')*Math.max(0.3,Math.min(1,s.v/mx));ctx.fillStyle=cRain;ctx.fillRect(X(m),rainBase+2,Math.max(1,15*pm-1),6);});
   }
   ctx.restore();
  }
+ /* pressure (right-hand scale) */
+ if(on.pres){
+  ctx.save();ctx.globalAlpha=al('pres');
+  const segs=[];let cur=null;
+  if(z==='d'){(D.daysFull||[]).forEach(d=>{if(d.p==null){cur=null;return;}if(!cur){cur=[];segs.push(cur);}cur.push([X(tsMin(d.dt+'T12:00')),yP(d.p)]);});}
+  else{for(let i=iA;i<=iB;i++){const p=hr[i].p;if(p==null){cur=null;continue;}if(!cur){cur=[];segs.push(cur);}cur.push([X(tm[i]),yP(p)]);}}
+  ctx.strokeStyle=C.pres;ctx.lineWidth=1.6;ctx.setLineDash([]);ctx.lineJoin='round';tlStroke(ctx,segs,sty);
+  if(z==='d')(D.daysFull||[]).forEach(d=>{if(d.p==null)return;ctx.fillStyle=C.pres;ctx.beginPath();ctx.arc(X(tsMin(d.dt+'T12:00')),yP(d.p),2.2,0,6.283);ctx.fill();});
+  if(LB.pres){ /* value labels: every day at day zoom, else every 6 h (thinned when the columns are narrow) */
+   const pf=FNT(9,600),pw=tlw('1013',pf);
+   if(z==='d'){const stp=Math.max(1,Math.ceil((pw+6)/(pxH*24)));
+    (D.daysFull||[]).forEach(d=>{if(d.p==null)return;const m=tsMin(d.dt+'T12:00');if(Math.round(m/1440)%stp!==0)return;const x=X(m);if(x<-30||x>W+30)return;tx(String(Math.round(d.p)),x,yP(d.p)+10,C.pres,'center',pf);});}
+   else{const stp=6*Math.max(1,Math.ceil((pw+6)/(6*pxH)));
+    for(let i=iA;i<=iB;i++){const p=hr[i].p;if(p==null)continue;if(Math.round(tm[i]/60)%stp!==0)continue;tx(String(Math.round(p)),X(tm[i]),yP(p)+10,C.pres,'center',pf);}}
+  }
+  ctx.restore();
+ }
+ /* normal of the daily maximum (day zoom only), dotted */
+ if(normOn){
+  ctx.save();ctx.globalAlpha=al('norm');
+  const segs=[];let cur=null;
+  (D.daysFull||[]).forEach(d=>{const nv=D.climo.byDay[d.dt.slice(5)];if(nv==null){cur=null;return;}if(!cur){cur=[];segs.push(cur);}cur.push([X(tsMin(d.dt+'T12:00')),yTemp(nv)]);});
+  ctx.lineWidth=1.8;ctx.strokeStyle=strong;ctx.setLineDash([2,4]);tlStroke(ctx,segs,sty);ctx.setLineDash([]);
+  ctx.restore();
+ }
+ /* temperature */
+ if(on.temp){
+  ctx.save();ctx.globalAlpha=al('temp');
+  const colA=isC?CMP.a:C.hi;
+  if(z==='d'){
+   const tf=FNT(11,600),twd=tlw('-88°',tf);
+   const drawBars=(days,off,col,dashed,second)=>{
+    const bw=Math.min(isC?20:34,pxH*24*(isC?0.28:0.5));
+    const stp=Math.max(1,Math.ceil((twd+6)/(pxH*24)));
+    days.forEach((d,idx)=>{const xc=X(tsMin(d.dt+'T12:00'))+off;if(xc<-50||xc>W+50)return;
+     const y1=yTemp(d.hi),y2=yTemp(d.lo);
+     if(!second&&!isC&&idx>=7){const w=(100-confD(idx))/10;ctx.fillStyle=col+'22';rr(xc-bw/2-3,yTemp(d.hi+w),bw+6,yTemp(d.lo-w)-yTemp(d.hi+w),6);ctx.fill();}
+     ctx.lineWidth=dashed?1.6:1.2;ctx.strokeStyle=col;ctx.setLineDash(dashed?[4,3]:[]);
+     ctx.fillStyle=dashed?col+'30':col+'88';rr(xc-bw/2,y1,bw,Math.max(4,y2-y1),Math.min(8,bw/2));ctx.fill();ctx.stroke();ctx.setLineDash([]);
+     if(LB.temp&&Math.round(tsMin(d.dt+'T12:00')/1440)%stp===0){
+      if(!second){tx(d.hi+'°',xc,y1-8,strong,'center',tf);tx(d.lo+'°',xc,y2+8,txt,'center',FNT(10,500));}
+      else{tx(d.hi+'°',xc,y1-7,txt,'center',FNT(9,500));}
+     }
+    });};
+   drawBars(D.daysFull||[],isC?-12:0,isC?CMP.a:C.hi,false,false);
+   if(isC&&D2.daysFull)drawBars(D2.daysFull,12,CMP.b,true,true);
+  }else{
+   ctx.lineJoin='round';
+   if(!isC&&z==='h'){ctx.lineWidth=1.3;ctx.strokeStyle=C.hi+'99';ctx.setLineDash([2,3]);tlStroke(ctx,seg(hr,r=>r.fl,i=>tm[i],iA,iB,yTemp),sty);ctx.setLineDash([]);}
+   if(isC){
+    const hr2=TLC.hr2,tm2=TLC.tm2;
+    const j0=Math.max(0,tlLb(tm2,xm-120)-1),j1=Math.min(hr2.length-1,tlLb(tm2,mR+120));
+    ctx.lineWidth=2;ctx.strokeStyle=CMP.b;ctx.setLineDash([6,4]);tlStroke(ctx,seg(hr2,r=>r.t,j=>tm2[j],j0,j1,yTemp),sty);ctx.setLineDash([]);
+   }
+   ctx.lineWidth=2.6;ctx.strokeStyle=colA;tlStroke(ctx,seg(hr,r=>r.t,i=>tm[i],iA,iB,yTemp),sty);
+   const ls=(z==='h')?3:6,tf=FNT(11,600),twd=tlw('-88°',tf),lstp=ls*Math.max(1,Math.ceil((twd+8)/(ls*pxH)));
+   for(let i=iA;i<=iB;i++){const r=hr[i];if(r.t==null||tm[i]<xm-30||tm[i]>mR+30)continue;
+    const hk=Math.round(tm[i]/60);if(hk%ls!==0)continue;
+    const x=X(tm[i]),y=yTemp(r.t);ctx.fillStyle=colA;ctx.beginPath();ctx.arc(x,y,2.8,0,6.283);ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle=BG;ctx.stroke();
+    if(LB.temp&&hk%lstp===0)tx(Math.round(r.t)+'°',x,y-9,strong,'center',tf);}
+  }
+  ctx.restore();
+ }
+ ctx.restore();
  /* ---- WIND ---- */
  if(on.wind){
+  ctx.save();ctx.globalAlpha=al('wind');
   const [ly,lh]=lane.wind,cy=ly+lh/2;
   const wtxt=(w,g)=>Math.round(w)+((g!=null&&g>=w+10)?' ('+Math.round(g)+')':'');
   const wcol=w=>w>=55?C.bad:(w>=35?C.warn:strong);
+  const wf=FNT(10,500),ww=tlw('88 (88)',FNT(10,700));
   if(z==='d'){
-   (D.daysFull||[]).forEach(d=>{const ag=(TLC.ag&&TLC.ag[d.dt])||{},w=ag.w!=null?ag.w:d.w;if(w==null)return;const x=X(tsMin(d.dt+'T12:00'));if(x<-60||x>W+60)return;
+   const stp=Math.max(1,Math.ceil((ww+6)/(pxH*24)));
+   (D.daysFull||[]).forEach(d=>{const ag=(TLC.ag&&TLC.ag[d.dt])||{},w=ag.w!=null?ag.w:d.w;if(w==null)return;const m=tsMin(d.dt+'T12:00'),x=X(m);if(x<-60||x>W+60)return;
     const bh=Math.min(1,w/60)*(lh-4),bw=pxH*24*0.5;ctx.fillStyle=txt.replace(/[\d.]+\)$/,'0.16)');ctx.fillRect(x-bw/2,ly+lh-2-bh,bw,bh);
-    tx(wtxt(w,ag.g),x,cy,wcol(w),'center',FNT(10,w>=35?700:500));});
+    if(LB.wind&&Math.round(m/1440)%stp===0)tx(wtxt(w,ag.g),x,cy,wcol(w),'center',FNT(10,w>=35?700:500));});
   }else{
-   const ls=(z==='h')?3:6;
+   const ls=(z==='h')?3:6,lstp=ls*Math.max(1,Math.ceil((ww+6)/(ls*pxH)));
    for(let i=iA;i<=iB;i++){const r=hr[i];if(r.w==null)continue;const x=X(tm[i]);
     const bh=Math.min(1,r.w/60)*(lh-4),bw=pxH*0.7;ctx.fillStyle=txt.replace(/[\d.]+\)$/,'0.16)');ctx.fillRect(x-bw/2,ly+lh-2-bh,bw,bh);
-    if(r.hi%ls===0&&tm[i]>=xm-40&&tm[i]<=mR+40)tx(wtxt(r.w,r.g),x,cy,wcol(r.w),'center',FNT(10,r.w>=35?700:500));}
+    if(LB.wind&&Math.round(tm[i]/60)%lstp===0&&tm[i]>=xm-40&&tm[i]<=mR+40)tx(wtxt(r.w,r.g),x,cy,wcol(r.w),'center',FNT(10,r.w>=35?700:500));}
   }
+  ctx.restore();
  }
  /* ---- UV ---- */
  if(on.uv){
-  const [ly,lh]=lane.uv,cy=ly+lh/2;
+  ctx.save();ctx.globalAlpha=al('uv');
+  const [ly,lh]=lane.uv,cy=ly+lh/2,uf=FNT(9,700),uw=tlw('11',uf),rMax=Math.min(6.5+F/2,lh/2-0.5);
   if(z==='d'){
    (D.daysFull||[]).forEach(d=>{const ag=(TLC.ag&&TLC.ag[d.dt])||{};if(ag.uv==null||ag.uv<0.5)return;const x=X(tsMin(d.dt+'T12:00'));if(x<-40||x>W+40)return;
-    ctx.fillStyle=AQICOL[uvLvl(ag.uv)];ctx.beginPath();ctx.arc(x,cy,6.2,0,6.283);ctx.fill();tx(tlN(ag.uv),x,cy+0.5,'#fff','center',FNT(9,700),false);});
+    const col=AQICOL[uvLvl(ag.uv)],rd=Math.min(rMax,6.2+F/2);
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,cy,rd,0,6.283);ctx.fill();
+    if(LB.uv)tx(tlN(ag.uv),x,cy+0.5,tlTextOn(col),'center',uf,false);});
   }else{
+   const ustp=Math.max(1,Math.ceil((uw+4)/pxH));
    for(let i=iA;i<=iB;i++){const r=hr[i];if(r.night||r.uv==null||r.uv<0.5)continue;const x=X(tm[i]);
-    ctx.fillStyle=AQICOL[uvLvl(r.uv)];ctx.beginPath();ctx.arc(x,cy,Math.min(6.5,1.6+r.uv*0.5),0,6.283);ctx.fill();
-    if(z==='h'&&r.hi%3===0&&r.uv>=3)tx(tlN(r.uv),x,cy+0.5,'#fff','center',FNT(8,700),false);}
+    const col=AQICOL[uvLvl(r.uv)],base=Math.min(rMax,1.6+r.uv*0.5),lbl=LB.uv&&Math.round(tm[i]/60)%ustp===0;
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,cy,lbl?Math.max(base,Math.min(rMax,5.5+F/2)):base,0,6.283);ctx.fill();
+    if(lbl)tx(tlN(r.uv),x,cy+0.5,tlTextOn(col),'center',uf,false);}
   }
+  ctx.restore();
  }
  /* ---- AIR ---- */
  if(on.air){
-  const [ly,lh]=lane.air,ar=tlAir();
+  ctx.save();ctx.globalAlpha=al('air');
+  const [ly,lh]=lane.air,ar=tlAir(),af=FNT(9,700);
   if(!ar.length)tx(hrv?'nema podataka o zraku':'no air data',W/2,ly+lh/2,txt,'center',FNT(10,400),false);
   ar.forEach(a=>{const x1=X(a.m-90),x2=X(a.m+90);if(x2<0||x1>W)return;
-   ctx.fillStyle=AQICOL[aqiBand(a.v)]+'e6';ctx.fillRect(x1,ly,x2-x1-1,lh);
-   if(x2-x1>40)tx(String(a.v),(x1+x2)/2,ly+lh/2+0.5,'#fff','center',FNT(9,700),false);});
+   const col=AQICOL[aqiBand(a.v)];
+   ctx.fillStyle=col+'e6';ctx.fillRect(x1,ly,x2-x1-1,lh);
+   if(LB.air){const s2=String(a.v);if(x2-x1>=tlw(s2,af)+6)tx(s2,(x1+x2)/2,ly+lh/2+0.5,tlTextOn(col),'center',af,false);}});
+  ctx.restore();
  }
  /* ---- SEA ---- */
  if(on.sea){
+  ctx.save();ctx.globalAlpha=al('sea');
   const [ly,lh]=lane.sea,cy=ly+lh/2;
+  const sd0=D.sea.days.filter(q=>q.t!=null),smin=Math.min(...sd0.map(q=>q.t)),smax=Math.max(...sd0.map(q=>q.t));
+  const sy=t=>smax>smin?(ly+lh-5-(t-smin)/(smax-smin)*(lh-10)):cy;
+  const pts=[];
   D.sea.days.forEach(sd=>{
    const dm=tsMin(sd.dt+'T00:00'),xl=X(dm),xr=X(dm+1440);if(xr<0||xl>W||sd.t==null)return;
    ctx.fillStyle=C.sea+'1c';ctx.fillRect(xl+1,ly,xr-xl-2,lh);
+   pts.push([(xl+xr)/2,sy(sd.t)]);
+   if(!LB.sea)return;
    let rg='';
    if(z!=='d'&&D.sea.tide){const td=D.sea.tide.find(q=>q.dt===sd.dt);if(td&&td.hi!=null&&td.lo!=null)rg=' · ↕ '+(td.hi-td.lo)+' cm';}
    const lab=tlN(sd.t,1)+'°'+rg;
-   ctx.font=FNT(11,600);const tw=ctx.measureText(lab).width;
+   const lw=tlw(lab,FNT(11,600));
    const vl=Math.max(xl,0),vr=Math.min(xr,W);
-   if(vr-vl>tw+6)tx(lab,(vl+vr)/2,cy,C.sea,'center',FNT(11,600));
+   if(vr-vl>lw+6)tx(lab,(vl+vr)/2,cy,C.sea,'center',FNT(11,600));
    else if(vr-vl>26)tx(tlN(sd.t,1)+'°',(vl+vr)/2,cy,C.sea,'center',FNT(10,600));
   });
+  if(!LB.sea&&pts.length){ctx.strokeStyle=C.sea;ctx.lineWidth=1.6;tlStroke(ctx,[pts],sty);ctx.fillStyle=C.sea;pts.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],2.4,0,6.283);ctx.fill();});}
+  ctx.restore();
  }
  /* ---- SCORE ---- */
  if(on.score){
-  const [ly,lh]=lane.score;
+  ctx.save();ctx.globalAlpha=al('score');
+  const [ly,lh]=lane.score,sf=FNT(9,700);
   if(z==='d'){
    Object.keys(TLC.ds||{}).sort().forEach(dt=>{const sd=TLC.ds[dt];if(!sd)return;const m=tsMin(dt+'T12:00');if(m<nowM-720)return;
     const x=X(m),w=pxH*24;if(x<-w||x>W+w)return;
-    ctx.fillStyle=ACTCOL[actTier(sd.v)]+'e6';ctx.fillRect(x-w/2+1,ly,w-2,lh);
-    if(w>26)tx(String(sd.v),x,ly+lh/2+0.5,'#fff','center',FNT(9,700),false);});
+    const col=ACTCOL[actTier(sd.v)];
+    ctx.fillStyle=col+'e6';ctx.fillRect(x-w/2+1,ly,w-2,lh);
+    if(LB.score&&w>=tlw(String(sd.v),sf)+6)tx(String(sd.v),x,ly+lh/2+0.5,tlTextOn(col),'center',sf,false);});
   }else{
    const rs=TLC.rs||[];
+   const sstp=(z==='h')?3:Math.max(1,Math.ceil((tlw('100',sf)+3)/pxH)); /* hour zoom: every 3rd cell; 3 h zoom: as many cells as the label needs */
    for(let i=iA;i<=iB;i++){const v=rs[i];if(v==null||tm[i]<nowM-30)continue;const x=X(tm[i]);
-    ctx.fillStyle=ACTCOL[actTier(v)]+'e6';ctx.fillRect(x-pxH/2+0.5,ly,pxH-1,lh);}
+    const col=ACTCOL[actTier(v)];
+    ctx.fillStyle=col+'e6';ctx.fillRect(x-pxH/2+0.5,ly,pxH-1,lh);
+    if(LB.score&&Math.round(tm[i]/60)%sstp===0)tx(String(v),x,ly+lh/2+0.5,tlTextOn(col),'center',sf,false);}
    Object.keys(TLC.ds||{}).forEach(dt=>{const sd=TLC.ds[dt];if(!sd||!sd.best)return;
     const a=tsMin(dt+'T'+sd.best.from)-30,b=tsMin(dt+'T'+sd.best.to)-30;if(b<xm||a>mR||b<nowM-30)return;
     ctx.lineWidth=1.6;ctx.strokeStyle=strong;ctx.strokeRect(X(a)+0.5,ly+0.5,Math.max(2,X(b)-X(a))-1,lh-1);});
   }
+  ctx.restore();
  }
  /* ---- now line ---- */
  {const xn=X(nowM);
   if(xn>=-2&&xn<=W+2){
    ctx.fillStyle=C.ok;ctx.fillRect(Math.round(xn)-1,HEAD,2,plotB-HEAD);
-   const lab=hrv?'sada':'now';ctx.font=FNT(9,700);const tw=ctx.measureText(lab).width+8;
-   ctx.fillStyle=C.ok;rr(xn-tw/2,HEAD+1,tw,12,6);ctx.fill();
-   tx(lab,xn,HEAD+7.5,'#fff','center',FNT(9,700),false);
+   const lab=hrv?'sada':'now';const tw2=tlw(lab,FNT(9,700))+8;
+   ctx.fillStyle=C.ok;rr(xn-tw2/2,HEAD+1,tw2,12+F,6);ctx.fill();
+   tx(lab,xn,HEAD+7.5+F/2,'#fff','center',FNT(9,700),false);
   }}
- /* ---- cursor ---- */
- let cx=null;
+ /* ---- cursor (tapped / keyboard) and hover crosshair (mouse) ---- */
+ const hovM=(TLC.hov!=null&&isFinite(TLC.hov))?TLC.hov:null;
+ const colW=(z==='d'?24:(z==='3'?3:1))*pxH;
  if(TL.cursor!=null){
-  const cm=TL.cursor/60000,sw=(z==='d'?24:(z==='3'?3:1))*pxH;cx=X(cm);
-  ctx.fillStyle=dark?'rgba(255,255,255,0.09)':'rgba(0,0,0,0.07)';ctx.fillRect(cx-sw/2,HEAD,sw,plotB-HEAD);
-  ctx.strokeStyle=strong;ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(Math.round(cx)+0.5,HEAD);ctx.lineTo(Math.round(cx)+0.5,plotB);ctx.stroke();ctx.setLineDash([]);
+  const cm=TL.cursor/60000,cxx=X(cm);
+  ctx.fillStyle=dark?'rgba(255,255,255,0.09)':'rgba(0,0,0,0.07)';ctx.fillRect(cxx-colW/2,HEAD,colW,plotB-HEAD);
+  ctx.strokeStyle=strong;ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(Math.round(cxx)+0.5,HEAD);ctx.lineTo(Math.round(cxx)+0.5,plotB);ctx.stroke();ctx.setLineDash([]);
+ }
+ if(hovM!=null&&(TL.cursor==null||Math.abs(hovM-TL.cursor/60000)>0.5)){
+  const hx=X(hovM);
+  ctx.fillStyle=dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.045)';ctx.fillRect(hx-colW/2,HEAD,colW,plotB-HEAD);
+  ctx.fillStyle=strong;ctx.globalAlpha=0.55;ctx.fillRect(Math.round(hx),HEAD,1,plotB-HEAD);ctx.globalAlpha=1;
+ }
+ const actM=hovM!=null?hovM:(TL.cursor!=null?TL.cursor/60000:null);
+ const cx=actM!=null?X(actM):null;
+ /* ---- axis strips: ticks and labels are ALWAYS drawn (C-16), dimmed while their series is hidden ---- */
+ {
+  ctx.fillStyle=BG;ctx.fillRect(0,my,SL,mh);ctx.fillRect(W-SR,my,SR,mh);
+  ctx.fillStyle=grid;ctx.fillRect(SL,my,1,mh);ctx.fillRect(W-SR-1,my,1,mh);
+  const tf2=FNT(10,500),pf2=FNT(9,600);
+  ctx.save();ctx.beginPath();ctx.rect(0,my,SL,mh);ctx.rect(W-SR,my,SR,mh);ctx.clip();
+  ctx.globalAlpha=on.temp?1:0.5;
+  dT.ticks.forEach(v=>{const y=yTemp(v);if(y<zoneTop-5||y>zoneBot+5)return;ctx.fillStyle=grid;ctx.fillRect(SL-3,Math.round(y),3,1);tx(tlN(v,dT.step<1?1:0)+'°',SL-5,y,txt,'right',tf2,false);});
+  tx('°C',SL-5,my+6+F/2,txt,'right',FNT(9,600),false);
+  ctx.globalAlpha=on.pres?1:0.5;
+  dP.ticks.forEach(v=>{const y=yP(v);if(y<zoneTop-5||y>zoneBot+5)return;ctx.fillStyle=grid;ctx.fillRect(W-SR,Math.round(y),3,1);tx(tlN(v,dP.step<1?1:0),W-SR+5,y,C.pres,'left',pf2,false);});
+  tx('hPa',W-SR+5,my+6+F/2,C.pres,'left',FNT(9,600),false);
+  ctx.globalAlpha=1;
+  if(dT.manual){ctx.fillStyle=C.warn;ctx.beginPath();ctx.arc(5,my+6+F/2,2.5,0,6.283);ctx.fill();}
+  if(dP.manual){ctx.fillStyle=C.warn;ctx.beginPath();ctx.arc(W-5,my+6+F/2,2.5,0,6.283);ctx.fill();}
+  ctx.restore();
  }
  /* ---- axis ---- */
  ctx.fillStyle=grid;ctx.fillRect(0,plotB,W,1);
  if(z==='d'){
   for(let dm=d0;dm<mR;dm+=1440){const xl=X(dm),xc=X(dm+720),dt=tlStr(dm).slice(0,10);
    ctx.fillStyle=grid;ctx.fillRect(Math.round(xl),plotB,1,4);
-   if(xc>-30&&xc<W+30)tx(dayLab(dt),xc,plotB+11,dt===today?strong:txt,'center',FNT(10,dt===today?700:400),false);}
+   if(xc>-30&&xc<W+30)tx(dayLab(dt),xc,plotB+11+F/2,dt===today?strong:txt,'center',FNT(10,dt===today?700:400),false);}
  }else{
   const st=(z==='h')?180:360;
   for(let m=Math.ceil(xm/st)*st;m<mR;m+=st){const x=X(m);
    ctx.fillStyle=grid;ctx.fillRect(Math.round(x),plotB,1,4);
    const hh=Math.floor(m/60)%24;
-   tx(String(hh).padStart(2,'0')+':00',x,plotB+11,hh===0?strong:txt,'center',FNT(10,hh===0?700:400),false);}
+   tx(String(hh).padStart(2,'0')+':00',x,plotB+11+F/2,hh===0?strong:txt,'center',FNT(10,hh===0?700:400),false);}
  }
  /* ---- lane chips (left edge) ---- */
- const chip=(s,y)=>{ctx.font=FNT(9,600);const w=ctx.measureText(s).width+6;ctx.fillStyle=BG;ctx.globalAlpha=0.78;rr(1,y,w,12,4);ctx.fill();ctx.globalAlpha=1;tx(s,4,y+6.5,txt,'left',FNT(9,600),false);};
+ const chip=(s,y)=>{const cf=FNT(9,600),w=tlw(s,cf)+6;ctx.fillStyle=BG;ctx.globalAlpha=0.78;rr(1,y,w,12+F,4);ctx.fill();ctx.globalAlpha=1;tx(s,4,y+6.5+F/2,txt,'left',cf,false);};
  if(on.wind)chip('💨 km/h',lane.wind[0]+1);
  if(on.uv)chip('☀ UV',lane.uv[0]+(lane.uv[1]>12?1:0));
  if(on.air)chip('AQI',lane.air[0]+(lane.air[1]>12?1:0));
@@ -3178,32 +3429,70 @@ function tlDraw(){
  /* ---- text updates ---- */
  const sum=tlSummary(xm,mR,nowM);
  if(sum!==TLC.sum){TLC.sum=sum;const se=document.getElementById('tlSum');if(se)se.textContent=sum;}
- tlPlaceReadout(cx);
+ tlPlaceReadout(cx,actM,hovM!=null);
 }
 
 /* --- interaction --- */
+function tlHoverAt(cv,px,py){ /* C-05: a mouse over the canvas shows the readout of the column under it */
+ if(!TLC.tm||!D||!tlOk())return;
+ const ax=tlAxisAt(px,py);
+ cv.style.cursor=ax?'ns-resize':'';
+ let m=null;
+ if(!ax&&px>=0&&px<=TLC.W)m=tlCurClamp(TL.x0/60000+px/tlPpm());
+ if(m!==TLC.hov){TLC.hov=m;tlSchedule();}
+}
 function tlInit(){
  const cv=document.getElementById('tlCanvas');if(!cv)return;
+ const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
  cv.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse'&&e.button!==0)return;
+  const p=pos(e),ax=tlAxisAt(p[0],p[1]);
+  if(ax){ /* C-17: dragging an axis strip rescales it instead of panning */
+   const b=tlAxisBase(ax);
+   if(b){tlAxD={id:e.pointerId,which:ax,y:e.clientY,base:b};try{cv.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();return;}
+  }
+  if(e.pointerType!=='mouse')TLC.hov=null;
   tlPtr={id:e.pointerId,x:e.clientX,x0:TL.x0==null?0:TL.x0,t:Date.now(),moved:false};
   try{cv.setPointerCapture(e.pointerId);}catch(err){}
  });
  cv.addEventListener('pointermove',e=>{
-  if(!tlPtr||e.pointerId!==tlPtr.id)return;
+  if(tlAxD&&e.pointerId===tlAxD.id){
+   tlAxisScale(tlAxD.which,tlAxD.base,Math.exp((e.clientY-tlAxD.y)*0.008));
+   tlSchedule();return;
+  }
+  if(!tlPtr){
+   if(e.pointerType==='mouse'){const p=pos(e);tlHoverAt(cv,p[0],p[1]);}
+   return;
+  }
+  if(e.pointerId!==tlPtr.id)return;
   const dx=e.clientX-tlPtr.x;
-  if(!tlPtr.moved&&Math.abs(dx)>5){tlPtr.moved=true;cv.classList.add('drag');}
+  if(!tlPtr.moved&&Math.abs(dx)>5){tlPtr.moved=true;cv.classList.add('drag');TLC.hov=null;}
   if(tlPtr.moved){TL.x0=tlPtr.x0-dx/tlPpm()*60000;tlClamp(tlWidth());tlSchedule();}
  });
  const end=e=>{
+  if(tlAxD&&e.pointerId===tlAxD.id){
+   tlAxD=null;try{cv.releasePointerCapture(e.pointerId);}catch(err){}
+   savePrefs();tlSchedule();return;
+  }
   if(!tlPtr||e.pointerId!==tlPtr.id)return;
   const p=tlPtr;tlPtr=null;cv.classList.remove('drag');
   try{cv.releasePointerCapture(e.pointerId);}catch(err){}
-  if(e.type==='pointerup'&&!p.moved&&Date.now()-p.t<700){const r=cv.getBoundingClientRect();tlTap(e.clientX-r.left);}
+  if(e.type==='pointerup'&&!p.moved&&Date.now()-p.t<700){const q=pos(e);tlTap(q[0]);}
  };
  cv.addEventListener('pointerup',end);
  cv.addEventListener('pointercancel',end);
+ cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!tlPtr&&!tlAxD){cv.style.cursor='';if(TLC.hov!=null){TLC.hov=null;tlSchedule();}}});
+ cv.addEventListener('dblclick',e=>{ /* C-17: double-click on an axis strip goes back to auto */
+  const p=pos(e),ax=tlAxisAt(p[0],p[1]);
+  if(!ax)return;
+  e.preventDefault();TL.axis[ax].lo=null;TL.axis[ax].hi=null;savePrefs();tlSchedule();
+ });
  cv.addEventListener('wheel',e=>{
+  const p=pos(e),ax=tlAxisAt(p[0],p[1]);
+  if(ax&&Math.abs(e.deltaY)>=Math.abs(e.deltaX)&&e.deltaY){ /* wheel on an axis strip: up = smaller max, down = larger */
+   const b=tlAxisBase(ax);
+   if(b){e.preventDefault();let dy=e.deltaY;if(e.deltaMode===1)dy*=16;tlAxisScale(ax,b,Math.exp(Math.max(-120,Math.min(120,dy))*0.0018));savePrefs();tlSchedule();return;}
+  }
   let dx=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:(e.shiftKey?e.deltaY:0);
   if(!dx)return;
   if(e.deltaMode===1)dx*=16;
@@ -3217,16 +3506,89 @@ function tlInit(){
   else if(k==='Home'){e.preventDefault();tlHome();}
   else if(k==='+'||k==='='||k==='NumpadAdd'){e.preventDefault();const i=TLZ.indexOf(TL.zoom);if(i>0)tlSetZoom(TLZ[i-1]);}
   else if(k==='-'||k==='_'||k==='NumpadSubtract'){e.preventDefault();const i=TLZ.indexOf(TL.zoom);if(i<TLZ.length-1)tlSetZoom(TLZ[i+1]);}
-  else if(k==='Escape'){tlHide();}
+  else if(k==='Escape'){if(!TL.full)tlHide();} /* fullscreen: Esc closes the overlay (document handler below) */
   else if(k==='Enter'||k===' '){e.preventDefault();if(TL.cursor==null)tlHome();else{tlRO=!tlRO;tlSchedule();}}
  });
+ /* the legend is the series control: click cycles 2 -> 1 -> 0, a mouse hovering a hidden series previews it */
+ const leg=document.getElementById('tlLeg');
+ if(leg){
+  leg.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.tlk');if(b&&leg.contains(b))tlSetLayer(b.getAttribute('data-k'));});
+  leg.addEventListener('pointerover',e=>{
+   if(e.pointerType!=='mouse')return;
+   const b=e.target.closest&&e.target.closest('.tlk');if(!b||!leg.contains(b))return;
+   const k=b.getAttribute('data-k');
+   if(!(TL.layers[k]>0)&&TLC.preview!==k){TLC.preview=k;tlSchedule();}
+  });
+  leg.addEventListener('pointerout',e=>{
+   if(e.pointerType!=='mouse')return;
+   const b=e.target.closest&&e.target.closest('.tlk');if(!b)return;
+   const to=e.relatedTarget&&e.relatedTarget.closest?e.relatedTarget.closest('.tlk'):null;
+   if(to===b)return;
+   if(TLC.preview){TLC.preview=null;tlSchedule();}
+  });
+ }
  try{const ro=new ResizeObserver(()=>{if(D)tlSchedule();});ro.observe(document.getElementById('tlWrap'));}catch(e){}
+ /* fullscreen: Esc closes, Tab stays inside the overlay, the rotate hint follows the orientation */
+ document.addEventListener('keydown',e=>{
+  if(!TL.full)return;
+  if(e.key==='Escape'){e.preventDefault();tlFullClose();}
+  else if(e.key==='Tab'){
+   const f=document.getElementById('tlFull');if(!f)return;
+   const els=Array.prototype.filter.call(f.querySelectorAll('button:not([disabled]),[tabindex="0"]'),x=>x.offsetParent!==null);
+   if(!els.length)return;
+   const first=els[0],last=els[els.length-1];
+   if(!f.contains(document.activeElement)){e.preventDefault();first.focus();}
+   else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  }
+ });
+ window.addEventListener('resize',()=>{if(TL.full)tlFullLayout();});
+ window.addEventListener('orientationchange',()=>{if(TL.full)setTimeout(tlFullLayout,150);});
+ window.addEventListener('popstate',()=>{if(TL.full)tlFullClose(true);}); /* the browser back button closes the overlay */
+}
+let tlAxD=null; /* an axis-strip drag in progress */
+
+/* --- fullscreen shell (RT-22): the SAME #tlWrap / #tlLeg / #tlSum / tools nodes move into #tlFull, so there is one engine and one canvas --- */
+let TLFS_BACK=[];
+function tlFullLayout(){
+ const h=document.getElementById('tlFullHint');
+ if(h)h.classList.toggle('hidden',!(window.innerWidth<700&&window.innerHeight>window.innerWidth)); /* phone in portrait: suggest rotating */
+ tlSchedule();
+}
+function tlFullOpen(){
+ if(TL.full||!D||!tlOk())return;
+ const f=document.getElementById('tlFull'),body=document.getElementById('tlFullBody'),slot=document.getElementById('tlFullTools');
+ if(!f||!body||!slot)return;
+ const mv=(id,to)=>{const el=document.getElementById(id);if(!el)return;TLFS_BACK.push({el:el,parent:el.parentNode,next:el.nextSibling});to.appendChild(el);};
+ TLFS_BACK=[];
+ mv('tlTools',slot);mv('tlSum',body);mv('tlWrap',body);mv('tlLeg',body);
+ TL.full=true;TLC.hov=null;
+ f.classList.remove('hidden');
+ document.documentElement.classList.add('tlfs');
+ const tb=document.getElementById('tabs');if(tb)tb.classList.add('onfull');
+ try{history.pushState({tlfull:1},'');}catch(e){}
+ tlSyncUi();tlLegend();tlFullLayout();
+ const cv=document.getElementById('tlCanvas');if(cv){try{cv.focus({preventScroll:true});}catch(e){}}
+ tlSchedule();
+}
+function tlFullClose(fromPop){
+ if(!TL.full)return;
+ TL.full=false;TLC.hov=null;
+ for(let i=TLFS_BACK.length-1;i>=0;i--){const b=TLFS_BACK[i];if(b.parent)b.parent.insertBefore(b.el,(b.next&&b.next.parentNode===b.parent)?b.next:null);}
+ TLFS_BACK=[];
+ const f=document.getElementById('tlFull');if(f)f.classList.add('hidden');
+ document.documentElement.classList.remove('tlfs');
+ const tb=document.getElementById('tabs');if(tb)tb.classList.remove('onfull');
+ if(!fromPop){try{if(history.state&&history.state.tlfull)history.back();}catch(e){}}
+ tlSyncUi();tlLegend();
+ const b=document.getElementById('btn-tlfs');if(b){try{b.focus({preventScroll:true});}catch(e){}}
+ tlSchedule();
 }
 function tlRender(){ /* called from render(): show/hide the section, refresh pills + legend, redraw */
  const sec=document.getElementById('tlSec');if(!sec)return;
  const ok=!!(D&&tlOk());
  sec.classList.toggle('hidden',!ok);
- if(!ok){tlRO=false;return;}
+ if(!ok){if(TL.full)tlFullClose();tlRO=false;return;}
  tlSyncUi();tlLegend();
  tlDraw();
 }
@@ -3258,8 +3620,9 @@ function markBtns(){
  const states={'btn-mp':MP,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7,
   'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7,'btn-vegan':VEGAN};
  ACTORDER.forEach(k=>{states['btn-act-'+k]=(planAct()===k);}); /* J2: the PLANIRAJ activity pills */
- ['h','3','d'].forEach(z=>{states['btn-tlz-'+z]=(TL.zoom===z);}); /* K1: timeline zoom + layer pills */
- Object.keys(TL.layers).forEach(k=>{states['btn-tll-'+k]=!!TL.layers[k];});
+ ['h','3','d'].forEach(z=>{states['btn-tlz-'+z]=(TL.zoom===z);}); /* K1: timeline zoom pills */
+ ['auto','full'].forEach(m=>{states['btn-tlf-'+m]=(TL.axis.temp.mode===m);}); /* F1: axis fit + line style segmented controls */
+ TLSTYLES.forEach(st=>{states['btn-tls-'+st]=(TL.style===st);});
  const paint=(b,on)=>{
   b.style.background=on?actBg:'transparent';b.style.color=on?actFg:inFg;b.style.border=bd;
   b.style.borderRadius='8px';b.style.padding='4px 10px';b.style.fontSize='12px';b.style.fontWeight='500';b.style.cursor='pointer';b.style.boxShadow='none';
@@ -4573,6 +4936,7 @@ function tlSyncFromMap(){
 }
 function showView(name){
  if(!VIEWS[name])name='now';const prevView=active;active=name;
+ if(TL.full&&name!=='now'){try{tlFullClose();}catch(e){}} /* F1: leaving NOW closes the fullscreen timeline */
  if(name==='plan'){const ra=ROUTEACT[hashKey()];if(ra){PLAN.act=ra;savePrefs();}} /* #plan-hike, #bbq ... pick the activity */
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
  document.getElementById('tabs').classList.toggle('onmap',name==='map'); /* v3.19: the bar stays on the full-screen map; desktop hides the top tabs there */
