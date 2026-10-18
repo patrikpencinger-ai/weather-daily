@@ -402,12 +402,19 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
   `{enabled,model,limit,used,remaining,owner,resetAt}` or `null` (unknown); `limit:0` / `remaining:-1` mean an
   unlimited owner (`askUnlimited()`). `ASK.note` is `'nokey'` or `'limit'` (the note shown in the panel).
 - **Server state.** `askRefreshState()` calls `GET /api/ask/state` (`credentials:'same-origin'`,
-  `cache:'no-store'`, 8 s timeout) once at boot (right after `initLoc()`), after every answer, and when a tab
-  that has been hidden for over 10 minutes becomes visible again (the daily reset). It **fails silently**: the
-  previous state is kept (`null` on the first try, which is mode `'none'`); only a well-formed JSON answer with a
-  boolean `enabled` is accepted. `askBlocked()` says why a question cannot go out now: `'nokey'` (mode
-  `'none'`) or `'limit'` (proxy mode with `remaining===0`); `askSubmit()` then shows the note and **keeps the
-  typed question** in the box.
+  `cache:'no-store'`, 8 s timeout; one call at a time, a second caller gets the call in flight via `ASK.stateP`)
+  once at boot (right after `initLoc()`), after every answer, and when a tab becomes visible again more than 10
+  minutes since the last state call (the daily reset). It **fails silently**: the previous state is kept (`null`
+  on the first try, which is mode `'none'`); only a well-formed JSON answer with a boolean `enabled` is
+  accepted. **Retry rule:** if the boot call failed, it is repeated once after 15 s (a single retry, no loop); and
+  when a question is submitted (`askSubmit()`, also an example chip via `askChip()`) while `ASK.state===null`
+  and no own key is stored, `askEnsureState()` first awaits one `askRefreshState()` (8 s at most) and only then
+  evaluates `askMode()`; the "needs a key" note shows only if the state is still unknown or disabled. While the
+  first state call is pending the hint shows a neutral "…" instead of the no-key text. `askBlocked()` says why
+  a question cannot go out now: `'nokey'` (mode `'none'`) or `'limit'` (proxy mode with `remaining===0`);
+  `askSubmit()` then shows the note and **keeps the typed question** in the box. The same holds when the server
+  itself answers 429 or 503 to `/api/ask` (stale client state): `askClaude(q,true)` puts the question back in
+  the input (if it is empty) and the end-of-answer `askRefreshState()` refreshes the state.
 - **Hint.** `askHintText()` → proxy: "Preostalo danas: 7 od 10 pitanja" / "7 of 10 questions left today"
   (`T.askHintLeft`), owner: "Bez ograničenja" / "Unlimited" (`askHintOwner`), own key: "Vlastiti ključ" / "Own key"
   (`askHintKey`), otherwise the original no-key hint (`askHintNoKey`). At `remaining===0` the input stays usable;
@@ -447,13 +454,18 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
   `GET /api/owner?t=TOKEN`, which sets the owner cookie and redirects to `/weather-dashboard.html#info`. The
   Worker holds the Anthropic key: the secrets **`ANTHROPIC_API_KEY`** and **`OWNER_TOKEN`** are set with
   `wrangler secret put` (or the dashboard) and are never in a file; plain vars in `wrangler.toml` are `ASK_MODEL`,
-  `ASK_DAILY` (10 a day per visitor), `ASK_DAILY_IP` and `ASK_DAILY_GLOBAL`. Quotas live in the SQLite-backed
+  `ASK_DAILY` (10 a day per visitor), `ASK_DAILY_IP` (40 a day per IP) and `ASK_DAILY_GLOBAL` (400 a day in
+  total); each question counts one hit against all three caps. Quotas live in the SQLite-backed
   **Durable Object** `Quota` (binding `QUOTA`, migration `v1`), one object per key, counting per Europe/Zagreb
-  day. `worker.js` is listed in `.assetsignore` so it is not published as a static file. Its tests:
+  day. A request that fails before any stream is sent (upstream refused or unreachable, the pre-stream 502) gives
+  its three hits back (`refundHits()` → the object's `/refund`; never for the owner). Two HttpOnly cookies
+  identify the caller: `wd_vid` (the visitor id) and `wd_owner` (an HMAC of the owner token, never the token
+  itself). `/api/owner` is brute-force limited to `OWNER_ATTEMPTS` = 10 attempts per IP per Zagreb day in
+  `handleOwner` (every attempt counts, also a correct one; the 11th gets 429). `worker.js` is listed in `.assetsignore` so it is not published as a static file. Its tests:
   `node tools/test-worker.js`. **Owner link flow:** the owner opens `/api/owner?t=<OWNER_TOKEN>` once per device;
   the Worker sets an **HttpOnly** cookie (the page never reads or writes cookies, only sends requests with
   `credentials:'same-origin'`) and the next `/api/ask/state` reports `owner:true, limit:0, remaining:-1`, so the
-  hint reads "Unlimited". The token is never in the page, the source or a test. The page works without the Worker
+  hint reads "Unlimited". The token is never in the page or the source, and `tools/test-worker.js` uses a dummy token. The page works without the Worker
   (mode `'none'`, or `'key'`).
 - **Streaming.** `askReadStream(response, onDelta, onDone, onError, onMeta)` is the one parser for both wire
   formats: the proxy's `event: meta|delta|done|error` and Anthropic's `message_start` / `content_block_delta`

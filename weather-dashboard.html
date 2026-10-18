@@ -763,7 +763,7 @@ let PREFS_LIVE=false; /* false during boot so reading the saved prefs never rewr
    Declared up here (not next to the functions) because setLang -> applyTitles -> askUi runs during boot, before the later script sections execute. */
 const ASK_KEY='wd_apikey', ASK_URL='https://api.anthropic.com/v1/messages', ASKMODELS=['claude-sonnet-5','claude-haiku-4-5-20251001'];
 const ASK_API='/api/ask', ASK_STATE_API='/api/ask/state'; /* v3.24: the same-origin Worker proxy (worker.js): a few free questions a day without a key */
-const ASK={model:ASKMODELS[0],hist:[],busy:false,open:true,note:null,setMsg:null,memKey:'',ctrl:null,seq:0,sig:'',state:null,stateAt:0,stateTried:false,paintT:0};
+const ASK={model:ASKMODELS[0],hist:[],busy:false,open:true,note:null,setMsg:null,memKey:'',ctrl:null,seq:0,sig:'',state:null,stateAt:0,stateTried:false,stateP:null,sub:false,paintT:0};
 let GROUPS={air:false,cmp:false,sea:false,bio:false}; /* P1: open state of the four collapsible groups on the Weather view (closed by default), remembered in wd_prefs.groups */
 /* K2: the CONF / MOON / TIDE / PRES / BBQ / CMODE switches left with the OUTLOOK + NEXT 24 HOURS charts and are no longer written. An old stored PRES is
    migrated once into the timeline's pressure layer (loadPrefs) and disappears with the next save; the other stale keys are simply ignored. */
@@ -5486,7 +5486,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
- {v:'3.24',d:'2026-10-18',en:'<b>Ask about the weather works without a key.</b> Every visitor can ask 10 questions a day per device (Claude Sonnet) and the answers stream in as they are written; the bar shows how many questions are left today. Your own key on the Info page still gives unlimited use, goes straight to Anthropic and streams too. <b>Timeline:</b> Days fill the whole width in full screen; double-click fits all days; mouse-wheel and pinch zoom.',hr:'<b>Pitaj o vremenu radi i bez ključa.</b> Svaki posjetitelj može postaviti 10 pitanja dnevno po uređaju (Claude Sonnet), a odgovori pristižu dok se pišu; traka pokazuje koliko je pitanja ostalo danas. Tvoj vlastiti ključ na stranici Info i dalje daje neograničenu upotrebu, ide izravno Anthropicu i također prikazuje odgovor tijekom pisanja. <b>Vremenska os:</b> U cijelom zaslonu dani ispunjavaju cijelu širinu; dvoklik prilagodi sve dane; kotačić miša i štipanje zumiraju.'},
+ {v:'3.24',d:'2026-10-18',en:'<b>Ask about the weather works without a key.</b> Every visitor can ask 10 questions a day per device (Claude Sonnet) and the answers stream in as they are written; the bar shows how many questions are left today. Your own key on the Info page still gives unlimited use, goes straight to Anthropic and streams too. <b>Timeline:</b> Days fill the whole width in full screen; double-click fits all days; the mouse wheel zooms in full screen (ctrl + wheel in the normal view), pinch zooms on touch.',hr:'<b>Pitaj o vremenu radi i bez ključa.</b> Svaki posjetitelj može postaviti 10 pitanja dnevno po uređaju (Claude Sonnet), a odgovori pristižu dok se pišu; traka pokazuje koliko je pitanja ostalo danas. Tvoj vlastiti ključ na stranici Info i dalje daje neograničenu upotrebu, ide izravno Anthropicu i također prikazuje odgovor tijekom pisanja. <b>Vremenska os:</b> U cijelom zaslonu dani ispunjavaju cijelu širinu; dvoklik prilagodi sve dane; kotačić miša zumira u cijelom zaslonu (ctrl + kotačić u običnom prikazu), štipanje zumira na dodir.'},
  {v:'3.23',d:'2026-10-18',en:'<b>Timeline, much more detailed.</b> The legend below the timeline is now the control: tap a series to cycle it between labels on, labels off and hidden, and hover a hidden series to preview it. Drag an axis up or down to rescale it (double-tap resets), switch the axes between Auto and Full scale, and pick a line style (linear, step or smooth). The ⛶ button opens the timeline full screen (Esc closes it). <b>Full screen shows every series the data has</b>: feels like, humidity, cloud cover (low, mid and high), gusts, visibility, freezing level, snowfall, sunrise and sunset, moon phase, tide levels and pollen, grouped in the legend, with the series names written inside the chart. <b>Ask about the weather</b>: a search bar at the top answers questions in Croatian or English from the forecast that is loaded, using your own Claude API key. The key stays in this browser only; example questions help you start, and you set the key on the Info page.',hr:'<b>Vremenska os, puno detaljnija.</b> Legenda ispod vremenske osi sada je upravljanje: dodirni seriju da prijeđeš između oznaka uključenih, oznaka isključenih i skrivene serije, a prelazak mišem preko skrivene serije prikazuje njen pregled. Povuci os gore ili dolje za promjenu mjerila (dvostruki dodir vraća), prebaci osi između automatskog i punog mjerila te odaberi stil linije (ravno, stepenasto ili glatko). Gumb ⛶ otvara vremensku os preko cijelog zaslona (Esc zatvara). <b>Cijeli zaslon prikazuje svaku seriju koju podaci imaju</b>: osjet temperature, vlagu, naoblaku (nisku, srednju i visoku), udare vjetra, vidljivost, granicu smrzavanja, snijeg, izlazak i zalazak sunca, mjesečevu mijenu, razine plime i oseke te pelud, grupirano u legendi, s nazivima serija upisanim unutar grafikona. <b>Pitaj o vremenu</b>: traka za pretraživanje na vrhu odgovara na pitanja na hrvatskom ili engleskom iz učitane prognoze, uz tvoj vlastiti Claude API ključ. Ključ ostaje samo u ovom pregledniku; primjeri pitanja pomažu pri početku, a ključ postavljaš na stranici Info.'},
  {v:'3.22',d:'2026-10-08',en:'<b>Timeline</b> (VREMENSKA OS in Croatian): NOW now has one continuous time axis from this moment to 16 days ahead. Swipe or drag to move, pick one of three zoom steps (hours, 3 hours, days), switch layers on and off like on the map (temperature, rain % and mm, wind and gusts, pressure, UV, air quality, sea, activity scores), and tap any hour or day for the full readout, with the moon phase in the day readout. Night is shaded and a “now” line marks the present. <b>It replaces</b> the hour strip, the NEXT 24 HOURS chart and the OUTLOOK chart; the outlook sentence and the weekend table stay as the “story” next to it, and the normal for the date is now a layer. A slim <b>“now” bar</b> stays visible while you scroll, and the map opens at the hour you chose on the timeline. The forecast now always covers 16 days.',hr:'<b>Vremenska os</b>: SADA sada ima jednu neprekinutu vremensku os od ovog trenutka do 16 dana unaprijed. Povuci ili prijeđi prstom za pomak, odaberi jedan od tri koraka zumiranja (sati, 3 sata, dani), uključuj i isključuj slojeve kao na karti (temperatura, kiša u % i mm, vjetar i udari, tlak, UV, kvaliteta zraka, more, ocjene aktivnosti) i dodirni bilo koji sat ili dan za potpuni prikaz, a u dnevnom prikazu je i mjesečeva mijena. Noć je zasjenjena, a linija “sada” označava trenutak. <b>Zamjenjuje</b> satnu traku, grafikon SLJEDEĆIH 24 SATA i grafikon IZGLEDA; rečenica o izgledima i tablica vikenda ostaju kao “priča” pokraj nje, a normala za taj datum sada je sloj. Uska <b>traka “sada”</b> ostaje vidljiva dok se pomičeš, a karta se otvara na satu koji si odabrao na osi. Prognoza sada uvijek obuhvaća 16 dana.'},
  {v:'3.21',d:'2026-10-08',en:'<b>Three tabs</b>: NOW, PLAN and MAP (SADA · PLANIRAJ · KARTA in Croatian). BBQ and Hiking are now activities inside PLAN; the old #bbq and #hike links still work. <b>PLAN</b>: pick an activity (BBQ, hiking, biking, running, sea) and any of the next 16 days; one card shows the score, the best time window, the reasons and hour-by-hour bars, with the activity’s own sections below and both weekends at a glance. <b>One scoring engine</b> for every activity: the same numbers drive the daily grilling line, the tab badge and the weekend table. Hourly data for the whole forecast is now kept, the basis for the timeline in the next release.',hr:'<b>Tri kartice</b>: SADA, PLANIRAJ i KARTA. Roštilj i planinarenje sada su aktivnosti unutar PLANIRAJ; stare poveznice #bbq i #hike i dalje rade. <b>PLANIRAJ</b>: odaberi aktivnost (roštilj, planinarenje, bicikl, trčanje, more) i bilo koji od sljedećih 16 dana; jedna kartica prikazuje ocjenu, najbolji vremenski prozor, razloge i stupce po satima, a ispod su odjeljci same aktivnosti i oba vikenda na jednom mjestu. <b>Jedan sustav ocjenjivanja</b> za sve aktivnosti: isti brojevi pokreću dnevnu liniju za roštilj, značku na kartici i tablicu vikenda. Satni podaci za cijelu prognozu sada se čuvaju, kao osnova za vremensku traku u sljedećem izdanju.'},
@@ -5743,7 +5743,11 @@ function askBlocked(){ /* why a question cannot be sent right now: 'nokey' (no k
  if(m==='proxy'&&!askUnlimited()&&ASK.state.remaining===0)return 'limit';
  return null;
 }
-async function askRefreshState(){ /* GET /api/ask/state (8 s). Fails silently: nothing changes, so a page served without the Worker (file://, plain static host) stays in 'none' */
+function askRefreshState(){ /* one call at a time: a second caller gets the call that is already in flight */
+ if(!ASK.stateP)ASK.stateP=askStateFetch().then(()=>{ASK.stateP=null;});
+ return ASK.stateP;
+}
+async function askStateFetch(){ /* GET /api/ask/state (8 s). Fails silently: nothing changes, so a page served without the Worker (file://, plain static host) stays in 'none' */
  let timer=null;
  try{
   const ctrl=new AbortController();timer=setTimeout(()=>{try{ctrl.abort();}catch(e){}},8000);
@@ -5782,6 +5786,7 @@ function askHintText(){ /* the line under the input: what the next question will
   if(askUnlimited())return LBL.askHintOwner;
   return LBL.askHintLeft.replace('{n}',Math.max(0,s.remaining)).replace('{m}',s.limit);
  }
+ if(!ASK.stateTried)return '…'; /* the first state call is still pending: neutral, not the no-key text */
  return LBL.askHintNoKey||'';
 }
 
@@ -5899,7 +5904,7 @@ async function askReadStream(resp,onDelta,onDone,onError,onMeta){
  if(!fin&&buf.trim())block(buf);
  if(!fin)done({in:u.in,out:u.out,cached:u.cached,model:u.model,truncated:u.stop==='max_tokens',incomplete:true}); /* the stream ended without its closing event: keep the text */
 }
-async function askClaude(q){
+async function askClaude(q,keep){ /* keep=true: the question came from the input box, so a 429 / 503 from the server puts it back there */
  q=String(q||'').trim().slice(0,300);
  if(!q||ASK.busy)return;
  const blk=askBlocked();
@@ -5925,6 +5930,9 @@ async function askClaude(q){
  if(tok===ASK.seq){ASK.busy=false;ASK.ctrl=null;}
  ent.pending=false;
  if(ent.drop){const i=ASK.hist.indexOf(ent);if(i>=0)ASK.hist.splice(i,1);ASK.note='nokey';ASK.open=true;}
+ if(keep&&mode==='proxy'&&(ent.err==='limit'||ent.drop)){ /* the server refused (stale client state): keep the typed question, like the client-side block does */
+  const inp=document.getElementById('askIn');if(inp&&!inp.value.trim())inp.value=q;
+ }
  if(ASK.paintT){clearTimeout(ASK.paintT);ASK.paintT=0;}
  ASK.sig='';askUi();
  askRefreshState();
@@ -5934,12 +5942,27 @@ function askClear(){
  if(ASK.paintT){clearTimeout(ASK.paintT);ASK.paintT=0;}
  ASK.seq++;ASK.busy=false;ASK.ctrl=null;ASK.hist=[];ASK.note=null;askUi();
 }
-function askSubmit(){
+async function askEnsureState(){ /* no key and the state is unknown (the boot call failed or has not answered): ask once more, 8 s at most, before deciding */
+ if(ASK.state===null&&!askKeyGet())await askRefreshState();
+}
+async function askSubmit(){
+ if(ASK.sub)return;
  const inp=document.getElementById('askIn');if(!inp)return;
- const q=(inp.value||'').trim();if(!q||ASK.busy)return;
+ let q=(inp.value||'').trim();if(!q||ASK.busy)return;
+ if(ASK.state===null&&!askKeyGet()){
+  ASK.sub=true;
+  try{await askEnsureState();}finally{ASK.sub=false;}
+  if(ASK.busy)return;
+  q=(inp.value||'').trim();if(!q)return; /* re-read: the box may have changed while we waited */
+ }
  const blk=askBlocked();
  if(blk){ASK.note=blk;ASK.open=true;ASK.sig='';askUi();return;} /* nothing can answer right now: keep the typed question in the box */
- inp.value='';askClaude(q);
+ inp.value='';askClaude(q,true);
+}
+async function askChip(t){ /* an example chip: the same state retry as a submit, nothing to keep */
+ if(ASK.busy||ASK.sub)return;
+ if(ASK.state===null&&!askKeyGet()){ASK.sub=true;try{await askEnsureState();}finally{ASK.sub=false;}}
+ if(!ASK.busy)askClaude(t);
 }
 function askKey(ev){if(ev.key==='Enter'&&!ev.isComposing&&ev.keyCode!==229){ev.preventDefault();askSubmit();}}
 function askToggle(){ASK.open=!ASK.open;askUi();}
@@ -6034,7 +6057,7 @@ function askUi(){ /* refresh the bar: visibility, placeholder, hint, key button,
   if(!ASK.hist.length){
    (LBL.askEx||[]).forEach((t,i)=>{
     if(i===7&&!coast)return; /* the sea question only where there is a sea */
-    const b=askEl('button','lbtn askchip',t);b.type='button';b.addEventListener('click',()=>{if(!ASK.busy)askClaude(t);});ex.appendChild(b);
+    const b=askEl('button','lbtn askchip',t);b.type='button';b.addEventListener('click',()=>askChip(t));ex.appendChild(b);
    });
   }
  }
@@ -6159,7 +6182,7 @@ if(location.protocol==='https:'&&'serviceWorker' in navigator){
  });
 }
 initLoc();
-askRefreshState(); /* v3.24: ask for today's free-question state; fails silently where there is no Worker */
+askRefreshState().then(()=>{if(ASK.state===null)setTimeout(()=>{if(ASK.state===null)askRefreshState();},15000);}); /* v3.24: ask for today's free-question state; fails silently where there is no Worker. One retry after 15 s when it failed (no loop) */
 </script>
 </body>
 </html>
