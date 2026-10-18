@@ -189,8 +189,10 @@ fullscreen shell.
   screen-reader live region `#tlLive` (`role=status`). The canvas has `tabindex=0`, `role=img` and
   `data-tt="ar_tl"`; the toolbar groups use `tlZoomAria` / `tlFitAria` / `tlStyleAria`. There are no separate
   layer pills any more: the legend is the only series control (C-15).
-- **State.** `TL={zoom,layers,style,names,axis,x0,cursor,full}`. `zoom` is `'h'` (hours), `'3'` (every 3 h) or
-  `'d'` (days; the order is `TLZ`). `layers` has one flag per entry of `TLLAYERS` (the readout order `TLORDER`,
+- **State.** `TL={zoom,layers,style,names,axis,x0,cursor,full,pxh,fit}`. `zoom` is `'h'` (hours), `'3'` (every 3 h) or
+  `'d'` (days; the order is `TLZ`): the last chosen preset / the current representation, and what is saved. `pxh` is
+  the continuous horizontal scale in px per hour (session only, `null` = the preset of `zoom`), `fit` is true while
+  all days are fitted to the width (see Scale). `layers` has one flag per entry of `TLLAYERS` (the readout order `TLORDER`,
   flattened from `TLGROUPS`: `temp, feels, norm, rain, snow, cloud, wind, gust, pres, humid, uv, air, pollen,
   vis, frz, sea, tide, sun, moon, score`) with **three states**: `0` hidden, `1` visible without value labels,
   `2` visible with value labels. `style` is `'linear'`, `'step'` or `'smooth'` (`TLSTYLES`, default `smooth`:
@@ -200,7 +202,8 @@ fullscreen shell.
   selected column, both in "location-local wall-clock minutes × 60000" (the `tsMin()` of Open-Meteo's time
   strings, so a day is always 1440 minutes wide and DST never shifts the axis); `cursor===null` means nothing
   selected; `full` is true while the fullscreen shell is open. **Remembered**
-  (`wd_prefs.tl={v:2,zoom,layers,style,names,axis}`): everything except `x0`, `cursor` and `full`.
+  (`wd_prefs.tl={v:2,zoom,layers,style,names,axis}`): everything except `x0`, `cursor`, `full`, `pxh` and `fit`;
+  restoring `zoom` applies that preset's px/hour.
   **Defaults** with no stored preference: exactly temperature, rain and score at state 2, every other layer
   hidden; stored preferences win (`loadPrefs()` migrates the pre-v3.23 0 / 1 / boolean flags, where a stored
   "on" becomes 2). `TLC` is the derived cache (row minutes `tm`, the raw temperature and pressure data ranges
@@ -208,9 +211,24 @@ fullscreen shell.
   humidity, freezing level and the three cloud bands — the AQI series, the pollen series `pol`/`polD`, the
   per-hour and per-day scores `rs`/`ds`, the availability cache `has`, the hover minute `hov`, the legend
   preview `preview`, the pending frame ids `raf`/`to`, the location key `locKey`).
-- **Scale.** `TLPX[zoom]=[desktop/mid, mobile]` pixels per hour: hours 34 / 26, 3 h 12 / 9, days 3.2 / 2.6
-  (`tlPpm()` = px per minute). A row is drawn centred on its timestamp; `tlSnap(m)` maps a free minute to the
-  column it belongs to (the hour, the 3-hour row, or noon of the day).
+- **Scale** (continuous since v3.24). The horizontal scale is `TL.pxh` px per hour (`tlPxh()`, `tlPpm()` = px per
+  minute); a new value comes from a preset, the wheel, a pinch, `+`/`−` or a fit. The representation follows
+  from it: `tlRep()` → `'h'` (hourly rows) when `pxh` ≥ 18, `'3'` (3-hourly) when 8 ≤ `pxh` < 18, else `'d'`
+  (daily). **Every place that means "which representation" calls `tlRep()`, never `TL.zoom`** (`TL.zoom` only
+  feeds the pills' preset and the saved pref; `tlScaleDone(old)` sets it to the new representation when that
+  changes, re-snaps the cursor, saves, repaints the pills and rebuilds the legend). Bounds: `tlPxhMin(W)` =
+  fit-all (plot width over every hour from now − 6 h to the end of the last row, `tlRangeStart()`),
+  `tlPxhMax()` = 60 (48 on mobile); `tlScaleFix(W)` clamps `pxh` once per `tlDraw()`. Presets (`tlSetZoom(z)`,
+  `tlPresetPxh(z)`): Hours `TLPX.h`, 3 h `TLPX['3']`, Days `TLPX.d` = 34 / 26, 12 / 9, 3.2 / 2.6 (desktop/mid,
+  mobile) in the compact view; **in fullscreen Days = fit-to-width** (`tlFitX()`: `pxh=tlPxhMin()`, `x0` = range
+  start, so the last day's right edge is the plot's right edge). `TL.fit` stays true until the user pans or
+  zooms (`tlPanTo()` clears it only when the view really moved; zooming out to the minimum sets it again);
+  while it is true `tlScaleFix()` and the `ResizeObserver` refit on every resize / layout step. Entering
+  fullscreen with the Days representation refits; leaving restores the compact Days preset. A row is drawn
+  centred on its timestamp; `tlSnap(m)` maps a free minute to the column it belongs to (the hour, the 3-hour row,
+  or noon of the day). Bars, cells and labels use the real column width (`pxH` in `tlDraw`); label cadence
+  (value labels, hour ticks, day ticks, score cells) is chosen from `pxh` with the `fits()` decimation, so no
+  scale overlaps labels.
 - **Layers and their data** (`tlHas()` says which the place offers, `tlAvail(k,has)` also applies the zoom;
   a series with no data is never drawn and never listed in the legend, C-13). `temp`, `rain` (rain % bars plus
   mm; the next-2h `D.rain15` strip at hours zoom), `wind`, `pres`, `uv`, `air` (the hourly AQI series
@@ -281,12 +299,16 @@ fullscreen shell.
   temperature (A and B), feels, pressure, humidity, freezing-level, gust, normal and (without labels) sea lines.
 - **Interaction** (`tlInit()`, one-time listeners on the canvas). Pointer events: drag pans (`TL.x0`, clamped
   by `tlClamp()` to now − 6 h … the end of the data), a quick tap (< 5 px, < 700 ms) calls `tlTap(px)`;
-  horizontal wheel / shift+wheel pans. A mouse moving over the plot (`tlHoverAt()`, C-05) sets `TLC.hov` and
+  horizontal wheel / shift+wheel pans; the vertical wheel (and ctrl+wheel / a trackpad pinch) zooms the time
+  scale by 1.15^(−Δy/100) around the pointer (`tlApplyScale(np,ax,am)` keeps the minute under `ax` fixed);
+  two touch pointers pinch (`tlPts`, `tlPinch`, `tlPinchMove()`: the distance ratio scales `pxh` around the
+  midpoint, a second finger drops a pan / tap in progress); a double-click on the plot calls `tlFitX()`, on an
+  axis strip it resets that axis. A mouse moving over the plot (`tlHoverAt()`, C-05) sets `TLC.hov` and
   shows the readout of the column under it plus a crosshair, with no tap needed
   (`tlPlaceReadout(x,m,hover)`); leaving the canvas hides it unless a cursor is set. Keyboard (canvas
-  focused): ←/→ `tlMoveCursor(±1)` (one column), Home `tlHome()` (cursor to now), +/− `tlSetZoom` one step,
+  focused): ←/→ `tlMoveCursor(±1)` (one column), Home `tlHome()` (cursor to now), +/− `tlStepScale(±1)` (×1.5 / ÷1.5 around the cursor or the view centre),
   Enter/Space toggles the readout, Esc `tlHide()` (in fullscreen Esc closes the overlay instead).
-  `tlSetZoom(z)` keeps the view centred on the cursor (or the view centre); `tlSetLayer(k,st)` sets a layer
+  `tlSetZoom(z)` (a preset) keeps the view centred on the cursor (or the view centre); `tlSetLayer(k,st)` sets a layer
   state (without `st` it cycles); all of these save the prefs and refresh the toolbar and the legend. **The
   cursor is always a column inside the pannable range** (now − 6 h … the last row): `tlCurClamp(m)` snaps and
   clamps, and `tlTap`, `tlMoveCursor`, `tlHome`, `tlSetZoom` and `tlSyncFromMap` all go through it, so
@@ -844,7 +866,7 @@ Roughly top-to-bottom:
   `setAct`, `renderPlan`, `renderPlanCard`, `renderPlanSections`, `renderBbqSections`, `renderHikeSections`,
   `renderCondCards`) · chart drawers
   (`drawSea`, `drawTide`, `drawMoon`, `drawBio`, `drawPressure`, `drawAqi`, `drawGrill`, `drawBbqTimeline`,
-  `drawBbqGrill`) · **timeline** (`tlInit`, `tlRender`, `tlDraw`, `tlSchedule`, `tlSetZoom`, `tlSetLayer`, `tlSetFit`, `tlSetStyle`,
+  `drawBbqGrill`) · **timeline** (`tlInit`, `tlRender`, `tlDraw`, `tlSchedule`, `tlSetZoom`, `tlFitX`, `tlApplyScale`, `tlRep`, `tlSetLayer`, `tlSetFit`, `tlSetStyle`,
   `tlLegend`, `tlGoto`, `tlCursorTs`, `tlInvalidate`, `tlHome`, `tlMoveCursor`, `tlTap`, `tlReadoutLines`,
   `tlFullOpen`/`tlFullClose`; state `TL`, cache `TLC`) · maps
   (`loadLeaflet`, the weather map incl. `locateOnMap`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/

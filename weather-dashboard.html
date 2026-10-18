@@ -745,7 +745,7 @@ function polLvl(v){return v<10?0:v<50?1:2;}
 let BRANGE='h';
 function setBRange(v){BRANGE=v;markBtns();if(D&&D.bio)drawBio();}
 let GRANGE='h';
-let TL={zoom:'h',layers:{temp:2,feels:0,norm:0,rain:2,snow:0,cloud:0,wind:0,gust:0,pres:0,humid:0,uv:0,air:0,pollen:0,vis:0,frz:0,sea:0,tide:0,sun:0,moon:0,score:2},style:'smooth',names:{c:false,f:true},axis:{temp:{mode:'auto',lo:null,hi:null},pres:{mode:'auto',lo:null,hi:null}},x0:null,cursor:null,full:false}; /* K1/K2/F1: VREMENSKA OS state. layers: 0 hidden / 1 visible / 2 visible + value labels (default temperature + rain + score at 2); style = line style; axis = value-axis fit mode + manual override; F2: 20 layers in 7 legend groups, names = the series-name overlay switch per view (c compact, f fullscreen); zoom + layers + style + names + axis are remembered (wd_prefs.tl), x0 / cursor / full never are */
+let TL={zoom:'h',layers:{temp:2,feels:0,norm:0,rain:2,snow:0,cloud:0,wind:0,gust:0,pres:0,humid:0,uv:0,air:0,pollen:0,vis:0,frz:0,sea:0,tide:0,sun:0,moon:0,score:2},style:'smooth',names:{c:false,f:true},axis:{temp:{mode:'auto',lo:null,hi:null},pres:{mode:'auto',lo:null,hi:null}},x0:null,cursor:null,full:false,pxh:null,fit:false}; /* T1: pxh = px per hour (continuous scale, session only, never saved; null = the preset of zoom), fit = all days fitted to the width. K1/K2/F1: VREMENSKA OS state. layers: 0 hidden / 1 visible / 2 visible + value labels (default temperature + rain + score at 2); style = line style; axis = value-axis fit mode + manual override; F2: 20 layers in 7 legend groups, names = the series-name overlay switch per view (c compact, f fullscreen); zoom + layers + style + names + axis are remembered (wd_prefs.tl), x0 / cursor / full never are */
 let PLAN={act:'bbq',date:null}; /* J2: PLANIRAJ - chosen activity (remembered in wd_prefs.act) and day (never saved) */
 function setGRange(v){GRANGE=v;markBtns();if(D&&D.days)drawGrill();}
 function bioLvl(s){return s<=1?0:s<=3?1:2;}
@@ -2859,10 +2859,59 @@ function tlOk(){return !!(D&&D.mode!=='ai'&&D.hr&&D.hr.length>24);}
 function tlStr(m){return new Date(m*60000).toISOString().slice(0,16);}
 function tlLb(a,m){let lo=0,hi=a.length;while(lo<hi){const mid=(lo+hi)>>1;if(a[mid]<m)lo=mid+1;else hi=mid;}return lo;}
 function tlNearest(m){const tm=TLC.tm,n=tm.length;let i=tlLb(tm,m);if(i>=n)i=n-1;else if(i>0&&m-tm[i-1]<tm[i]-m)i--;return i;}
-function tlPpm(){return TLPX[TL.zoom][layout==='mobile'?1:0]/60;}
+/* T1: the horizontal scale is continuous (TL.pxh px per hour). The representation (hourly rows / 3-hourly / daily) follows from it (tlRep); TL.zoom is the last preset / representation and what is saved. */
+function tlRep(){const p=tlPxh();return p>=18?'h':(p>=8?'3':'d');}
+function tlPresetPxh(z){if(z==='d'&&TL.full)return tlPxhMin();return TLPX[z][layout==='mobile'?1:0];}
+function tlPxh(){if(TL.pxh==null||!isFinite(TL.pxh))TL.pxh=tlPresetPxh(TL.zoom);return TL.pxh;}
+function tlPpm(){return tlPxh()/60;}
+function tlPxhMax(){return layout==='mobile'?48:60;}
+function tlRangeStart(){return tsMin(locNowStr())-360;} /* now - 6 h, the left end of the pannable range */
+function tlPxhMin(W){ /* fit-all: the plot width over every hour from now - 6 h to the end of the last row */
+ W=W||tlWidth();
+ const tm=TLC.tm,a=tlRangeStart(),b=(tm&&tm.length)?tm[tm.length-1]+60:a+16*1440+360;
+ return Math.min(tlPxhMax(),W*60/Math.max(60,b-a));
+}
+function tlFitX(){ /* all days across the whole width; stays fitted (TL.fit) until the user pans or zooms */
+ if(!D||!tlOk())return;
+ tlPrep();
+ const old=tlRep();
+ TL.pxh=tlPxhMin();TL.fit=true;TL.x0=tlRangeStart()*60000;
+ tlClamp(tlWidth());
+ tlScaleDone(old);
+}
+function tlScaleFix(W){ /* once per draw: keep the scale inside its bounds, keep a fitted view fitted (resize, fullscreen, layout step) */
+ if(TL.pxh==null||!isFinite(TL.pxh))TL.pxh=tlPresetPxh(TL.zoom);
+ const lo=tlPxhMin(W),hi=Math.max(lo,tlPxhMax());
+ if(TL.fit){TL.pxh=lo;TL.x0=tlRangeStart()*60000;}
+ else TL.pxh=Math.min(hi,Math.max(lo,TL.pxh));
+}
+function tlScaleDone(old){ /* after any scale change: a new representation re-snaps the cursor, updates the preset pills, the legend and the saved preset */
+ const r=tlRep();
+ if(r!==old){
+  TL.zoom=r;TLC.hov=null;
+  if(TL.cursor!=null&&TLC.tm)TL.cursor=tlCurClamp(TL.cursor/60000)*60000;
+  savePrefs();markBtns();tlLegend();
+ }
+ tlSyncUi();tlSchedule();
+}
+function tlApplyScale(np,ax,am){ /* np = new px/hour, ax = the canvas x that keeps its time (default the centre), am = that time as a minute (default: the time under ax now) */
+ if(!D||!tlOk())return;
+ tlPrep();
+ const W=tlWidth(),old=tlRep();
+ if(TL.x0==null)tlClamp(W);
+ if(ax==null)ax=W/2;
+ if(am==null)am=TL.x0/60000+ax/tlPpm();
+ const lo=tlPxhMin(W),hi=Math.max(lo,tlPxhMax());
+ np=Math.min(hi,Math.max(lo,np));
+ TL.pxh=np;
+ TL.x0=(am-ax/(np/60))*60000;
+ tlClamp(W);
+ TL.fit=(np<=lo*1.000001);
+ tlScaleDone(old);
+}
 function tlPrep(){
  const hr2=(cmp()&&D2&&D2.hr&&D2.hr.length)?D2.hr:null;
- const nmOn=!!(TL.layers.norm&&TL.zoom==='d'&&D.climo&&D.climo.byDay); /* K2: the normals widen the temperature range only while they are drawn */
+ const nmOn=!!(TL.layers.norm&&tlRep()==='d'&&D.climo&&D.climo.byDay); /* K2: the normals widen the temperature range only while they are drawn */
  {const lk=String(D.loc)+'|'+(typeof D.tz==='string'?D.tz:((D.tz&&D.tz.name)||'')); /* R23: a manual axis range set for one place means nothing for another */
   if(TLC.locKey!==undefined&&TLC.locKey!==lk){['temp','pres'].forEach(w=>{TL.axis[w].lo=null;TL.axis[w].hi=null;});savePrefs();}
   TLC.locKey=lk;}
@@ -2926,10 +2975,15 @@ function tlClamp(W){
  TL.x0=Math.min(hi,Math.max(lo,TL.x0));
 }
 function tlWidth(){const w=document.getElementById('tlWrap');return(w&&w.clientWidth)||320;}
-function tlSetZoom(z){
- if(TLZ.indexOf(z)<0||z===TL.zoom)return;
- const W=tlWidth(),cenM=(TL.cursor!=null)?TL.cursor/60000:(TL.x0/60000+W/2/tlPpm());
- TL.zoom=z;
+function tlSetZoom(z){ /* a preset: Hours / 3 h = a fixed px/hour, Days = fit-to-width in full screen (the compact px/hour otherwise); keeps the cursor or the view centre */
+ if(TLZ.indexOf(z)<0)return;
+ if(D&&tlOk())tlPrep();
+ const W=tlWidth();
+ if(z==='d'&&TL.full&&D&&tlOk()){TL.zoom=z;tlFitX();savePrefs();markBtns();tlLegend();return;}
+ if(TL.x0==null)tlClamp(W);
+ const cenM=(TL.cursor!=null)?TL.cursor/60000:(TL.x0/60000+W/2/tlPpm());
+ TL.zoom=z;TL.fit=false;
+ TL.pxh=Math.min(Math.max(tlPxhMin(W),tlPxhMax()),Math.max(tlPxhMin(W),tlPresetPxh(z)));
  if(TL.cursor!=null&&TLC.tm)TL.cursor=tlCurClamp(TL.cursor/60000)*60000;
  TL.x0=(cenM-W/2/tlPpm())*60000;
  tlClamp(W);savePrefs();markBtns();tlSyncUi();tlLegend();tlSchedule();
@@ -2952,12 +3006,12 @@ function tlSetStyle(st){ /* C-03 */
 }
 function tlSnap(m){ /* a free minute -> the column it belongs to (hour / 3 h row, or noon of the day) */
  const tm=TLC.tm;if(!tm||!tm.length)return m;
- if(TL.zoom==='d'){
+ if(tlRep()==='d'){
   const dd=D.daysFull||[];let c=Math.floor(m/1440)*1440+720;
   if(dd.length){const a=tsMin(dd[0].dt+'T12:00'),b=tsMin(dd[dd.length-1].dt+'T12:00');c=Math.min(b,Math.max(a,c));}
   return c;
  }
- const st=TL.zoom==='3'?180:60;
+ const st=tlRep()==='3'?180:60;
  let c=Math.round(m/st)*st;
  const first=Math.ceil(tm[0]/st)*st,last=Math.floor(tm[tm.length-1]/st)*st;
  return Math.min(last,Math.max(first,c));
@@ -2972,7 +3026,7 @@ function tlGoto(ts){ /* centre the view on a location-local time string 'YYYY-MM
 function tlCursorTs(){return TL.cursor==null?null:tlStr(TL.cursor/60000);}
 function tlCurClamp(m){ /* K3: snap a free minute to a column AND keep it inside the pannable range: now - 6 h .. the last row */
  const tm=TLC.tm;if(!tm||!tm.length)return m;
- const lo=tsMin(locNowStr())-360,hi=tm[tm.length-1],step=TL.zoom==='d'?1440:(TL.zoom==='3'?180:60);
+ const lo=tsMin(locNowStr())-360,hi=tm[tm.length-1],step=tlRep()==='d'?1440:(tlRep()==='3'?180:60);
  let c=tlSnap(m),g=0;
  while(c<lo&&g++<2000){const nx=tlSnap(c+step);if(nx<=c)break;c=nx;}
  g=0;while(c>hi&&g++<2000){const pv=tlSnap(c-step);if(pv>=c)break;c=pv;}
@@ -2980,7 +3034,7 @@ function tlCurClamp(m){ /* K3: snap a free minute to a column AND keep it inside
 }
 function tlMoveCursor(dir){
  if(!D||!tlOk())return;tlPrep();
- const W=tlWidth(),pm=tlPpm(),step=TL.zoom==='d'?1440:(TL.zoom==='3'?180:60);
+ const W=tlWidth(),pm=tlPpm(),step=tlRep()==='d'?1440:(tlRep()==='3'?180:60);
  let m=tlCurClamp((TL.cursor==null)?tsMin(locNowStr()):TL.cursor/60000+dir*step);
  TL.cursor=m*60000;tlRO=true;
  const x=(m-TL.x0/60000)*pm;
@@ -3018,7 +3072,7 @@ function tlReadoutLines(cm){ /* -> {title, lines:[[icon,text]]} for the column a
  const cloudTxt=(cl,cmv,ch)=>(hrv?'nisko ':'low ')+(cl==null?'–':Math.round(cl))+' · '+(hrv?'srednje ':'mid ')+(cmv==null?'–':Math.round(cmv))+' · '+(hrv?'visoko ':'high ')+(ch==null?'–':Math.round(ch))+' %';
  const polTxt=(p,mx)=>(LBL.polNames[p.k]||p.k).toLowerCase()+' '+tlN(p.v,p.v<10?1:0)+' /m³ · '+LBL.polLevels[polLvl(p.v)]+(mx?(hrv?' (najviše)':' (max)'):'');
  const visTxt=km=>tlN(km,km>=10?0:1)+' km'+(km<1?' · '+(hrv?'magla':'fog'):'');
- if(TL.zoom==='d'){
+ if(tlRep()==='d'){
   const dt=tlStr(m).slice(0,10),dd=(D.daysFull||[]).find(x=>x.dt===dt);
   if(!dd)return null;
   const ag=(TLC.ag&&TLC.ag[dt])||{};
@@ -3044,7 +3098,7 @@ function tlReadoutLines(cm){ /* -> {title, lines:[[icon,text]]} for the column a
   return{title:dayLab(dt)+' '+(ICON[dd.cond]||''),lines:TLORDER.map(k=>L[k]).filter(Boolean)};
  }
  const i=tlNearest(m),r=D.hr[i];if(!r)return null;
- const three=TL.zoom==='3',sfx=three?' (3 h)':'';
+ const three=tlRep()==='3',sfx=three?' (3 h)':'';
  const win=f=>{const o=[];for(let k=i-1;k<=i+1;k++){const q=D.hr[k];if(q&&q[f]!=null)o.push(q[f]);}return o;};
  if(on('temp')&&r.t!=null)L.temp=[TLIC.temp,tlN(r.t)+'°'+((!on('feels')&&r.fl!=null)?' ('+(hrv?'osjet ':'feels ')+tlN(r.fl)+'°)':'')]; /* R23: the feels suffix stays while the feels layer is off */
  if(on('feels')&&r.fl!=null)L.feels=[TLIC.feels,(hrv?'osjet ':'feels ')+tlN(r.fl)+'°'];
@@ -3099,7 +3153,7 @@ function tlWinLab(m,day){
  return day?(dow+' '+d.getUTCDate()):(dow+' '+String(d.getUTCHours()).padStart(2,'0')+' h');
 }
 function tlSummary(xm,mR,nowM){
- const hrv=lang==='hr',day=TL.zoom==='d',hr=D.hr,tm=TLC.tm,n=tm.length;
+ const hrv=lang==='hr',day=tlRep()==='d',hr=D.hr,tm=TLC.tm,n=tm.length;
  const last=tm[n-1];
  const a=tlWinLab(xm,day),b=tlWinLab(Math.min(mR,last),day);
  let fact='';
@@ -3126,7 +3180,7 @@ function tlSummary(xm,mR,nowM){
  return a+' → '+b+' · '+fact;
 }
 function tlSyncUi(){
- TLZ.forEach(z=>{const b=document.getElementById('btn-tlz-'+z);if(b)b.setAttribute('aria-pressed',TL.zoom===z?'true':'false');});
+ TLZ.forEach(z=>{const b=document.getElementById('btn-tlz-'+z);if(b)b.setAttribute('aria-pressed',tlRep()===z?'true':'false');});
  ['auto','full'].forEach(m=>{const b=document.getElementById('btn-tlf-'+m);if(b)b.setAttribute('aria-pressed',TL.axis.temp.mode===m?'true':'false');});
  TLSTYLES.forEach(s=>{const b=document.getElementById('btn-tls-'+s);if(b)b.setAttribute('aria-pressed',TL.style===s?'true':'false');});
 }
@@ -3165,8 +3219,8 @@ function tlHas(){
 }
 function tlAvail(k,h){ /* is the layer offered for this place and zoom */
  h=h||tlHas();
- if(k==='norm')return TL.zoom==='d'&&!!h.norm;
- if(k==='feels')return TL.zoom!=='d'&&!!h.feels;
+ if(k==='norm')return tlRep()==='d'&&!!h.norm;
+ if(k==='feels')return tlRep()!=='d'&&!!h.feels;
  if(k==='temp'||k==='rain'||k==='wind'||k==='pres'||k==='uv'||k==='moon'||k==='score')return true;
  return !!h[k];
 }
@@ -3251,7 +3305,7 @@ function tlLegend(){
  ext.push('<button type="button" class="tlnm" id="tlNames" aria-pressed="'+(nOn?'true':'false')+'">'+esc(LBL.tlNames)+'</button>');
  if(La.temp>0&&tlAvail('temp',has)){
   if(isC){ext.push(sw('background:'+CMP.a,D.loc||locA()));ext.push(sw('border-top:2px dashed '+CMP.b+';background:none',D2.loc||selB));}
-  else if(TL.zoom==='d')ext.push(sw('background:'+C.hi+'33',hrv?'pouzdanost (od 8. dana)':'confidence band (day 8+)'));
+  else if(tlRep()==='d')ext.push(sw('background:'+C.hi+'33',hrv?'pouzdanost (od 8. dana)':'confidence band (day 8+)'));
  }
  if(La.score>0){ext.push('<span class="tlli">'+ACTCOL.map((c,i)=>'<i class="tlsw" style="background:'+c+'" title="'+esc(LBL.actTier[i])+'"></i>').join('')+'</span>');}
  ext.push('<span class="tlhint">'+esc(LBL.tlHint)+'</span>');
@@ -3291,7 +3345,7 @@ function tlStroke(ctx,segs,style){ctx.beginPath();segs.forEach(sg=>tlTrace(ctx,s
 function tlNiceStep(raw){if(!(raw>0))return 1;const pw=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/pw;return Math.max(1,(f<=1?1:f<=2?2:f<=5?5:10)*pw);}
 /* C-16/C-18: the raw data range an axis fits. Auto = the visible window, Full = everything; hidden series do not matter, the data always do. */
 function tlRange(which,iA,iB,xm,mR,normOn,feelsOn){
- const hr=D.hr,z=TL.zoom,full=TL.axis[which].mode==='full';
+ const hr=D.hr,z=tlRep(),full=TL.axis[which].mode==='full';
  let lo=1e9,hi=-1e9;
  const mx=v=>{if(v!=null&&isFinite(v)){if(v<lo)lo=v;if(v>hi)hi=v;}};
  const win=d=>{const m=tsMin(d.dt+'T12:00');return m>=xm-720&&m<=mR+720;};
@@ -3358,10 +3412,10 @@ function tlDraw(){
  const W=wrap.clientWidth;
  if(W<60)return;
  const tStart=(window.performance&&performance.now)?performance.now():0;
- tlPrep();tlScores();
- const hr=D.hr,tm=TLC.tm,n=hr.length,hrv=lang==='hr',M=layout==='mobile',z=TL.zoom,La=TL.layers;
+ tlPrep();tlScores();tlScaleFix(W);
+ const hr=D.hr,tm=TLC.tm,n=hr.length,hrv=lang==='hr',M=layout==='mobile',z=tlRep(),La=TL.layers;
  const F=TL.full?2:0; /* fullscreen: +2 px type and taller lanes */
- const pxH=TLPX[z][M?1:0],pm=pxH/60,nowM=tsMin(locNowStr());
+ const pxH=tlPxh(),pm=pxH/60,nowM=tsMin(locNowStr()); /* T1: the real px per hour at any scale - bars, cells and labels size themselves from it */
  const has=tlHas();
  /* ---- series state: La[k] 0 hidden / 1 visible / 2 visible + value labels; a hovered legend chip previews a hidden series at 35 %; a series the place has no data for is never drawn (C-13) ---- */
  const pv=TLC.preview,LB={},vis={};
@@ -3841,7 +3895,7 @@ function tlDraw(){
     if(LB.score&&w>=tlw(String(sd.v),sf)+6)tx(String(sd.v),x,ly+lh/2+0.5,tlTextOn(col),'center',sf,false);});
   }else{
    const rs=TLC.rs||[];
-   const sstp=(z==='h')?3:Math.max(1,Math.ceil((tlw('100',sf)+3)/pxH)); /* hour zoom: every 3rd cell; 3 h zoom: as many cells as the label needs */
+   const sstp=(z==='h')?3*Math.max(1,Math.ceil((tlw('100',sf)+3)/(3*pxH))):Math.max(1,Math.ceil((tlw('100',sf)+3)/pxH)); /* hour scale: every 3rd cell (more when narrow); 3 h scale: as many cells as the label needs */
    for(let i=iA;i<=iB;i++){const v=rs[i];if(v==null||tm[i]<nowM-30)continue;const x=X(tm[i]);
     const col=ACTCOL[actTier(v)];
     ctx.fillStyle=col+'e6';ctx.fillRect(x-pxH/2+0.5,ly,pxH-1,lh);
@@ -3902,11 +3956,12 @@ function tlDraw(){
  const labY=plotB+11+F/2+sunRow+moonRow;
  ctx.fillStyle=grid;ctx.fillRect(0,plotB,W,1);
  if(z==='d'){
+  const dstp=Math.max(1,Math.ceil((tlw('Wed 28.',FNT(10,700))+8)/(pxH*24))); /* T1: a day label only when it fits its column(s) */
   for(let dm=d0;dm<mR;dm+=1440){const xl=X(dm),xc=X(dm+720),dt=tlStr(dm).slice(0,10);
    ctx.fillStyle=grid;ctx.fillRect(Math.round(xl),plotB,1,4);
-   if(xc>-30&&xc<W+30)tx(dayLab(dt),xc,labY,dt===today?strong:txt,'center',FNT(10,dt===today?700:400),false);}
+   if(Math.round(dm/1440)%dstp===0&&xc>-30&&xc<W+30)tx(dayLab(dt),xc,labY,dt===today?strong:txt,'center',FNT(10,dt===today?700:400),false);}
  }else{
-  const st=(z==='h')?180:360;
+  const tw0=tlw('00:00',FNT(10,700)),st=[180,360,720].find(q=>q/60*pxH>=tw0+14)||1440; /* T1: tick spacing from the scale (3 h at the Hours preset, 6 h at 3 h) */
   for(let m=Math.ceil(xm/st)*st;m<mR;m+=st){const x=X(m);
    ctx.fillStyle=grid;ctx.fillRect(Math.round(x),plotB,1,4);
    const hh=Math.floor(m/60)%24;
@@ -3994,7 +4049,20 @@ function tlInit(){
    const b=tlAxisBase(ax);
    if(b){tlAxD={id:e.pointerId,which:ax,y:e.clientY,base:b};try{cv.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();return;}
   }
-  if(e.pointerType!=='mouse')TLC.hov=null;
+  if(e.pointerType!=='mouse'){
+   TLC.hov=null;
+   tlPts[e.pointerId]={x:e.clientX,y:e.clientY};
+   const ids=Object.keys(tlPts);
+   if(ids.length===2&&D&&tlOk()){ /* T1: the second finger starts a pinch (a pan / tap in progress is dropped) */
+    tlPrep();
+    const a=tlPts[ids[0]],b=tlPts[ids[1]],r=cv.getBoundingClientRect(),mx=(a.x+b.x)/2-r.left;
+    if(TL.x0==null)tlClamp(tlWidth());
+    tlPinch={ids:ids,d0:Math.max(10,Math.hypot(a.x-b.x,a.y-b.y)),p0:tlPxh(),am:TL.x0/60000+mx/tlPpm()};
+    tlPtr=null;cv.classList.remove('drag');
+    try{cv.setPointerCapture(e.pointerId);}catch(err){}
+    e.preventDefault();return;
+   }
+  }
   tlPtr={id:e.pointerId,x:e.clientX,x0:TL.x0==null?0:TL.x0,t:Date.now(),moved:false};
   try{cv.setPointerCapture(e.pointerId);}catch(err){}
  });
@@ -4003,6 +4071,8 @@ function tlInit(){
    tlAxisScale(tlAxD.which,tlAxD.base,Math.exp((e.clientY-tlAxD.y)*0.008));
    tlSchedule();return;
   }
+  if(tlPts[e.pointerId])tlPts[e.pointerId]={x:e.clientX,y:e.clientY};
+  if(tlPinch){if(tlPinch.ids.indexOf(String(e.pointerId))>=0)tlPinchMove(cv);return;}
   if(!tlPtr){
    if(e.pointerType==='mouse'){const p=pos(e);tlHoverAt(cv,p[0],p[1]);}
    return;
@@ -4010,13 +4080,15 @@ function tlInit(){
   if(e.pointerId!==tlPtr.id)return;
   const dx=e.clientX-tlPtr.x;
   if(!tlPtr.moved&&Math.abs(dx)>5){tlPtr.moved=true;cv.classList.add('drag');TLC.hov=null;}
-  if(tlPtr.moved){TL.x0=tlPtr.x0-dx/tlPpm()*60000;tlClamp(tlWidth());tlSchedule();}
+  if(tlPtr.moved){tlPanTo(tlPtr.x0-dx/tlPpm()*60000);tlSchedule();}
  });
  const end=e=>{
   if(tlAxD&&e.pointerId===tlAxD.id){
    tlAxD=null;try{cv.releasePointerCapture(e.pointerId);}catch(err){}
    savePrefs();tlSchedule();return;
   }
+  delete tlPts[e.pointerId];
+  if(tlPinch&&tlPinch.ids.indexOf(String(e.pointerId))>=0){tlPinch=null;try{cv.releasePointerCapture(e.pointerId);}catch(err){}return;}
   if(!tlPtr||e.pointerId!==tlPtr.id)return;
   const p=tlPtr;tlPtr=null;cv.classList.remove('drag');
   try{cv.releasePointerCapture(e.pointerId);}catch(err){}
@@ -4025,10 +4097,11 @@ function tlInit(){
  cv.addEventListener('pointerup',end);
  cv.addEventListener('pointercancel',end);
  cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!tlPtr&&!tlAxD){cv.style.cursor='';if(TLC.hov!=null){TLC.hov=null;tlSchedule();}}});
- cv.addEventListener('dblclick',e=>{ /* C-17: double-click on an axis strip goes back to auto */
+ cv.addEventListener('dblclick',e=>{ /* C-17: double-click on an axis strip goes back to auto; T1: anywhere else in the plot it fits all days to the width */
   const p=pos(e),ax=tlAxisAt(p[0],p[1]);
-  if(!ax)return;
-  e.preventDefault();TL.axis[ax].lo=null;TL.axis[ax].hi=null;savePrefs();tlSchedule();
+  e.preventDefault();
+  if(!ax){tlFitX();return;}
+  TL.axis[ax].lo=null;TL.axis[ax].hi=null;savePrefs();tlSchedule();
  });
  cv.addEventListener('wheel',e=>{
   const p=pos(e),ax=tlAxisAt(p[0],p[1]);
@@ -4036,19 +4109,26 @@ function tlInit(){
    const b=tlAxisBase(ax);
    if(b){e.preventDefault();let dy=e.deltaY;if(e.deltaMode===1)dy*=16;tlAxisScale(ax,b,Math.exp(Math.max(-120,Math.min(120,dy))*0.0018));savePrefs();tlSchedule();return;}
   }
-  let dx=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:(e.shiftKey?e.deltaY:0);
-  if(!dx)return;
-  if(e.deltaMode===1)dx*=16;
-  e.preventDefault();
-  TL.x0+=dx/tlPpm()*60000;tlClamp(tlWidth());tlSchedule();
+  let dx=e.deltaX,dy=e.deltaY;
+  if(e.deltaMode===1){dx*=16;dy*=16;}else if(e.deltaMode===2){dx*=100;dy*=100;}
+  if(!e.ctrlKey&&(Math.abs(dx)>Math.abs(dy)||e.shiftKey)){ /* horizontal delta / shift+wheel pans */
+   const d=Math.abs(dx)>Math.abs(dy)?dx:dy;
+   if(!d)return;
+   e.preventDefault();
+   tlPanTo(TL.x0+d/tlPpm()*60000);tlSchedule();return;
+  }
+  if(!dy||!D||!tlOk())return;
+  e.preventDefault(); /* T1: vertical wheel (and ctrl+wheel / trackpad pinch) zooms the time scale around the pointer */
+  tlApplyScale(tlPxh()*Math.pow(1.15,-Math.max(-300,Math.min(300,dy))/100),p[0]);
+  tlHoverAt(cv,p[0],p[1]);
  },{passive:false});
  cv.addEventListener('keydown',e=>{
   const k=e.key;
   if(k==='ArrowRight'){e.preventDefault();tlMoveCursor(1);}
   else if(k==='ArrowLeft'){e.preventDefault();tlMoveCursor(-1);}
   else if(k==='Home'){e.preventDefault();tlHome();}
-  else if(k==='+'||k==='='||k==='NumpadAdd'){e.preventDefault();const i=TLZ.indexOf(TL.zoom);if(i>0)tlSetZoom(TLZ[i-1]);}
-  else if(k==='-'||k==='_'||k==='NumpadSubtract'){e.preventDefault();const i=TLZ.indexOf(TL.zoom);if(i<TLZ.length-1)tlSetZoom(TLZ[i+1]);}
+  else if(k==='+'||k==='='||k==='NumpadAdd'){e.preventDefault();tlStepScale(1);}
+  else if(k==='-'||k==='_'||k==='NumpadSubtract'){e.preventDefault();tlStepScale(-1);}
   else if(k==='Escape'){if(!TL.full)tlHide();} /* fullscreen: Esc closes the overlay (document handler below) */
   else if(k==='Enter'||k===' '){e.preventDefault();if(TL.cursor==null)tlHome();else{tlRO=!tlRO;tlSchedule();}}
  });
@@ -4075,7 +4155,7 @@ function tlInit(){
    if(TLC.preview){TLC.preview=null;tlSchedule();}
   });
  }
- try{const ro=new ResizeObserver(()=>{if(D)tlSchedule();});ro.observe(document.getElementById('tlWrap'));}catch(e){}
+ try{const ro=new ResizeObserver(()=>{if(D){if(TL.fit&&tlOk())tlFitX();else tlSchedule();}});ro.observe(document.getElementById('tlWrap'));}catch(e){}
  /* fullscreen: Esc closes, Tab stays inside the overlay, the rotate hint follows the orientation */
  document.addEventListener('keydown',e=>{
   if(!TL.full)return;
@@ -4095,6 +4175,25 @@ function tlInit(){
  window.addEventListener('popstate',()=>{if(TL.full)tlFullClose(true);}); /* the browser back button closes the overlay */
 }
 let tlAxD=null; /* an axis-strip drag in progress */
+let tlPts={},tlPinch=null; /* T1: active touch pointers {id:{x,y}} and the two-finger pinch in progress {ids,d0,p0,am} */
+function tlPanTo(x0){ /* pan to x0 (ms); the view only leaves "fitted" when it really moved */
+ const was=TL.x0;TL.x0=x0;tlClamp(tlWidth());
+ if(was==null||Math.abs(TL.x0-was)>1)TL.fit=false;
+}
+function tlStepScale(dir){ /* keyboard +/-: one step of 1.5x around the cursor (when it is in view) or the view centre */
+ if(!D||!tlOk())return;
+ tlPrep();
+ const W=tlWidth(),pm=tlPpm();
+ let ax=W/2;
+ if(TL.cursor!=null){const x=(TL.cursor/60000-TL.x0/60000)*pm;if(x>=0&&x<=W)ax=x;}
+ tlApplyScale(tlPxh()*(dir>0?1.5:1/1.5),ax);
+}
+function tlPinchMove(cv){
+ if(!tlPinch)return;
+ const a=tlPts[tlPinch.ids[0]],b=tlPts[tlPinch.ids[1]];if(!a||!b)return;
+ const r=cv.getBoundingClientRect(),d=Math.max(10,Math.hypot(a.x-b.x,a.y-b.y)),mx=(a.x+b.x)/2-r.left;
+ tlApplyScale(tlPinch.p0*d/tlPinch.d0,mx,tlPinch.am);
+}
 
 /* --- fullscreen shell (RT-22): the SAME #tlWrap / #tlLeg / #tlSum / tools nodes move into #tlFull, so there is one engine and one canvas --- */
 let TLFS_BACK=[];
@@ -4115,6 +4214,7 @@ function tlFullOpen(){
  document.documentElement.classList.add('tlfs');
  const tb=document.getElementById('tabs');if(tb)tb.classList.add('onfull');
  try{history.pushState({tlfull:1},'');}catch(e){}
+ if(tlRep()==='d')tlFitX(); /* T1: the Days preset fills the whole width in full screen */
  tlSyncUi();tlLegend();tlFullLayout();
  const cv=document.getElementById('tlCanvas');if(cv){try{cv.focus({preventScroll:true});}catch(e){}}
  tlSchedule();
@@ -4127,6 +4227,7 @@ function tlFullClose(fromPop){
  const f=document.getElementById('tlFull');if(f)f.classList.add('hidden');
  document.documentElement.classList.remove('tlfs');
  const tb=document.getElementById('tabs');if(tb)tb.classList.remove('onfull');
+ if(TL.fit||tlRep()==='d'){TL.fit=false;TL.pxh=TLPX.d[layout==='mobile'?1:0];} /* T1: back to the compact Days preset */
  if(!fromPop){try{if(history.state&&history.state.tlfull)history.back();}catch(e){}}
  tlSyncUi();tlLegend();
  const b=document.getElementById('btn-tlfs');if(b){try{b.focus({preventScroll:true});}catch(e){}}
@@ -4148,6 +4249,7 @@ function applyResponsive(){
  const w=window.innerWidth;
  const want=w<700?'mobile':(w<1100?'mid':'desktop');
  if(layout===want)return;layout=want;
+ if(!TL.fit)TL.pxh=null; /* T1: the presets differ per layout step */
  document.getElementById('wrap').classList.toggle('mobile',want==='mobile');
  document.getElementById('wrap').classList.toggle('mid',want==='mid');
  {const tw=document.getElementById('tlWrap');if(tw)tw.style.height=want==='mobile'?'250px':(want==='mid'?'300px':'340px');} /* K1: timeline height per layout step */
@@ -4168,7 +4270,7 @@ function markBtns(){
  const states={'btn-mp':MP,'btn-bh':BRANGE==='h','btn-b3':BRANGE===3,'btn-b7':BRANGE===7,
   'btn-gh':GRANGE==='h','btn-g3':GRANGE===3,'btn-g7':GRANGE===7,'btn-vegan':VEGAN};
  ACTORDER.forEach(k=>{states['btn-act-'+k]=(planAct()===k);}); /* J2: the PLANIRAJ activity pills */
- ['h','3','d'].forEach(z=>{states['btn-tlz-'+z]=(TL.zoom===z);}); /* K1: timeline zoom pills */
+ ['h','3','d'].forEach(z=>{states['btn-tlz-'+z]=(tlRep()===z);}); /* K1: timeline zoom pills */
  ['auto','full'].forEach(m=>{states['btn-tlf-'+m]=(TL.axis.temp.mode===m);}); /* F1: axis fit + line style segmented controls */
  TLSTYLES.forEach(st=>{states['btn-tls-'+st]=(TL.style===st);});
  const paint=(b,on)=>{
@@ -5383,7 +5485,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
- {v:'3.24',d:'2026-10-18',en:'<b>Ask about the weather works without a key.</b> Every visitor can ask 10 questions a day per device (Claude Sonnet) and the answers stream in as they are written; the bar shows how many questions are left today. Your own key on the Info page still gives unlimited use, goes straight to Anthropic and streams too.',hr:'<b>Pitaj o vremenu radi i bez ključa.</b> Svaki posjetitelj može postaviti 10 pitanja dnevno po uređaju (Claude Sonnet), a odgovori pristižu dok se pišu; traka pokazuje koliko je pitanja ostalo danas. Tvoj vlastiti ključ na stranici Info i dalje daje neograničenu upotrebu, ide izravno Anthropicu i također prikazuje odgovor tijekom pisanja.'},
+ {v:'3.24',d:'2026-10-18',en:'<b>Ask about the weather works without a key.</b> Every visitor can ask 10 questions a day per device (Claude Sonnet) and the answers stream in as they are written; the bar shows how many questions are left today. Your own key on the Info page still gives unlimited use, goes straight to Anthropic and streams too. <b>Timeline:</b> Days fill the whole width in full screen; double-click fits all days; mouse-wheel and pinch zoom.',hr:'<b>Pitaj o vremenu radi i bez ključa.</b> Svaki posjetitelj može postaviti 10 pitanja dnevno po uređaju (Claude Sonnet), a odgovori pristižu dok se pišu; traka pokazuje koliko je pitanja ostalo danas. Tvoj vlastiti ključ na stranici Info i dalje daje neograničenu upotrebu, ide izravno Anthropicu i također prikazuje odgovor tijekom pisanja. <b>Vremenska os:</b> U cijelom zaslonu dani ispunjavaju cijelu širinu; dvoklik prilagodi sve dane; kotačić miša i štipanje zumiraju.'},
  {v:'3.23',d:'2026-10-18',en:'<b>Timeline, much more detailed.</b> The legend below the timeline is now the control: tap a series to cycle it between labels on, labels off and hidden, and hover a hidden series to preview it. Drag an axis up or down to rescale it (double-tap resets), switch the axes between Auto and Full scale, and pick a line style (linear, step or smooth). The ⛶ button opens the timeline full screen (Esc closes it). <b>Full screen shows every series the data has</b>: feels like, humidity, cloud cover (low, mid and high), gusts, visibility, freezing level, snowfall, sunrise and sunset, moon phase, tide levels and pollen, grouped in the legend, with the series names written inside the chart. <b>Ask about the weather</b>: a search bar at the top answers questions in Croatian or English from the forecast that is loaded, using your own Claude API key. The key stays in this browser only; example questions help you start, and you set the key on the Info page.',hr:'<b>Vremenska os, puno detaljnija.</b> Legenda ispod vremenske osi sada je upravljanje: dodirni seriju da prijeđeš između oznaka uključenih, oznaka isključenih i skrivene serije, a prelazak mišem preko skrivene serije prikazuje njen pregled. Povuci os gore ili dolje za promjenu mjerila (dvostruki dodir vraća), prebaci osi između automatskog i punog mjerila te odaberi stil linije (ravno, stepenasto ili glatko). Gumb ⛶ otvara vremensku os preko cijelog zaslona (Esc zatvara). <b>Cijeli zaslon prikazuje svaku seriju koju podaci imaju</b>: osjet temperature, vlagu, naoblaku (nisku, srednju i visoku), udare vjetra, vidljivost, granicu smrzavanja, snijeg, izlazak i zalazak sunca, mjesečevu mijenu, razine plime i oseke te pelud, grupirano u legendi, s nazivima serija upisanim unutar grafikona. <b>Pitaj o vremenu</b>: traka za pretraživanje na vrhu odgovara na pitanja na hrvatskom ili engleskom iz učitane prognoze, uz tvoj vlastiti Claude API ključ. Ključ ostaje samo u ovom pregledniku; primjeri pitanja pomažu pri početku, a ključ postavljaš na stranici Info.'},
  {v:'3.22',d:'2026-10-08',en:'<b>Timeline</b> (VREMENSKA OS in Croatian): NOW now has one continuous time axis from this moment to 16 days ahead. Swipe or drag to move, pick one of three zoom steps (hours, 3 hours, days), switch layers on and off like on the map (temperature, rain % and mm, wind and gusts, pressure, UV, air quality, sea, activity scores), and tap any hour or day for the full readout, with the moon phase in the day readout. Night is shaded and a “now” line marks the present. <b>It replaces</b> the hour strip, the NEXT 24 HOURS chart and the OUTLOOK chart; the outlook sentence and the weekend table stay as the “story” next to it, and the normal for the date is now a layer. A slim <b>“now” bar</b> stays visible while you scroll, and the map opens at the hour you chose on the timeline. The forecast now always covers 16 days.',hr:'<b>Vremenska os</b>: SADA sada ima jednu neprekinutu vremensku os od ovog trenutka do 16 dana unaprijed. Povuci ili prijeđi prstom za pomak, odaberi jedan od tri koraka zumiranja (sati, 3 sata, dani), uključuj i isključuj slojeve kao na karti (temperatura, kiša u % i mm, vjetar i udari, tlak, UV, kvaliteta zraka, more, ocjene aktivnosti) i dodirni bilo koji sat ili dan za potpuni prikaz, a u dnevnom prikazu je i mjesečeva mijena. Noć je zasjenjena, a linija “sada” označava trenutak. <b>Zamjenjuje</b> satnu traku, grafikon SLJEDEĆIH 24 SATA i grafikon IZGLEDA; rečenica o izgledima i tablica vikenda ostaju kao “priča” pokraj nje, a normala za taj datum sada je sloj. Uska <b>traka “sada”</b> ostaje vidljiva dok se pomičeš, a karta se otvara na satu koji si odabrao na osi. Prognoza sada uvijek obuhvaća 16 dana.'},
  {v:'3.21',d:'2026-10-08',en:'<b>Three tabs</b>: NOW, PLAN and MAP (SADA · PLANIRAJ · KARTA in Croatian). BBQ and Hiking are now activities inside PLAN; the old #bbq and #hike links still work. <b>PLAN</b>: pick an activity (BBQ, hiking, biking, running, sea) and any of the next 16 days; one card shows the score, the best time window, the reasons and hour-by-hour bars, with the activity’s own sections below and both weekends at a glance. <b>One scoring engine</b> for every activity: the same numbers drive the daily grilling line, the tab badge and the weekend table. Hourly data for the whole forecast is now kept, the basis for the timeline in the next release.',hr:'<b>Tri kartice</b>: SADA, PLANIRAJ i KARTA. Roštilj i planinarenje sada su aktivnosti unutar PLANIRAJ; stare poveznice #bbq i #hike i dalje rade. <b>PLANIRAJ</b>: odaberi aktivnost (roštilj, planinarenje, bicikl, trčanje, more) i bilo koji od sljedećih 16 dana; jedna kartica prikazuje ocjenu, najbolji vremenski prozor, razloge i stupce po satima, a ispod su odjeljci same aktivnosti i oba vikenda na jednom mjestu. <b>Jedan sustav ocjenjivanja</b> za sve aktivnosti: isti brojevi pokreću dnevnu liniju za roštilj, značku na kartici i tablicu vikenda. Satni podaci za cijelu prognozu sada se čuvaju, kao osnova za vremensku traku u sljedećem izdanju.'},
