@@ -5,12 +5,14 @@
  * three same-origin routes that front the "Ask about the weather" assistant:
  *
  *   GET  /api/ask/state   quota + availability for the current visitor (JSON, no-store)
- *   POST /api/ask         one question -> text/event-stream (meta, delta*, done | error)
+ *   POST /api/ask         one question -> text/event-stream (meta, [tool, toolres]*, delta*, done | error);
+ *                         the model may call get_forecast (geocode + Open-Meteo, max 2 tool rounds) for another place
  *   GET  /api/owner?t=... owner mode (cookie), then 302 to the Info view (max OWNER_ATTEMPTS per IP per day)
  *
  * Secrets (never in files): ANTHROPIC_API_KEY, OWNER_TOKEN - set with `wrangler secret put`.
  * Plain vars (wrangler.toml [vars]): ASK_MODEL, ASK_DAILY, ASK_DAILY_IP, ASK_DAILY_GLOBAL.
- * Optional test hook: ASK_TIMEOUT_MS (upstream timeout, default 30000).
+ * Optional test hooks: ASK_TIMEOUT_MS (whole-request budget, default 50000), ASK_LOOKUP_TIMEOUT_MS
+ * (each place-lookup fetch, default 8000).
  * Quotas live in the `Quota` Durable Object (one object per key, KV-style storage API).
  *
  * Nothing here logs the question, the forecast context or any header value.
@@ -21,7 +23,8 @@ const RULES =
   'If the answer is not in the data, say so. Answer in the language of the question ' +
   '(Croatian or English), briefly (at most ~6 sentences or a short list), with concrete ' +
   'times (location local time, 24 h clock) and numbers with units (°C, mm, km/h). ' +
-  'Never invent data beyond the days in DATA.';
+  'Never invent data beyond the days in DATA. ' +
+  'When the question concerns a place other than DATA.place, call get_forecast for it and answer from the tool result; say which place you answered for.';
 
 const MAX_BODY_BYTES = 60000; // raw request body
 const MAX_Q_CHARS = 500;
@@ -228,15 +231,25 @@ function jsonRes(obj, status, id, extra) {
 
 /* ---------- Anthropic relay ---------- */
 
-// Reads Anthropic's SSE body, forwards text deltas through write('delta', {t}).
-// -> {ok:true, usage:{in,out,cached}} | {ok:false, code, message}. Throws on read/write failure.
+// Reads Anthropic's SSE body, forwards text deltas through write('delta', {t}) and collects the
+// content blocks of the response (text and tool_use) so a tool round can be replayed upstream.
+// -> {ok:true, usage:{in,out,cached}, stop, content:[...]} | {ok:false, code, message}.
+// `content` holds {type:'text',text} and {type:'tool_use',id,name,input} blocks in order; a tool_use
+// whose arguments did not parse as JSON has `bad:true` and input {}. Throws on read/write failure.
 async function relayAnthropic(res, write) {
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   const usage = { in: 0, out: 0, cached: 0 };
+  const blocks = new Map(); // content block index -> {type, text, id, name, json, input, bad}
   let buf = '';
   let stopped = false;
+  let stop = null;
   let failure = null;
+
+  function blockAt(i, type) {
+    if (!blocks.has(i)) blocks.set(i, { type: type || 'text', text: '', id: '', name: '', json: '', input: null, bad: false });
+    return blocks.get(i);
+  }
 
   async function line(raw) {
     if (!raw.startsWith('data:')) return;
@@ -249,9 +262,34 @@ async function relayAnthropic(res, write) {
       return;
     }
     if (!ev || typeof ev !== 'object') return;
-    if (ev.type === 'content_block_delta') {
-      if (ev.delta && ev.delta.type === 'text_delta' && typeof ev.delta.text === 'string' && ev.delta.text) {
-        await write('delta', { t: ev.delta.text });
+    if (ev.type === 'content_block_start') {
+      const cb = ev.content_block || {};
+      if (cb.type === 'tool_use') {
+        const b = blockAt(ev.index, 'tool_use');
+        b.id = String(cb.id || '');
+        b.name = String(cb.name || '');
+      } else {
+        blockAt(ev.index, 'text');
+      }
+    } else if (ev.type === 'content_block_delta') {
+      const d = ev.delta || {};
+      if (d.type === 'text_delta' && typeof d.text === 'string' && d.text) {
+        blockAt(ev.index, 'text').text += d.text;
+        await write('delta', { t: d.text });
+      } else if (d.type === 'input_json_delta' && typeof d.partial_json === 'string') {
+        blockAt(ev.index, 'tool_use').json += d.partial_json;
+      }
+    } else if (ev.type === 'content_block_stop') {
+      const b = blocks.get(ev.index);
+      if (b && b.type === 'tool_use') {
+        try {
+          const v = b.json.trim() ? JSON.parse(b.json) : {};
+          if (v && typeof v === 'object' && !Array.isArray(v)) b.input = v;
+          else b.bad = true;
+        } catch (e) {
+          b.bad = true;
+        }
+        if (!b.input) b.input = {};
       }
     } else if (ev.type === 'message_start') {
       const u = (ev.message && ev.message.usage) || {};
@@ -263,6 +301,7 @@ async function relayAnthropic(res, write) {
       if (typeof u.output_tokens === 'number') usage.out = u.output_tokens;
       if (typeof u.input_tokens === 'number') usage.in = u.input_tokens;
       if (typeof u.cache_read_input_tokens === 'number') usage.cached = u.cache_read_input_tokens;
+      if (ev.delta && typeof ev.delta.stop_reason === 'string') stop = ev.delta.stop_reason;
     } else if (ev.type === 'message_stop') {
       stopped = true;
     } else if (ev.type === 'error') {
@@ -296,7 +335,236 @@ async function relayAnthropic(res, write) {
   if (buf) await line(buf.replace(/\r$/, ''));
   if (failure) return failure;
   if (!stopped) return { ok: false, code: 'truncated', message: 'The answer was cut off' };
-  return { ok: true, usage };
+  const content = [];
+  for (const i of [...blocks.keys()].sort((a, b) => a - b)) {
+    const b = blocks.get(i);
+    if (b.type === 'text') {
+      if (b.text) content.push({ type: 'text', text: b.text });
+    } else if (b.type === 'tool_use' && b.id) {
+      const tu = { type: 'tool_use', id: b.id, name: b.name, input: b.input || {} };
+      if (b.bad) tu.bad = true;
+      content.push(tu);
+    }
+  }
+  return { ok: true, usage, stop, content };
+}
+
+/* ---------- Place lookup (tool get_forecast) ---------- */
+
+const TOOLS = [
+  {
+    name: 'get_forecast',
+    description:
+      'Forecast for a place OTHER than the one in DATA. Use only when the question clearly concerns a different place (city, town, island, mountain). Pass the place name as written in the question; you may call it twice to compare two places.',
+    input_schema: { type: 'object', properties: { place: { type: 'string' } }, required: ['place'] },
+  },
+];
+const MAX_TOOL_ROUNDS = 2; // tool rounds per request (so at most 3 Anthropic calls)
+const MAX_TOOLS_PER_ROUND = 2;
+const MAX_CALLS = MAX_TOOL_ROUNDS + 1;
+const LOOKUP_MS = 8000; // each external fetch
+const ASK_BUDGET_MS = 50000; // whole request
+const BRIEF_TTL_MS = 10 * 60 * 1000;
+const BRIEF_MAX_ENTRIES = 50;
+const BRIEF_MAX_CHARS = 6000;
+const MAX_LOOKUP_PLACE = 100;
+const GEO_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const FC_URL = 'https://api.open-meteo.com/v1/forecast';
+const BRIEF_CACHE = new Map(); // lowercased place -> {t, res}; per isolate
+
+// WMO weather_code -> short English word.
+function wcWord(c) {
+  if (c === 0) return 'clear';
+  if (c === 1 || c === 2) return 'partly cloudy';
+  if (c === 3) return 'overcast';
+  if (c === 45 || c === 48) return 'fog';
+  if (c >= 51 && c <= 57) return 'drizzle';
+  if (c >= 61 && c <= 67) return 'rain';
+  if ((c >= 71 && c <= 77) || c === 85 || c === 86) return 'snow';
+  if (c >= 80 && c <= 82) return 'showers';
+  if (c >= 95 && c <= 99) return 'thunderstorm';
+  return 'unknown';
+}
+
+function rnd(v, d) {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+  const k = Math.pow(10, d || 0);
+  return Math.round(v * k) / k;
+}
+
+// GET json with its own timeout (also aborted with the request). -> parsed json | null on any failure.
+async function fetchJson(url, ms, outer) {
+  const c = new AbortController();
+  const timer = setTimeout(() => c.abort(), ms);
+  const onAbort = () => c.abort();
+  if (outer) {
+    if (outer.aborted) c.abort();
+    else outer.addEventListener('abort', onAbort);
+  }
+  try {
+    const r = await fetch(url, { headers: { accept: 'application/json' }, signal: c.signal });
+    if (!r.ok) {
+      try {
+        if (r.body) await r.body.cancel();
+      } catch (e) {}
+      return null;
+    }
+    return await r.json();
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+    if (outer) outer.removeEventListener('abort', onAbort);
+  }
+}
+
+// Compact forecast brief for the model (rounded numbers, at most BRIEF_MAX_CHARS serialized).
+function buildBrief(g, j) {
+  const cur = j.current || {};
+  const hr = j.hourly || {};
+  const dl = j.daily || {};
+  const at = (o, k, i) => (o && Array.isArray(o[k]) ? o[k][i] : undefined);
+  const times = Array.isArray(hr.time) ? hr.time : [];
+  const nowSlot = String(cur.time || '').slice(0, 13) + ':00';
+  let i0 = times.findIndex((t) => t >= nowSlot);
+  if (i0 < 0) i0 = 0;
+  const hourly = [];
+  for (let i = i0; i < times.length && hourly.length < 48; i++) {
+    hourly.push([
+      String(times[i]).slice(5, 13).replace('T', ' '),
+      rnd(at(hr, 'temperature_2m', i)),
+      rnd(at(hr, 'apparent_temperature', i)),
+      rnd(at(hr, 'precipitation_probability', i)),
+      rnd(at(hr, 'precipitation', i), 1),
+      rnd(at(hr, 'wind_speed_10m', i)),
+      rnd(at(hr, 'wind_gusts_10m', i)),
+      rnd(at(hr, 'uv_index', i), 1),
+      wcWord(at(hr, 'weather_code', i)),
+      at(hr, 'is_day', i) === 0 ? 1 : 0,
+    ]);
+  }
+  const dtimes = Array.isArray(dl.time) ? dl.time : [];
+  const hhmm = (v) => (typeof v === 'string' && v.length >= 16 ? v.slice(11, 16) : null);
+  const daily = [];
+  for (let i = 0; i < dtimes.length && daily.length < 7; i++) {
+    daily.push([
+      dtimes[i],
+      rnd(at(dl, 'temperature_2m_max', i)),
+      rnd(at(dl, 'temperature_2m_min', i)),
+      rnd(at(dl, 'precipitation_probability_max', i)),
+      rnd(at(dl, 'precipitation_sum', i), 1),
+      rnd(at(dl, 'wind_speed_10m_max', i)),
+      wcWord(at(dl, 'weather_code', i)),
+      hhmm(at(dl, 'sunrise', i)),
+      hhmm(at(dl, 'sunset', i)),
+      rnd(at(dl, 'uv_index_max', i), 1),
+    ]);
+  }
+  const brief = {
+    place: g.name,
+    admin: g.admin1 || null,
+    country: g.country || null,
+    tz: j.timezone || g.timezone || null,
+    now_local: cur.time || null,
+    now: {
+      t: rnd(cur.temperature_2m, 1),
+      fl: rnd(cur.apparent_temperature, 1),
+      rh: rnd(cur.relative_humidity_2m),
+      w: rnd(cur.wind_speed_10m),
+      g: rnd(cur.wind_gusts_10m),
+      mm: rnd(cur.precipitation, 1),
+      wc: wcWord(cur.weather_code),
+    },
+    hourly_legend:
+      'rows [hour "MM-DD HH" local, temp C, feels-like C, rain prob %, rain mm, wind km/h, gust km/h, UV, sky, night 1/0]; sky is one of clear, partly cloudy, overcast, fog, drizzle, rain, snow, showers, thunderstorm',
+    hourly,
+    daily_legend:
+      'rows [date, high C, low C, rain prob %, rain mm, max wind km/h, sky, sunrise HH:MM, sunset HH:MM, max UV]; local time of the place',
+    daily,
+  };
+  while (JSON.stringify(brief).length > BRIEF_MAX_CHARS && brief.hourly.length > 6) {
+    brief.hourly.length = Math.max(6, brief.hourly.length - 6);
+  }
+  return brief;
+}
+
+// Geocode a place name, fetch its forecast, build the brief.
+// -> {ok:true, name, lat, lon, tz, brief} | {ok:false, reason:'not_found'|'fetch_failed'}
+async function lookupPlace(place, lang, outer, ms) {
+  const key = place.toLowerCase();
+  const hit = BRIEF_CACHE.get(key);
+  if (hit && Date.now() - hit.t < BRIEF_TTL_MS) return hit.res;
+  if (hit) BRIEF_CACHE.delete(key);
+  ms = ms || LOOKUP_MS;
+  const gj = await fetchJson(
+    GEO_URL + '?name=' + encodeURIComponent(place) + '&count=1&language=' + (lang === 'hr' ? 'hr' : 'en'),
+    ms,
+    outer
+  );
+  if (!gj) return { ok: false, reason: 'fetch_failed' };
+  const g = Array.isArray(gj.results) ? gj.results[0] : null;
+  if (!g || typeof g.latitude !== 'number' || typeof g.longitude !== 'number') return { ok: false, reason: 'not_found' };
+  const fj = await fetchJson(
+    FC_URL +
+      '?latitude=' + encodeURIComponent(g.latitude) +
+      '&longitude=' + encodeURIComponent(g.longitude) +
+      '&timezone=auto&forecast_days=7' +
+      '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code,precipitation' +
+      '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,uv_index,weather_code,is_day' +
+      '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,weather_code,sunrise,sunset,uv_index_max',
+    ms,
+    outer
+  );
+  if (!fj || !fj.current || !fj.hourly || !fj.daily) return { ok: false, reason: 'fetch_failed' };
+  const name = String(g.name || place).slice(0, 80);
+  const brief = buildBrief({ ...g, name }, fj);
+  const res = { ok: true, name, lat: rnd(g.latitude, 4), lon: rnd(g.longitude, 4), tz: brief.tz, brief };
+  if (BRIEF_CACHE.size >= BRIEF_MAX_ENTRIES) BRIEF_CACHE.delete(BRIEF_CACHE.keys().next().value);
+  BRIEF_CACHE.set(key, { t: Date.now(), res });
+  return res;
+}
+
+// One tool round: run the get_forecast calls (max MAX_TOOLS_PER_ROUND), emitting tool/toolres events.
+// Every tool_use gets a tool_result. -> {results:[tool_result blocks], places:[{name,lat,lon}]}
+async function runTools(tools, lang, write, outer, ms) {
+  const jobs = tools.map((tu, n) => {
+    if (tu.name !== 'get_forecast') return { tu, err: 'Unknown tool' };
+    const raw = !tu.bad && tu.input && typeof tu.input.place === 'string' ? tu.input.place : '';
+    const place = raw.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, MAX_LOOKUP_PLACE);
+    if (!place) return { tu, err: 'Missing place' };
+    if (n >= MAX_TOOLS_PER_ROUND) return { tu, err: 'limit', place };
+    return { tu, place };
+  });
+  for (const jb of jobs) if (jb.place && !jb.err) await write('tool', { place: jb.place });
+  await Promise.all(
+    jobs.map(async (jb) => {
+      if (!jb.err) jb.res = await lookupPlace(jb.place, lang, outer, ms);
+    })
+  );
+  const results = [];
+  const places = [];
+  for (const jb of jobs) {
+    const id = jb.tu.id;
+    if (jb.err) {
+      results.push({ type: 'tool_result', tool_use_id: id, is_error: true, content: jb.err });
+      continue;
+    }
+    const r = jb.res;
+    if (r.ok) {
+      await write('toolres', { place: jb.place, ok: true, name: r.name, lat: r.lat, lon: r.lon, tz: r.tz });
+      places.push({ name: r.name, lat: r.lat, lon: r.lon });
+      results.push({ type: 'tool_result', tool_use_id: id, content: JSON.stringify(r.brief) });
+    } else {
+      await write('toolres', { place: jb.place, ok: false, reason: r.reason });
+      results.push({
+        type: 'tool_result',
+        tool_use_id: id,
+        is_error: true,
+        content: r.reason === 'not_found' ? 'Place not found' : 'Forecast lookup failed',
+      });
+    }
+  }
+  return { results, places };
 }
 
 /* ---------- route handlers ---------- */
@@ -320,6 +588,19 @@ async function handleState(request, env) {
   ]);
   const remaining = Math.max(0, Math.min(lim.vid - v.used, lim.ip - i.used, lim.global - g.used));
   return jsonRes({ ...base, limit: lim.vid, used: v.used, remaining }, 200, id);
+}
+
+function callUpstream(env, body, signal) {
+  return fetch(UPSTREAM_URL, {
+    method: 'POST',
+    headers: {
+      'x-api-key': env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
 }
 
 async function handleAsk(request, env, ctx) {
@@ -366,6 +647,7 @@ async function handleAsk(request, env, ctx) {
     model,
     max_tokens: 600,
     stream: true,
+    tools: TOOLS,
     system: [
       { type: 'text', text: RULES + '\n\nDATA:\n' + v.ctxStr, cache_control: { type: 'ephemeral' } },
       { type: 'text', text: 'Today is ' + nowLine },
@@ -374,7 +656,7 @@ async function handleAsk(request, env, ctx) {
   };
 
   const ctrl = new AbortController();
-  const timeoutMs = intVar(env.ASK_TIMEOUT_MS, 30000);
+  const timeoutMs = intVar(env.ASK_TIMEOUT_MS, ASK_BUDGET_MS);
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
@@ -383,16 +665,7 @@ async function handleAsk(request, env, ctx) {
 
   let up;
   try {
-    up = await fetch(UPSTREAM_URL, {
-      method: 'POST',
-      headers: {
-        'x-api-key': env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(upstreamBody),
-      signal: ctrl.signal,
-    });
+    up = await callUpstream(env, upstreamBody, ctrl.signal);
   } catch (e) {
     clearTimeout(timer);
     if (!id.owner) refundHits(env, ctx, id, date);
@@ -415,9 +688,50 @@ async function handleAsk(request, env, ctx) {
   const pump = (async () => {
     try {
       await write('meta', { model, remaining });
-      const r = await relayAnthropic(up, write);
-      if (r.ok) await write('done', r.usage);
-      else await write('error', { code: r.code, message: r.message });
+      const total = { in: 0, out: 0, cached: 0 };
+      const places = [];
+      const lookupMs = intVar(env.ASK_LOOKUP_TIMEOUT_MS, LOOKUP_MS);
+      let messages = upstreamBody.messages;
+      let calls = 1;
+      let res = up;
+      let failed = null;
+      for (;;) {
+        const r = await relayAnthropic(res, write);
+        if (!r.ok) {
+          failed = r;
+          break;
+        }
+        total.in += r.usage.in;
+        total.out += r.usage.out;
+        total.cached += r.usage.cached;
+        const tools = r.content.filter((b) => b.type === 'tool_use');
+        if (r.stop !== 'tool_use' || !tools.length || calls >= MAX_CALLS) break;
+        const round = await runTools(tools, v.lang, write, ctrl.signal, lookupMs);
+        for (const p of round.places) {
+          if (!places.some((q) => q.lat === p.lat && q.lon === p.lon)) places.push(p);
+        }
+        messages = messages.concat([
+          {
+            role: 'assistant',
+            content: r.content.map((b) => (b.type === 'tool_use' ? { type: 'tool_use', id: b.id, name: b.name, input: b.input } : b)),
+          },
+          { role: 'user', content: round.results },
+        ]);
+        calls++;
+        const nextBody = { ...upstreamBody, messages };
+        // the last allowed call must answer, not ask again
+        if (calls >= MAX_CALLS) nextBody.tool_choice = { type: 'none' };
+        res = await callUpstream(env, nextBody, ctrl.signal);
+        if (!res.ok || !res.body) {
+          try {
+            if (res.body) await res.body.cancel();
+          } catch (e) {}
+          failed = { code: 'upstream', message: 'Upstream status ' + res.status };
+          break;
+        }
+      }
+      if (failed) await write('error', { code: failed.code, message: failed.message });
+      else await write('done', { in: total.in, out: total.out, cached: total.cached, places, calls });
     } catch (e) {
       // Read failure (timeout / network) or the client went away; tell it if anyone is listening.
       try {

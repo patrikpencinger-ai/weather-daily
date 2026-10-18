@@ -324,7 +324,7 @@ async function main() {
     ok(deltas.length >= 2, 'at least two delta events');
     const last = evs[evs.length - 1];
     eq(last.event, 'done', 'last event is done');
-    eq(last.data, { in: 120, out: 17, cached: 80 }, 'done usage');
+    eq(last.data, { in: 120, out: 17, cached: 80, places: [], calls: 1 }, 'done usage (with places and calls)');
     eq(
       evs.map((e) => e.event).filter((e) => e !== 'delta'),
       ['meta', 'done'],
@@ -672,10 +672,409 @@ async function main() {
     ok(storage._m.has('rec') && (await storage.getAlarm()) > Date.now(), 'DO alarm keeps today and reschedules');
   }
 
+  /* ---- ask: get_forecast tool loop (W3) ---- */
+  {
+    const tstate = async (env, cookie) => (await worker.fetch(stateReq(cookie ? { cookie } : {}), env, ctx)).json();
+    const sseResp = (events) => new Response(anthropicSse(events), { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    const jsonResp = (o, status) => new Response(JSON.stringify(o), { status: status || 200, headers: { 'content-type': 'application/json' } });
+    const hang = (init) =>
+      new Promise((_, rej) => {
+        init.signal.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+      });
+    const msgStart = (i, o, c) => ({ type: 'message_start', message: { usage: { input_tokens: i, output_tokens: 1, cache_read_input_tokens: c || 0 } } });
+    // a response that asks for tools: uses = [{id, json: [pieces of the arguments JSON]}]
+    const toolUseEvents = (uses, opt) => {
+      opt = opt || {};
+      const ev = [msgStart(100, 1, 0)];
+      let idx = 0;
+      if (opt.text) {
+        ev.push({ type: 'content_block_start', index: idx, content_block: { type: 'text', text: '' } });
+        ev.push({ type: 'content_block_delta', index: idx, delta: { type: 'text_delta', text: opt.text } });
+        ev.push({ type: 'content_block_stop', index: idx });
+        idx++;
+      }
+      for (const u of uses) {
+        ev.push({ type: 'content_block_start', index: idx, content_block: { type: 'tool_use', id: u.id, name: u.name || 'get_forecast', input: {} } });
+        for (const pj of u.json) ev.push({ type: 'content_block_delta', index: idx, delta: { type: 'input_json_delta', partial_json: pj } });
+        ev.push({ type: 'content_block_stop', index: idx });
+        idx++;
+      }
+      ev.push({ type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 20 } });
+      ev.push({ type: 'message_stop' });
+      return ev;
+    };
+    const placeUse = (id, place) => {
+      const j = JSON.stringify({ place });
+      return { id, json: [j.slice(0, 5), j.slice(5)] };
+    };
+    const geoHit = (name, lat, lon) =>
+      jsonResp({ results: [{ id: 1, name, latitude: lat, longitude: lon, country: 'Hrvatska', admin1: 'Splitsko-dalmatinska', timezone: 'Europe/Zagreb' }] });
+    const forecastJson = (tz) => {
+      const time = [];
+      const mk = (f) => Array.from({ length: 168 }, (_, i) => f(i));
+      for (let i = 0; i < 168; i++) time.push('2026-10-' + String(18 + Math.floor(i / 24)).padStart(2, '0') + 'T' + String(i % 24).padStart(2, '0') + ':00');
+      const days = Array.from({ length: 7 }, (_, i) => '2026-10-' + String(18 + i).padStart(2, '0'));
+      return {
+        timezone: tz || 'Europe/Zagreb',
+        current: { time: '2026-10-18T16:00', temperature_2m: 17.34, apparent_temperature: 16.12, relative_humidity_2m: 61, wind_speed_10m: 12.4, wind_gusts_10m: 25.7, weather_code: 2, precipitation: 0 },
+        hourly: {
+          time,
+          temperature_2m: mk((i) => 10 + (i % 24) * 0.4321),
+          apparent_temperature: mk((i) => 9 + (i % 24) * 0.4123),
+          precipitation_probability: mk((i) => (i * 7) % 100),
+          precipitation: mk((i) => ((i * 3) % 10) / 10),
+          wind_speed_10m: mk((i) => 8 + (i % 9) * 1.234),
+          wind_gusts_10m: mk((i) => 15 + (i % 9) * 2.345),
+          uv_index: mk((i) => ((i % 24) > 6 && (i % 24) < 18 ? 3.456 : 0)),
+          weather_code: mk((i) => [0, 1, 3, 45, 53, 63, 73, 81, 95][i % 9]),
+          is_day: mk((i) => ((i % 24) > 6 && (i % 24) < 18 ? 1 : 0)),
+        },
+        daily: {
+          time: days,
+          temperature_2m_max: days.map((_, i) => 20.1 + i),
+          temperature_2m_min: days.map((_, i) => 11.2 + i),
+          precipitation_probability_max: days.map((_, i) => 10 * i),
+          precipitation_sum: days.map((_, i) => 0.55 * i),
+          wind_speed_10m_max: days.map((_, i) => 20.5 + i),
+          weather_code: days.map((_, i) => [0, 2, 3, 61, 80, 95, 71][i]),
+          sunrise: days.map((d) => d + 'T06:58'),
+          sunset: days.map((d) => d + 'T17:49'),
+          uv_index_max: days.map((_, i) => 4.44 - i / 2),
+        },
+      };
+    };
+    // scripted network: anth(n, body, init) -> Response; geo(url, init), fc(url, init) default to a hit / a forecast
+    const script = (cfg) => {
+      const log = { anth: [], geo: [], fc: [] };
+      globalThis.fetch = async (url, init) => {
+        const u = String(url);
+        if (u.startsWith('https://api.anthropic.com/')) {
+          const body = JSON.parse(init.body);
+          log.anth.push(body);
+          return cfg.anth(log.anth.length, body, init);
+        }
+        if (u.startsWith('https://geocoding-api.open-meteo.com/')) {
+          log.geo.push({ url: u, init });
+          return cfg.geo ? cfg.geo(u, init) : geoHit('Split', 43.5081, 16.4402);
+        }
+        if (u.startsWith('https://api.open-meteo.com/')) {
+          log.fc.push({ url: u, init });
+          return cfg.fc ? cfg.fc(u, init) : jsonResp(forecastJson());
+        }
+        throw new Error('unexpected fetch ' + u);
+      };
+      return log;
+    };
+    const plain = (text) => [msgStart(120, 1, 80), { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } }, { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } }, { type: 'content_block_stop', index: 0 }, { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 17 } }, { type: 'message_stop' }];
+    const ask = async (env, q, extra, headers) => {
+      const r = await worker.fetch(askReq(goodBody(Object.assign({ q }, extra || {})), headers || {}), env, ctx);
+      const text = await r.text();
+      await drain();
+      return { r, evs: r.status === 200 ? parseSse(text) : [], text };
+    };
+    const kinds = (evs) => evs.map((e) => e.event).filter((e, i, a) => !(e === 'delta' && a[i - 1] === 'delta'));
+
+    // --- happy path: Split ---
+    {
+      const env = mkEnv();
+      const log = script({
+        anth: (n) => (n % 2 === 1 ? sseResp(toolUseEvents([placeUse('toolu_0' + n, 'Split')])) : sseResp(plain('U Splitu je 17 °C.'))),
+      });
+      const { r, evs } = await ask(env, 'Kakvo je vrijeme u Splitu?');
+      eq(r.status, 200, 'tool: ask 200');
+      eq(kinds(evs), ['meta', 'tool', 'toolres', 'delta', 'done'], 'tool: events meta, tool, toolres, delta, done');
+      eq(evs[1].data, { place: 'Split' }, 'tool: tool event carries the place');
+      eq(evs[2].data, { place: 'Split', ok: true, name: 'Split', lat: 43.5081, lon: 16.4402, tz: 'Europe/Zagreb' }, 'tool: toolres payload');
+      eq(evs.filter((e) => e.event === 'delta').map((d) => d.data.t).join(''), 'U Splitu je 17 °C.', 'tool: final answer relayed');
+      const done = evs[evs.length - 1].data;
+      eq(done, { in: 220, out: 37, cached: 80, places: [{ name: 'Split', lat: 43.5081, lon: 16.4402 }], calls: 2 }, 'tool: done sums usage over both calls, lists places, calls:2');
+      eq(log.anth.length, 2, 'tool: two Anthropic calls');
+      // first request declares the tool
+      const b1 = log.anth[0];
+      eq(b1.tools.length, 1, 'tool: one tool declared');
+      eq(b1.tools[0].name, 'get_forecast', 'tool: tool name');
+      eq(b1.tools[0].input_schema, { type: 'object', properties: { place: { type: 'string' } }, required: ['place'] }, 'tool: input_schema');
+      ok(b1.tools[0].description.startsWith('Forecast for a place OTHER than the one in DATA.'), 'tool: description');
+      ok(b1.system[0].text.includes('call get_forecast for it and answer from the tool result; say which place you answered for.'), 'tool: RULES mention get_forecast');
+      ok(!('tool_choice' in b1), 'tool: first call lets the model choose');
+      // second request replays the assistant tool_use and the user tool_result
+      const b2 = log.anth[1];
+      eq(b2.messages.length, 3, 'tool: second call has 3 messages');
+      eq(b2.messages[0], { role: 'user', content: 'Kakvo je vrijeme u Splitu?' }, 'tool: original question kept');
+      eq(b2.messages[1], { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_01', name: 'get_forecast', input: { place: 'Split' } }] }, 'tool: assistant tool_use block replayed with parsed input');
+      eq(b2.messages[2].role, 'user', 'tool: tool_result is a user message');
+      eq(b2.messages[2].content.length, 1, 'tool: one tool_result');
+      const tr = b2.messages[2].content[0];
+      eq([tr.type, tr.tool_use_id, 'is_error' in tr], ['tool_result', 'toolu_01', false], 'tool: tool_result shape');
+      const brief = JSON.parse(tr.content);
+      eq([brief.place, brief.country, brief.tz, brief.now_local], ['Split', 'Hrvatska', 'Europe/Zagreb', '2026-10-18T16:00'], 'tool: brief identifies the place');
+      ok(tr.content.length <= 6000, 'tool: brief is at most 6000 chars (' + tr.content.length + ')');
+      eq(brief.hourly.length, 48, 'tool: 48 hourly rows');
+      eq(brief.daily.length, 7, 'tool: 7 daily rows');
+      eq(brief.hourly[0].length, 10, 'tool: hourly rows have 10 fields');
+      eq(brief.daily[0].length, 10, 'tool: daily rows have 10 fields');
+      eq(brief.hourly[0][0], '10-18 16', 'tool: hourly starts at the current hour (local)');
+      ok(typeof brief.hourly_legend === 'string' && /thunderstorm/.test(brief.hourly_legend) && typeof brief.daily_legend === 'string', 'tool: legends present');
+      ok(brief.hourly.every((row) => typeof row[8] === 'string') && brief.daily.every((row) => typeof row[6] === 'string'), 'tool: sky is a word');
+      ok(brief.daily.every((row) => /^\d\d:\d\d$/.test(row[7]) && /^\d\d:\d\d$/.test(row[8])), 'tool: sunrise/sunset HH:MM');
+      eq(brief.now, { t: 17.3, fl: 16.1, rh: 61, w: 12, g: 26, mm: 0, wc: 'partly cloudy' }, 'tool: now block rounded');
+      // system blocks and tools unchanged on the second call
+      eq(b2.system, b1.system, 'tool: same system blocks (cache_control kept) on call 2');
+      eq(b2.tools, b1.tools, 'tool: same tools on call 2');
+      eq(b2.system[0].cache_control, { type: 'ephemeral' }, 'tool: cache_control on call 2');
+      ok(!('tool_choice' in b2), 'tool: second call still free');
+      // external fetches
+      eq(log.geo.length, 1, 'tool: one geocoding fetch');
+      eq(log.geo[0].url, 'https://geocoding-api.open-meteo.com/v1/search?name=Split&count=1&language=hr', 'tool: geocoding URL');
+      eq(log.fc.length, 1, 'tool: one forecast fetch');
+      ok(log.fc[0].url.startsWith('https://api.open-meteo.com/v1/forecast?latitude=43.5081&longitude=16.4402&timezone=auto&forecast_days=7&current=temperature_2m,'), 'tool: forecast URL');
+      ok(/&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,uv_index,weather_code,is_day&daily=temperature_2m_max,.*uv_index_max$/.test(log.fc[0].url), 'tool: forecast hourly and daily fields');
+      ok(!JSON.stringify(log.geo[0].init.headers || {}).includes('Split') && !JSON.stringify(log.fc[0].init.headers || {}).includes('Split'), 'tool: place never in a header');
+      // quota: one hit for the whole request
+      await drain();
+      const st = await tstate(env, cookieVal(cookieOf(r, 'wd_vid')));
+      eq(st.used, 1, 'tool: quota hit once for a two-call request');
+      // cache hit: same place again does not touch the network
+      const again = await ask(env, 'A sutra u Splitu?', {}, { cookie: cookieVal(cookieOf(r, 'wd_vid')) });
+      eq(again.evs[again.evs.length - 1].data.places, [{ name: 'Split', lat: 43.5081, lon: 16.4402 }], 'cache: second request still reports the place');
+      eq([log.geo.length, log.fc.length], [1, 1], 'cache: no new geocoding/forecast fetch within 10 minutes');
+      eq(log.anth.length, 4, 'cache: the model was still called twice more');
+      // expiry: after 10 minutes the brief is fetched again
+      const realNow = Date.now;
+      Date.now = () => realNow() + 11 * 60 * 1000;
+      try {
+        await ask(env, 'Opet Split?');
+      } finally {
+        Date.now = realNow;
+      }
+      eq([log.geo.length, log.fc.length], [2, 2], 'cache: expired after 10 minutes, fetched again');
+    }
+
+    // --- URL encoding of an awkward place name, and case-insensitive cache key ---
+    {
+      const env = mkEnv();
+      const log = script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('toolu_h', 'Hvar (otok) & co?')])) : sseResp(plain('Hvar.'))),
+        geo: () => geoHit('Hvar', 43.17, 16.44),
+      });
+      const { evs } = await ask(env, 'Hvar?', { lang: 'en' });
+      eq(log.geo[0].url, 'https://geocoding-api.open-meteo.com/v1/search?name=Hvar%20(otok)%20%26%20co%3F&count=1&language=en', 'encoding: place URL-encoded, language=en for an English question');
+      eq(evs.find((e) => e.event === 'toolres').data.place, 'Hvar (otok) & co?', 'encoding: toolres echoes the place as asked');
+      // same name in other case: cache hit
+      script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('toolu_h2', 'HVAR (OTOK) & CO?')])) : sseResp(plain('Hvar.'))),
+        geo: () => {
+          throw new Error('geocoding must not be called');
+        },
+      });
+      const { evs: e2 } = await ask(env, 'Hvar?');
+      eq(e2.find((e) => e.event === 'toolres').data.ok, true, 'cache: key is the lower-cased place');
+    }
+
+    // --- place not found: toolres ok:false, the model still finishes ---
+    {
+      const env = mkEnv();
+      const log = script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('toolu_nf', 'Zzzzville')])) : sseResp(plain('Nisam našao to mjesto.'))),
+        geo: () => jsonResp({ generationtime_ms: 0.5 }),
+      });
+      const { r, evs } = await ask(env, 'Vrijeme u Zzzzvilleu?');
+      eq(kinds(evs), ['meta', 'tool', 'toolres', 'delta', 'done'], 'not found: still ends with done');
+      eq(evs[2].data, { place: 'Zzzzville', ok: false, reason: 'not_found' }, 'not found: toolres reason');
+      eq(evs[evs.length - 1].data.places, [], 'not found: places empty');
+      eq(evs[evs.length - 1].data.calls, 2, 'not found: calls 2');
+      const tr = log.anth[1].messages[2].content[0];
+      eq([tr.tool_use_id, tr.is_error, typeof tr.content], ['toolu_nf', true, 'string'], 'not found: tool_result is an error');
+      eq(log.fc.length, 0, 'not found: no forecast fetch');
+      void r;
+    }
+
+    // --- geocoding timeout and forecast failure -> fetch_failed ---
+    {
+      const env = mkEnv({ ASK_LOOKUP_TIMEOUT_MS: '40' });
+      let log = script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('toolu_to', 'Slowtown')])) : sseResp(plain('Ne mogu dohvatiti.'))),
+        geo: (u, init) => hang(init),
+      });
+      let { evs } = await ask(env, 'Vrijeme u Slowtownu?');
+      eq(evs[2].data, { place: 'Slowtown', ok: false, reason: 'fetch_failed' }, 'timeout: geocoding timeout -> fetch_failed');
+      eq(kinds(evs), ['meta', 'tool', 'toolres', 'delta', 'done'], 'timeout: request still finishes');
+      eq(log.anth[1].messages[2].content[0].is_error, true, 'timeout: tool_result is an error');
+      // forecast times out
+      log = script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('toolu_to2', 'Slowcast')])) : sseResp(plain('Ne mogu.'))),
+        geo: () => geoHit('Slowcast', 45, 16),
+        fc: (u, init) => hang(init),
+      });
+      evs = (await ask(env, 'Vrijeme u Slowcastu?')).evs;
+      eq(evs[2].data, { place: 'Slowcast', ok: false, reason: 'fetch_failed' }, 'timeout: forecast timeout -> fetch_failed');
+      // forecast HTTP 500
+      log = script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('toolu_5', 'Brokenburg')])) : sseResp(plain('Ne mogu.'))),
+        geo: () => geoHit('Brokenburg', 45, 16),
+        fc: () => new Response('boom', { status: 500 }),
+      });
+      evs = (await ask(env, 'Vrijeme u Brokenburgu?')).evs;
+      eq(evs[2].data, { place: 'Brokenburg', ok: false, reason: 'fetch_failed' }, 'fetch_failed: forecast HTTP 500');
+      // geocoding network error
+      log = script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('toolu_6', 'Netless')])) : sseResp(plain('Ne mogu.'))),
+        geo: () => {
+          throw new TypeError('network down');
+        },
+      });
+      evs = (await ask(env, 'Vrijeme u Netlessu?')).evs;
+      eq(evs[2].data, { place: 'Netless', ok: false, reason: 'fetch_failed' }, 'fetch_failed: geocoding network error');
+      void log;
+    }
+
+    // --- two places in one round (compare), de-duplicated places list ---
+    {
+      const env = mkEnv();
+      const log = script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('toolu_a', 'Rijeka'), placeUse('toolu_b', 'Osijek')], { text: 'Provjeravam. ' })) : sseResp(plain('Rijeka je toplija.'))),
+        geo: (u) => (u.includes('name=Rijeka') ? geoHit('Rijeka', 45.33, 14.44) : geoHit('Osijek', 45.55, 18.69)),
+      });
+      const { evs } = await ask(env, 'Gdje je toplije, Rijeka ili Osijek?');
+      eq(kinds(evs), ['meta', 'delta', 'tool', 'tool', 'toolres', 'toolres', 'delta', 'done'], 'compare: events meta, delta, tool x2, toolres x2, delta, done');
+      eq(evs.filter((e) => e.event === 'tool').map((e) => e.data.place), ['Rijeka', 'Osijek'], 'compare: two tool events');
+      eq(evs.filter((e) => e.event === 'toolres').map((e) => e.data.name), ['Rijeka', 'Osijek'], 'compare: two toolres events');
+      const iFirstToolres = evs.findIndex((e) => e.event === 'toolres');
+      ok(evs.filter((e, i) => e.event === 'tool' && i > iFirstToolres).length === 0, 'compare: both tool events precede the lookups');
+      eq(evs[evs.length - 1].data.places.map((p) => p.name), ['Rijeka', 'Osijek'], 'compare: both places in done');
+      const m = log.anth[1].messages;
+      eq(m[1].content.map((b) => b.type), ['text', 'tool_use', 'tool_use'], 'compare: assistant message keeps text + both tool_use blocks');
+      eq(m[1].content[0], { type: 'text', text: 'Provjeravam. ' }, 'compare: assistant text block kept');
+      eq(m[2].content.map((b) => b.tool_use_id), ['toolu_a', 'toolu_b'], 'compare: one tool_result per tool_use, in order');
+      eq(JSON.parse(m[2].content[1].content).place, 'Osijek', 'compare: second brief is Osijek');
+      eq(evs.filter((e) => e.event === 'delta')[0].data.t, 'Provjeravam. ', 'compare: text before the tool call is relayed');
+    }
+
+    // --- more than two tool_use blocks in a round: the extras get a "limit" error ---
+    {
+      const env = mkEnv();
+      const log = script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('t1', 'Pula'), placeUse('t2', 'Zadar'), placeUse('t3', 'Sisak')])) : sseResp(plain('ok'))),
+        geo: (u) => geoHit(decodeURIComponent(/name=([^&]*)/.exec(u)[1]), 44.5, 15.5),
+      });
+      const { evs } = await ask(env, 'Pula, Zadar, Sisak?');
+      eq(evs.filter((e) => e.event === 'tool').length, 2, 'limit: only two lookups announced');
+      eq(log.geo.length, 2, 'limit: only two geocoding fetches');
+      const res = log.anth[1].messages[2].content;
+      eq(res.length, 3, 'limit: every tool_use still gets a tool_result');
+      eq([res[2].tool_use_id, res[2].is_error, res[2].content], ['t3', true, 'limit'], 'limit: third tool answered with a limit error');
+    }
+
+    // --- 2-round cap: a model that keeps asking is stopped at 3 calls ---
+    {
+      const env = mkEnv();
+      let n = 0;
+      const log = script({
+        anth: () => sseResp(toolUseEvents([placeUse('loop' + ++n, 'Loopville' + n)], { text: 'Hm. ' })),
+        geo: (u) => geoHit(decodeURIComponent(/name=([^&]*)/.exec(u)[1]), 40 + n, 10 + n),
+      });
+      const { r, evs } = await ask(env, 'Beskonačno?');
+      eq(r.status, 200, 'cap: request answered');
+      eq(log.anth.length, 3, 'cap: at most 3 Anthropic calls');
+      eq(evs.filter((e) => e.event === 'tool').length, 2, 'cap: only two tool rounds executed');
+      ok(!('tool_choice' in log.anth[0]) && !('tool_choice' in log.anth[1]), 'cap: calls 1 and 2 may use tools');
+      eq(log.anth[2].tool_choice, { type: 'none' }, 'cap: the last call is told not to use tools');
+      eq(log.anth[2].tools.length, 1, 'cap: tools still declared on the last call (history has tool_use)');
+      const last = evs[evs.length - 1];
+      eq(last.event, 'done', 'cap: ends with done, not an error');
+      eq(last.data.calls, 3, 'cap: done.calls is 3');
+      eq(last.data.places.length, 2, 'cap: two places looked up');
+      eq(last.data.in, 300, 'cap: usage summed over 3 calls');
+      const st = await tstate(env, cookieVal(cookieOf(r, 'wd_vid')));
+      eq(st.used, 1, 'cap: still one quota hit');
+    }
+
+    // --- bad tool arguments / unknown tool: error results, no lookups ---
+    {
+      const env = mkEnv();
+      const log = script({
+        anth: (n) =>
+          n === 1
+            ? sseResp(toolUseEvents([{ id: 'b1', json: ['{"place": '] }, { id: 'b2', name: 'delete_all', json: ['{}'] }]))
+            : sseResp(plain('ok')),
+      });
+      const { evs } = await ask(env, 'Loš alat?');
+      eq(kinds(evs), ['meta', 'delta', 'done'], 'bad args: no tool events for unusable calls');
+      eq(log.geo.length, 0, 'bad args: no network lookups');
+      const res = log.anth[1].messages[2].content;
+      eq(res.map((x) => [x.tool_use_id, x.is_error]), [['b1', true], ['b2', true]], 'bad args: both answered with errors');
+      eq(log.anth[1].messages[1].content[0].input, {}, 'bad args: unparsable arguments replayed as {}');
+    }
+
+    // --- plain answers are unchanged: no tool use, calls 1, places [] ---
+    {
+      const env = mkEnv();
+      const log = script({ anth: () => sseResp(plain('Sutra je 24 °C.')) });
+      const { evs } = await ask(env, 'Sutra?');
+      eq(kinds(evs), ['meta', 'delta', 'done'], 'plain: meta, delta, done');
+      eq(evs[evs.length - 1].data, { in: 120, out: 17, cached: 80, places: [], calls: 1 }, 'plain: done has empty places and calls:1');
+      eq(log.anth.length, 1, 'plain: one Anthropic call');
+    }
+
+    // --- failure of a later Anthropic call: error event, hit not refunded ---
+    {
+      const env = mkEnv();
+      script({ anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('e1', 'Split')])) : new Response('{"error":{}}', { status: 529 })) });
+      const { r, evs } = await ask(env, 'Split?');
+      eq(r.status, 200, 'late failure: SSE already started');
+      const last = evs[evs.length - 1];
+      eq([last.event, last.data.code], ['error', 'upstream'], 'late failure: error event');
+      const st = await tstate(env, cookieVal(cookieOf(r, 'wd_vid')));
+      eq(st.used, 1, 'late failure: the hit stays counted');
+      // stream error event during the second call
+      script({
+        anth: (n) => (n === 1 ? sseResp(toolUseEvents([placeUse('e2', 'Split')])) : sseResp([msgStart(10, 1), { type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } }])),
+      });
+      const o = await ask(env, 'Split?');
+      const l2 = o.evs[o.evs.length - 1];
+      eq([l2.event, l2.data.code], ['error', 'overloaded_error'], 'late failure: upstream error event of call 2 relayed');
+    }
+
+    // --- request budget: a hanging second call ends with a timeout error ---
+    {
+      const env = mkEnv({ ASK_TIMEOUT_MS: '120' });
+      script({ anth: (n, b, init) => (n === 1 ? sseResp(toolUseEvents([placeUse('h1', 'Split')])) : hang(init)) });
+      const { evs } = await ask(env, 'Split?');
+      const last = evs[evs.length - 1];
+      eq([last.event, last.data.code], ['error', 'timeout'], 'budget: whole-request timeout covers the second call');
+    }
+
+    // --- brief cache is bounded to 50 entries ---
+    {
+      const env = mkEnv({ ASK_DAILY: '1000', ASK_DAILY_IP: '1000', ASK_DAILY_GLOBAL: '1000' });
+      let turn = 0;
+      let who = '';
+      const log = script({
+        anth: (n) => (n % 2 === 1 ? sseResp(toolUseEvents([placeUse('c' + n, who)])) : sseResp(plain('ok'))),
+        geo: () => geoHit(who, 44, 16),
+      });
+      for (turn = 0; turn < 52; turn++) {
+        who = 'Boundtown' + turn;
+        await ask(env, 'q' + turn);
+      }
+      eq(log.geo.length, 52, 'bound: 52 distinct places fetched');
+      who = 'Boundtown51';
+      await ask(env, 'again');
+      eq(log.geo.length, 52, 'bound: the newest entry is still cached');
+      who = 'Boundtown0';
+      await ask(env, 'again');
+      eq(log.geo.length, 53, 'bound: the oldest entry was evicted (cache holds at most 50)');
+    }
+
+    installFetch();
+    upstreamMode = 'ok';
+  }
+
   /* ---- static checks on the source ---- */
   {
     ok(!/console\.(log|info|warn|error)\([^)]*(\.q\b|ctx|headers|cookie|apikey|ANTHROPIC|authorization)/i.test(src), 'no console call mentions question/context/headers/secrets');
     ok(!/sk-ant-/.test(src), 'no key material in worker.js');
+    ok(!/console\.[a-z]+\([^)]*(place|brief|tool_use|input)/i.test(src), 'no console call mentions the looked-up place or brief');
     ok(!/\bimport\s.+from\s/.test(src), 'worker.js has no imports (no dependencies)');
   }
 
