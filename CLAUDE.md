@@ -6,13 +6,13 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~6,000 lines). Current version: **v3.24** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~6,000 lines). Current version: **v3.25** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
 There is no build step, no bundler and no package manager. The app itself is static: it is opened directly in a
 browser or served as a static file, and everything but "Ask about the weather" works with no server at all. The one
-server-side piece is a small same-origin Cloudflare Worker (`worker.js`, v3.24) that proxies the AI search for
+server-side piece is a small same-origin Cloudflare Worker (`worker.js`, v3.24; place lookups added in v3.25) that proxies the AI search for
 visitors without a key; see "Ask about the weather" and the PWA note for the two documented exceptions. Keep it
 that way: no framework, no build, no other backend.
 
@@ -105,7 +105,7 @@ the fetch handler returns early, before the navigation rule, for every same-orig
 intercepted or cached. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.24`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.25`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -387,8 +387,9 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
 - **DOM.** `#askBar` (`role=search`) is the first child of `#dash`, above `#alertBox` and `#tabs`: the row
   `.askrow` with the input `#askIn` (`maxlength=300`, Enter calls `askKey(ev)` → `askSubmit()`), the send button
   `#askGo` and the key button `#btn-askKey` (🔑, `askKeyGo()`); then the mode hint `#askHint` (always one line,
-  see below), the example chips `#askEx` (`.askchip` buttons from `T.askEx`; the sea question is skipped for
-  inland places; shown only while there is no answer yet) and the answer panel `#askOut` (`aria-live=polite`,
+  see below), the example chips `#askEx` (`.askchip` buttons from `T.askEx`; index 7, the sea question, is skipped for
+  inland places; index 8 "What is the weather in Split tomorrow?" shows unless the shown place is Split, in which
+  case index 9 (the same question for Rijeka) shows instead; shown only while there is no answer yet) and the answer panel `#askOut` (`aria-live=polite`,
   `aria-busy` while an answer streams so screen readers read the finished text; header with collapse and Clear,
   a note — "no key" or "limit reached" — with a button, one `.askent` per answer). The bar is hidden on the MAP
   view (`askUi()` toggles `.hidden`) and, by CSS, while the fullscreen timeline is open (`html.tlfs`); it shows
@@ -396,8 +397,8 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
   `renderActive()`, the key handlers and `askRefreshState()`; it rebuilds the chips and the panel only when its
   signature `ASK.sig` (language, theme, state, mode, hint text, history) changes and never touches the input.
 - **State.** `ASK={model,hist,busy,open,note,setMsg,memKey,ctrl,seq,sig,state,stateAt,stateTried,paintT}` with the
-  constants `ASK_KEY` (`'wd_apikey'`), `ASK_URL`, `ASKMODELS`, `ASK_API` (`'/api/ask'`) and `ASK_STATE_API`
-  (`'/api/ask/state'`), declared next to the prefs code **before** `T` because `setLang → applyTitles → askUi`
+  constants `ASK_KEY` (`'wd_apikey'`), `ASK_URL`, `ASKMODELS`, `ASK_API` (`'/api/ask'`), `ASK_STATE_API`
+  (`'/api/ask/state'`), `ASK_MAXROUNDS` (2) and `ASK_TOOLS` (the `get_forecast` tool definition), declared next to the prefs code **before** `T` because `setLang → applyTitles → askUi`
   already runs during boot. `ASK.state` is the last `GET /api/ask/state` answer
   `{enabled,model,limit,used,remaining,owner,resetAt}` or `null` (unknown); `limit:0` / `remaining:-1` mean an
   unlimited owner (`askUnlimited()`). `ASK.note` is `'nokey'` or `'limit'` (the note shown in the panel).
@@ -448,8 +449,10 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
   Worker (`main` in `wrangler.toml`, `[assets]` binding `ASSETS`) serves every non-`/api/` request from the static
   assets unchanged and adds three same-origin routes: `GET /api/ask/state` → `{enabled,model,limit,used,remaining,
   owner,resetAt}`; `POST /api/ask` with JSON `{q (≤500 chars), lang:'hr'|'en', ctx:object, place:string}` →
-  `text/event-stream` (`event: meta` `{model,remaining}`; `event: delta` `{t}`; `event: done` `{in,out,cached}`;
-  `event: error` `{code,message}`) or a JSON error before the stream (400 `bad_request`, 403 `origin`, 413
+  `text/event-stream` (`event: meta` `{model,remaining}`; `event: delta` `{t}`; `event: tool` `{place}` (a place
+  lookup starts); `event: toolres` `{place,ok:true,name,lat,lon,tz}` or `{place,ok:false,reason:'not_found'|'fetch_failed'}`;
+  `event: done` `{in,out,cached,places:[{name,lat,lon}],calls}`; `event: error` `{code,message}`; the tool events
+  and `places`/`calls` are new in v3.25) or a JSON error before the stream (400 `bad_request`, 403 `origin`, 413
   `too_large`, 429 `{error:'limit',limit,used,resetAt}`, 503 `disabled`, 502 `{error:'upstream',status}`); and
   `GET /api/owner?t=TOKEN`, which sets the owner cookie and redirects to `/weather-dashboard.html#info`. The
   Worker holds the Anthropic key: the secrets **`ANTHROPIC_API_KEY`** and **`OWNER_TOKEN`** are set with
@@ -477,11 +480,42 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
   not rAF); the bullet / bold pass `askFormat()` runs on the text so far, a small spinner trails the text until
   the end, and the model / token line and Copy button appear only when the answer is complete.
   `askClaude(q)` owns one `AbortController` and one **30 s** timeout for the whole answer, stream included;
-  `askClear()` aborts it.
+  `askClear()` aborts it. `askReadStream` takes a sixth callback `onEvent(name,data)` for the proxy's `tool` /
+  `toolres` events, puts the proxy's `places` / `calls` into the done info, and for Anthropic streams also collects
+  the content blocks (`content_block_start`, `text_delta`, `input_json_delta`) and the stop reason, so the done info
+  carries `stop` and `blocks` (text blocks and `tool_use` blocks with their parsed `input`). `askStream()` returns
+  that info (or `null` after an error).
+- **Other places (v3.25, tool use).** A question about a place other than the loaded one ("Kakvo je vrijeme sutra
+  u Splitu?") is answered through the model tool `get_forecast({place})`; the system prompt says "When the question
+  concerns a place other than DATA.place, call get_forecast for it and answer from the tool result; say which place
+  you answered for" (the Worker's prompt and `askSystem` carry the same sentence; the loaded data is labelled DATA).
+  **Proxy mode:** the Worker runs the lookups and reports them as `tool` / `toolres` events; the page shows a muted
+  status line in the answer card (`ent.stat`, `T.askToolFetch`: "Dohvaćam prognozu za Split…" / "Fetching the
+  forecast for Split…"), a failed lookup adds a muted line that stays above the answer (`ent.nf`, `askAddNf`,
+  `T.askToolNf` "Mjesto „X“ nije pronađeno" / "Place “X” not found", `T.askToolFail` for `fetch_failed`), the answer
+  that follows is kept, and `done.places` (also each `toolres ok:true`) fills `ent.places` (`askAddPlaces`: valid
+  coordinates, deduplicated, at most 3). **Own-key mode:** `askKeyRun(ent,q,ctrl)` runs the loop in the page. The
+  direct call always sends `tools:ASK_TOOLS`; on `stop_reason:'tool_use'` it runs `askLookupPlace(place)` for each
+  `tool_use` block (at most 2 per round; further ones get an `is_error` result), which is `geocode(place)` (consults
+  `LOCHINT`) → `fetchOpenMeteo(loc,7)` → `askBrief(d,name)` (a compact JSON string of that forecast object: `ok`,
+  place, tz, local time/date/weekday, a short legend, `now` via `askNow`, 48 hourly rows via `askHourly`, 7 daily
+  rows with sunrise/sunset via `askDaily`; trimmed to 36/24/12 hours to stay ≤ 6 kB), then streams a second call
+  with the assistant's blocks and a user message of `tool_result`s (`is_error:true` with `{ok:false,reason}` for a
+  failed lookup). **At most 2 tool rounds** (`ASK_MAXROUNDS`): the third request goes out with
+  `tool_choice:{type:'none'}`, so it must answer. The text of the rounds is joined with a blank line (`ent.sep`),
+  tokens add up across the requests, and `ent.meta.calls` is the number of requests. The 30 s timeout covers the
+  whole loop. The lookup is a one-off fetch: it never touches `D`, `D2`, `LOCTZ`, the forecast cache or `FEEDS`.
+  **The chip:** under a finished answer each place gets one `.lbtn.askplace` button "Otvori Split" / "Open Split"
+  (`T.askOpenPlace`; 44 px on `mobile`/`mid` through `.lbtn`), which calls `askOpenPlace(p)`: `locHintPut` seeds
+  `LOCHINT` (`wd_lochint`) with the exact coordinates, then `locOpenFlag=true; locStageA=name; locStageB=null;
+  locClose(true)` — the same path as `locPick`, so the place becomes the only location and the forecast loads (from
+  the Info view it also goes to `#now`). The footer meta line appends "2 poziva" / "2 calls" (`T.askCalls`) when
+  `calls` is above 1.
 - **Models and cost.** Key mode: `claude-sonnet-5` (default, more accurate) and `claude-haiku-4-5-20251001`
   (cheaper), the choice is `wd_prefs.aiModel` (`loadPrefs` accepts only `ASKMODELS`); `max_tokens` is 600. A
   question costs roughly 1–3 cents on Sonnet and under 1 cent on Haiku (said in the settings panel,
-  `askSetNote`); the system prompt's rules-and-data block carries `cache_control: ephemeral` and the changing
+  `askSetNote`); an other-place question adds a second request that carries the ~6 kB brief, roughly doubling that
+  (a third only when a second place is looked up); the system prompt's rules-and-data block carries `cache_control: ephemeral` and the changing
   clock line comes after it. Proxy mode uses the server's model (`ASK_MODEL`). Each answer shows the model and
   the tokens in / out / cached.
 - **What is sent.** The question (at most 300 characters in the page; the Worker accepts 500) and
@@ -866,7 +900,7 @@ Roughly top-to-bottom:
   already-selected B row removes it; tapping the selected A row promotes B to A. Enter in the search box
   with results loads the first result; with no results it loads the typed name directly
   (`locSearchKey()`). Exact coordinates of picked places are cached in `LOCHINT` (`wd_lochint`,
-  `locHintSave()`) and `geocode()` consults that cache first. Closing with a pick (`locClose(true)`)
+  `locHintSave()`, which writes through `locHintPut(name,lat,lon,station)`; the "Open <place>" chips of the ask answers call `locHintPut` too) and `geocode()` consults that cache first. Closing with a pick (`locClose(true)`)
   applies the staged selection and triggers `loadData()` (A changed) or `loadSecondary()` / clears `D2`
   (only B changed).
 - **Responsive layout** (`applyResponsive()`): three steps by `window.innerWidth` — `mobile` (< 700 px),
