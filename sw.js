@@ -4,13 +4,15 @@
  * Scope: caches ONLY the static shell (the HTML + the two CDN library
  * files/styles it loads). It never touches any data API or map-tile
  * request — those always go straight to the network so forecasts, radar
- * tiles and lightning are never served stale from a cache.
+ * tiles and lightning are never served stale from a cache. The same goes
+ * for the same-origin Worker routes under /api/ (the ask proxy and its
+ * state / owner endpoints): never intercepted, never cached.
  *
  * Bump CACHE below whenever the shell (this file's precache list, or the
  * app's pinned CDN versions) needs to be refreshed — the old cache is
  * deleted on activate and everything is refetched.
  */
-const CACHE = 'wd-shell-v3.23';
+const CACHE = 'wd-shell-v3.24';
 
 const PRECACHE = [
   './weather-dashboard.html',
@@ -78,6 +80,10 @@ self.addEventListener('fetch', (event) => {
   let url;
   try { url = new URL(req.url); } catch (e) { return; }
   const sameOrigin = url.origin === self.location.origin;
+
+  // (0) the Worker's dynamic routes (/api/ask/state, /api/owner redirect, ...) —
+  // not even navigations (the owner link is one): no respondWith, never cached
+  if (sameOrigin && url.pathname.startsWith('/api/')) return;
 
   // (a) navigations and same-origin .html — network-first, cache fallback
   const isHtmlNav = req.mode === 'navigate' || (sameOrigin && url.pathname.endsWith('.html'));

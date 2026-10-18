@@ -6,12 +6,15 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~5,900 lines). Current version: **v3.23** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~6,000 lines). Current version: **v3.24** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
-There is no build step, no bundler, no package manager, and no backend. It is opened directly in a
-browser or served as a static file. Keep it that way.
+There is no build step, no bundler and no package manager. The app itself is static: it is opened directly in a
+browser or served as a static file, and everything but "Ask about the weather" works with no server at all. The one
+server-side piece is a small same-origin Cloudflare Worker (`worker.js`, v3.24) that proxies the AI search for
+visitors without a key; see "Ask about the weather" and the PWA note for the two documented exceptions. Keep it
+that way: no framework, no build, no other backend.
 
 `index.html` is **not** the app — it's a tiny redirect stub so the bare domain
 (e.g. `weather-daily.pages.dev/`) forwards to `weather-dashboard.html`. All real work happens in
@@ -89,16 +92,20 @@ browser's, so Tokyo seen from Zagreb is right and 23- or 25-hour clock-change da
 ### PWA support files
 
 The app is installable (Android/Chrome "Install app", iOS "Add to Home Screen", standalone display) with
-an offline app shell. This is the **one deliberate exception** to "single self-contained file":
+an offline app shell. This is the **first of two deliberate exceptions** to "single self-contained file" (the second is
+`worker.js`, see "Ask about the weather"):
 `manifest.json`, `sw.js`, the `icons/` PNGs, and the `tools/make-icons.js` script that generates them are
 the only other files the site ships (`tools/test-time.js` and `tools/test-score.js` are dev-only tests, see "Running it"). None of
 them touch app data or behaviour — `sw.js` precaches only the HTML shell (this file, `index.html`,
 `manifest.json`, the icons) and the two pinned CDN library files/styles (Chart.js, Leaflet JS+CSS); it
 never intercepts or caches an API or map-tile request — those always go straight to the network,
-untouched, exactly as if the service worker did not exist. `tools/make-icons.js` is a dependency-free
+untouched, exactly as if the service worker did not exist. That includes the Worker's same-origin dynamic routes:
+the fetch handler returns early, before the navigation rule, for every same-origin path under `/api/`
+(`/api/ask`, `/api/ask/state` and the `/api/owner` redirect, which is a navigation), so they are never
+intercepted or cached. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.23`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.24`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -340,65 +347,131 @@ keys (`FCDAYS|place`), the AI-feed fallback and `hardRefresh()` all use it; ther
 
 ### Ask about the weather (AI search, `#askBar`)
 
-A natural-language question box at the top of the page (v3.23): the user types a question in Croatian or English
-and Claude answers it from the forecast the app has loaded. It is **optional and bring-your-own-key**: with no
-key the page works exactly as before and the bar only shows a hint.
+A natural-language question box at the top of the page (v3.23, proxy added in v3.24): the user types a question in
+Croatian or English and Claude answers it from the forecast the app has loaded, and the answer **streams in**
+as it is written. It is **optional**: nothing else in the app depends on it. There are three modes, picked by
+`askMode()` on every use:
+
+- `'key'` — the visitor stored their own Claude API key (`wd_apikey`, Info page). The page calls
+  `api.anthropic.com` directly with `stream:true`: unlimited, the model is the `ASKMODELS` choice. **Takes
+  precedence** over the proxy when a key is stored.
+- `'proxy'` — no key, and `GET /api/ask/state` reported `enabled:true`: the question goes to the same-origin
+  Worker (below): 10 questions a day per device, the server's model (Claude Sonnet).
+- `'none'` — no key and no (or a disabled, or an unreachable) Worker, e.g. `file://` or a plain static host:
+  the bar shows the original no-key hint and the "add a key" note.
 
 - **DOM.** `#askBar` (`role=search`) is the first child of `#dash`, above `#alertBox` and `#tabs`: the row
   `.askrow` with the input `#askIn` (`maxlength=300`, Enter calls `askKey(ev)` → `askSubmit()`), the send button
-  `#askGo` and the key button `#btn-askKey` (🔑, `askKeyGo()`); then the no-key hint `#askHint`, the example
-  chips `#askEx` (`.askchip` buttons from `T.askEx`; the sea question is skipped for inland places; shown only
-  while there is no answer yet) and the answer panel `#askOut` (`aria-live=polite`; header with collapse and
-  Clear, a "no key" note with an "Add key" button, one `.askent` per answer). The bar is hidden on the MAP
+  `#askGo` and the key button `#btn-askKey` (🔑, `askKeyGo()`); then the mode hint `#askHint` (always one line,
+  see below), the example chips `#askEx` (`.askchip` buttons from `T.askEx`; the sea question is skipped for
+  inland places; shown only while there is no answer yet) and the answer panel `#askOut` (`aria-live=polite`,
+  `aria-busy` while an answer streams so screen readers read the finished text; header with collapse and Clear,
+  a note — "no key" or "limit reached" — with a button, one `.askent` per answer). The bar is hidden on the MAP
   view (`askUi()` toggles `.hidden`) and, by CSS, while the fullscreen timeline is open (`html.tlfs`); it shows
   on NOW, PLAN and Info. `askUi()` refreshes it and is called from `applyTitles()`, `showView()`,
-  `renderActive()` and the key handlers; it rebuilds the chips and the panel only when its signature
-  `ASK.sig` (language, theme, state, history) changes and never touches the input itself.
-- **State.** `ASK={model,hist,busy,open,note,setMsg,memKey,ctrl,seq,sig}` with the constants `ASK_KEY`
-  (`'wd_apikey'`), `ASK_URL` and `ASKMODELS`, declared next to the prefs code **before** `T` because
-  `setLang → applyTitles → askUi` already runs during boot.
+  `renderActive()`, the key handlers and `askRefreshState()`; it rebuilds the chips and the panel only when its
+  signature `ASK.sig` (language, theme, state, mode, hint text, history) changes and never touches the input.
+- **State.** `ASK={model,hist,busy,open,note,setMsg,memKey,ctrl,seq,sig,state,stateAt,stateTried,paintT}` with the
+  constants `ASK_KEY` (`'wd_apikey'`), `ASK_URL`, `ASKMODELS`, `ASK_API` (`'/api/ask'`) and `ASK_STATE_API`
+  (`'/api/ask/state'`), declared next to the prefs code **before** `T` because `setLang → applyTitles → askUi`
+  already runs during boot. `ASK.state` is the last `GET /api/ask/state` answer
+  `{enabled,model,limit,used,remaining,owner,resetAt}` or `null` (unknown); `limit:0` / `remaining:-1` mean an
+  unlimited owner (`askUnlimited()`). `ASK.note` is `'nokey'` or `'limit'` (the note shown in the panel).
+- **Server state.** `askRefreshState()` calls `GET /api/ask/state` (`credentials:'same-origin'`,
+  `cache:'no-store'`, 8 s timeout) once at boot (right after `initLoc()`), after every answer, and when a tab
+  that has been hidden for over 10 minutes becomes visible again (the daily reset). It **fails silently**: the
+  previous state is kept (`null` on the first try, which is mode `'none'`); only a well-formed JSON answer with a
+  boolean `enabled` is accepted. `askBlocked()` says why a question cannot go out now: `'nokey'` (mode
+  `'none'`) or `'limit'` (proxy mode with `remaining===0`); `askSubmit()` then shows the note and **keeps the
+  typed question** in the box.
+- **Hint.** `askHintText()` → proxy: "Preostalo danas: 7 od 10 pitanja" / "7 of 10 questions left today"
+  (`T.askHintLeft`), owner: "Bez ograničenja" / "Unlimited" (`askHintOwner`), own key: "Vlastiti ključ" / "Own key"
+  (`askHintKey`), otherwise the original no-key hint (`askHintNoKey`). At `remaining===0` the input stays usable;
+  sending shows `askLimitMsg()` (today's `limit` used up, the reset date from `resetAt`, formatted by
+  `askResetTxt()`: the Worker sends a Zagreb calendar date `YYYY-MM-DD`, a timestamp is accepted too) and a
+  button "Dodaj vlastiti ključ za neograničeno" / "Add your own key for unlimited" that opens the Info page.
 - **Settings panel (Info page).** The card `#askSet` sits on the Info view between `#infoAbout` and the data
-  sources: a password-type input `#apiKeyIn` (`autocomplete=off`; Enter saves), `btn-askSave` →
+  sources, in two short blocks. (a) **Without a key** — `#askFreeTxt` ("Bez ključa: 10 pitanja dnevno po
+  uređaju, model Claude Sonnet", the number from `ASK.state.limit`, plus "(currently unavailable)" once the
+  state has been tried and the Worker is absent or disabled) and the owner note `askOwnerNote` ("open the
+  /api/owner?t=… link once per device"; the page shows only these instructions). (b) **Own key (unlimited)**
+  (`askKeyH`): a password-type input `#apiKeyIn` (`autocomplete=off`; Enter saves), `btn-askSave` →
   `askKeySave()`, `btn-askDel` → `askKeyDel()`, the status line `#askKeyState` (`role=status`; shows the key
   **masked** by `askKeyMask()`, the first seven characters, an ellipsis and the last four, and a saved /
-  removed message from `T.askMsg`), the model select `#askModel` (`askModelSet(v)`), the cost note
-  (`askSetNote`) and a link to console.anthropic.com/settings/keys. `askSetRender()` fills it from
-  `renderInfo()`; `askKeyGo()` (the 🔑 button, also the "Add key" buttons) opens `#info` and focuses the key
-  field.
+  removed message from `T.askMsg`), the model select `#askModel` (`askModelSet(v)`; labelled "Model (own key)":
+  it applies to key mode only, the proxy's model is the server's), the cost note (`askSetNote`) and a link to
+  console.anthropic.com/settings/keys. `askSetRender()` fills it from `renderInfo()` and `askRefreshState()`;
+  `askKeyGo()` (the 🔑 button, also the "Add key" / limit buttons) opens `#info` and focuses the key field.
 - **BYOK rule (never break it).** The user's Claude API key lives **only** in `localStorage` under `wd_apikey`
   (`askKeyGet()` / `askKeySave()` / `askKeyDel()`; `askKeyOk()` accepts printable ASCII of 8–300 characters,
   because a header value must be ISO-8859-1). When storage is blocked the key is kept in `ASK.memKey` for the
   page session only. It is sent **only** as the `x-api-key` header of the `POST` to `ASK_URL`
-  (`https://api.anthropic.com/v1/messages`, a direct browser call — the one request the app makes to a paid
-  API). It is never written to `wd_prefs` or `wd_last`, a URL or hash, the console or visible text (the input
-  is cleared after saving; only the masked form is shown), and it never appears in the source, the changelog
-  or a test. Headers used: `content-type`, `x-api-key`, `anthropic-version: 2023-06-01` and
-  `anthropic-dangerous-direct-browser-access: true` (the header Anthropic requires for browser calls); the
-  request is sent with `credentials:'omit'`, `referrerPolicy:'no-referrer'` and `cache:'no-store'`. `sw.js`
-  never touches a `POST`. Test with a dummy key such as `sk-ant-test`, never a real one.
-- **Models and cost.** `claude-sonnet-5` (default, more accurate) and `claude-haiku-4-5-20251001` (cheaper),
-  the choice is `wd_prefs.aiModel` (`loadPrefs` accepts only `ASKMODELS`). `max_tokens` is 600 and a request is
-  aborted after 25 s. A question costs roughly 1–3 cents on Sonnet and under 1 cent on Haiku (said in the
-  settings panel, `askSetNote`); the system prompt's rules-and-data block carries `cache_control:
-  ephemeral` and the changing clock line comes after it, so follow-up questions about unchanged data are
-  cheaper. Each answer shows the model and the tokens in / out / cached.
-- **What is sent.** The question (at most 300 characters) and `askContext()`, a compact JSON string of what is
-  already loaded: place and time zone, today's date and weekday (`askDow`, UTC noon, no browser clock), a unit
-  legend, `now` (`askNow`), `hourly` (`askHourly`: 48 hourly rows, then 3-hour blocks up to +168 h; the AI
-  fallback feed sends its 24 rows), `daily` (`askDaily`: 16 days with the day's wind / gust / UV maxima and
-  sunrise / sunset from `D.sunDays`), alerts, sea, air quality with the strongest pollen, climate normals and
-  the activity scores of the next seven days (`askScores`, straight from `scoreDays`), plus the second place
-  in comparison mode (48 h and 7 days). `askSystem(ctx)` builds the two system blocks. No coordinates, no key
-  and nothing personal is included.
+  (`https://api.anthropic.com/v1/messages`, a direct browser call), never to `/api/`. It is never written to
+  `wd_prefs` or `wd_last`, a URL or hash, the console or visible text (the input is cleared after saving; only
+  the masked form is shown), and it never appears in the source, the changelog or a test. Headers used:
+  `content-type`, `x-api-key`, `anthropic-version: 2023-06-01` and `anthropic-dangerous-direct-browser-access: true`
+  (the header Anthropic requires for browser calls); the request is sent with `credentials:'omit'`,
+  `referrerPolicy:'no-referrer'` and `cache:'no-store'`. `sw.js` never touches a `POST`. Test with a dummy key
+  such as `sk-ant-test`, never a real one. The Worker's secrets are never in the page or the repo (below).
+- **The Worker proxy (`worker.js`, v3.24 — the second documented exception to "no backend").** A Cloudflare
+  Worker (`main` in `wrangler.toml`, `[assets]` binding `ASSETS`) serves every non-`/api/` request from the static
+  assets unchanged and adds three same-origin routes: `GET /api/ask/state` → `{enabled,model,limit,used,remaining,
+  owner,resetAt}`; `POST /api/ask` with JSON `{q (≤500 chars), lang:'hr'|'en', ctx:object, place:string}` →
+  `text/event-stream` (`event: meta` `{model,remaining}`; `event: delta` `{t}`; `event: done` `{in,out,cached}`;
+  `event: error` `{code,message}`) or a JSON error before the stream (400 `bad_request`, 403 `origin`, 413
+  `too_large`, 429 `{error:'limit',limit,used,resetAt}`, 503 `disabled`, 502 `{error:'upstream',status}`); and
+  `GET /api/owner?t=TOKEN`, which sets the owner cookie and redirects to `/weather-dashboard.html#info`. The
+  Worker holds the Anthropic key: the secrets **`ANTHROPIC_API_KEY`** and **`OWNER_TOKEN`** are set with
+  `wrangler secret put` (or the dashboard) and are never in a file; plain vars in `wrangler.toml` are `ASK_MODEL`,
+  `ASK_DAILY` (10 a day per visitor), `ASK_DAILY_IP` and `ASK_DAILY_GLOBAL`. Quotas live in the SQLite-backed
+  **Durable Object** `Quota` (binding `QUOTA`, migration `v1`), one object per key, counting per Europe/Zagreb
+  day. `worker.js` is listed in `.assetsignore` so it is not published as a static file. Its tests:
+  `node tools/test-worker.js`. **Owner link flow:** the owner opens `/api/owner?t=<OWNER_TOKEN>` once per device;
+  the Worker sets an **HttpOnly** cookie (the page never reads or writes cookies, only sends requests with
+  `credentials:'same-origin'`) and the next `/api/ask/state` reports `owner:true, limit:0, remaining:-1`, so the
+  hint reads "Unlimited". The token is never in the page, the source or a test. The page works without the Worker
+  (mode `'none'`, or `'key'`).
+- **Streaming.** `askReadStream(response, onDelta, onDone, onError, onMeta)` is the one parser for both wire
+  formats: the proxy's `event: meta|delta|done|error` and Anthropic's `message_start` / `content_block_delta`
+  (`delta.text`) / `message_delta` / `message_stop` / `error` (usage and stop reason are collected from them); it
+  splits on blank lines (LF or CRLF), ignores comments and unknown events, reads `response.body` with a
+  `TextDecoder` (or `response.text()` where streams are missing) and ends the answer with exactly one of
+  `onDone` / `onError`; a stream that closes without its final event keeps the text (`incomplete`). `askStream()`
+  appends each delta to the entry (`ent.a`) and repaints through `askPaint()` (a 70 ms `setTimeout` coalescer,
+  not rAF); the bullet / bold pass `askFormat()` runs on the text so far, a small spinner trails the text until
+  the end, and the model / token line and Copy button appear only when the answer is complete.
+  `askClaude(q)` owns one `AbortController` and one **30 s** timeout for the whole answer, stream included;
+  `askClear()` aborts it.
+- **Models and cost.** Key mode: `claude-sonnet-5` (default, more accurate) and `claude-haiku-4-5-20251001`
+  (cheaper), the choice is `wd_prefs.aiModel` (`loadPrefs` accepts only `ASKMODELS`); `max_tokens` is 600. A
+  question costs roughly 1–3 cents on Sonnet and under 1 cent on Haiku (said in the settings panel,
+  `askSetNote`); the system prompt's rules-and-data block carries `cache_control: ephemeral` and the changing
+  clock line comes after it. Proxy mode uses the server's model (`ASK_MODEL`). Each answer shows the model and
+  the tokens in / out / cached.
+- **What is sent.** The question (at most 300 characters in the page; the Worker accepts 500) and
+  `askContext()`, a compact JSON string of what is already loaded: place and time zone, today's date and weekday
+  (`askDow`, UTC noon, no browser clock), a unit legend, `now` (`askNow`), `hourly` (`askHourly`: 48 hourly rows,
+  then 3-hour blocks up to +168 h; the AI fallback feed sends its 24 rows), `daily` (`askDaily`: 16 days with the
+  day's wind / gust / UV maxima and sunrise / sunset from `D.sunDays`), alerts, sea, air quality with the
+  strongest pollen, climate normals and the activity scores of the next seven days (`askScores`, straight from
+  `scoreDays`), plus the second place in comparison mode (48 h and 7 days). Key mode sends it through
+  `askSystem(ctx)` (the two system blocks). Proxy mode sends `{q, lang, ctx, place}` where `ctx` is the parsed
+  `askContext()` object plus `now_local` (`"YYYY-MM-DD HH:MM"` from `locNowStr()`, the place's clock) and
+  `place`. No coordinates, no key and nothing personal is included.
 - **Never stored.** The answers live only in `ASK.hist` (the last five questions, in memory; `askClear()`
   also aborts a pending request); no question, answer or history is written to `localStorage`, and nothing is
-  logged.
+  logged by the page.
 - **Rendering and errors.** Answers are turned into DOM with `textContent` only (`askFormat()` understands
   `- ` bullets and `**bold**`, never HTML). A failed call is shown inline in its entry (`askErrText`, the
   `T.askErr` words: key 401 / 403 with an "Add key" button, rate 429, busy 529 / 5xx, net, time, offline,
-  bad 400 / 404 with the API's message cut to 200 characters, http, empty, nodata); it is user-triggered, so it
-  is not a `FEEDS` source. Every `ask*` string exists in both languages; the answer follows the language of
-  the question.
+  bad 400 / 404 with the API's message cut to 200 characters, http, empty, nodata). **Proxy errors**
+  (`askHttpErr`): 429 → `askLimitMsg()` with the reset date, the limit button, and `ASK.state.remaining=0`;
+  403 → `origin` ("Otvori stranicu na weath.er45.com" / "Open the page on weath.er45.com"); 503 → the entry is
+  dropped, `ASK.state.enabled=false` and the no-key note is shown (back to the key hint); 502 / 5xx → `busy`
+  ("Servis je zauzet" / "Service busy"); 400 / 413 → `bad`. An `event: error` inside the stream
+  (`askStreamErr`) keeps the text received so far and appends a short "⚠ Answer interrupted" note (`T.askErr.cut`),
+  or shows the mapped error when nothing arrived. A question is user-triggered, so none of this is a `FEEDS`
+  source. Every `ask*` string exists in both languages; the answer follows the language of the question.
 
 ### Logic shared between views
 
@@ -614,6 +687,17 @@ monotonically, the hard caps, hike/bike/run specifics, sea inland (`null`), the 
 skipping windows that already ended, the reason keys, `scoreDays`, and the columnar `wd_last` round trip. It
 prints `SCORE TESTS OK` and exits 1 on any failure.
 
+**Worker test** (dependency-free, node ≥ 20):
+
+```powershell
+node tools/test-worker.js
+```
+
+It imports `worker.js` as a module, runs the real `Quota` Durable Object class against an in-memory storage fake and
+stubs the upstream `fetch` with a fake Anthropic SSE stream: the quotas and their reset, the owner cookie, the
+`/api/ask` and `/api/ask/state` contract above and its error cases. It prints `WORKER TESTS OK` and exits 1 on any
+failure. Run it after touching `worker.js`; run `node --check worker.js` too.
+
 ## Data sources (all client-side; keyless except the optional AI search, which uses the visitor's own key)
 
 - **Open-Meteo forecast** — `api.open-meteo.com` (`timezone=auto`, `past_days=1`, a fixed `FCDAYS` = 16 forecast days; hourly + daily +
@@ -642,16 +726,20 @@ prints `SCORE TESTS OK` and exits 1 on any failure.
   dashboard degrades gracefully when this is unavailable; its reduced forecast object has no `tz`
   (browser time) and none of the hourly extras.
 - **Anthropic Messages API** (`api.anthropic.com/v1/messages`) — only for "Ask about the weather", only when the
-  visitor has stored their own key (`wd_apikey`) and asks a question; a direct browser `POST` with the
+  visitor has stored their own key (`wd_apikey`) and asks a question; a direct, streamed browser `POST` with the
   `anthropic-dangerous-direct-browser-access` header. Models `claude-sonnet-5` / `claude-haiku-4-5-20251001`.
   See "Ask about the weather" for what is sent and the key rules.
+- **Same-origin Worker** (`/api/ask`, `/api/ask/state`, `/api/owner`; `worker.js`) — only for "Ask about the
+  weather" without a stored key: the free daily questions, streamed, with the server-held key. Never cached by
+  `sw.js`; reached with `credentials:'same-origin'`. See "Ask about the weather".
 - **Nominatim** (`nominatim.openstreetmap.org`) — reverse geocoding for map clicks / GPS.
 - **RainViewer** (`api.rainviewer.com` + `tilecache.rainviewer.com`) — rain-radar tile frames for the Map
   view: past ~2 h plus nowcast frames when the public API provides them (lazy; frame list cached ~5 min;
   requires "© RainViewer" attribution).
 
-All data requests go through `tfetch(url, ms)`, a `fetch` wrapper with a timeout (the AI-search call in
-`askClaude()` is the one exception: it carries its own `AbortController` and 25 s timeout).
+All data requests go through `tfetch(url, ms)`, a `fetch` wrapper with a timeout (the AI-search calls in
+`askClaude()` and the `askRefreshState()` state call are the exceptions: they carry their own `AbortController` and
+timeout, 30 s for a whole streamed answer and 8 s for the state).
 
 ## Third-party libraries (CDN only — keep it that way)
 
@@ -683,9 +771,11 @@ These are the non-negotiable house rules for any change:
    `buildLegends()` owns them and must match what the chart draws, in comparison mode too.
 4. **Versioned footer.** Footer reads `<span id="foot"></span> · PATRIK'S WEATHER DAILY · vX.YY · by
    Patrik Pencinger · Info & changelog`. Bump the version in `<title>`, the footer and `APPV` together.
-5. **Static & deployable.** No backend, no build, no secrets, no bundler. Everything must work from a
-   plain static host (and reasonably from `file://`). The only credential the app ever handles is the
-   visitor's own Claude API key (rule 12); the source ships none.
+5. **Static & deployable.** No build, no bundler, no secrets in any file. The app works from a plain static host
+   (and reasonably from `file://`); the only server-side code is `worker.js` (the AI-search proxy, the second
+   documented exception after the PWA files), and the page works fully without it. The only credential the page
+   ever handles is the visitor's own Claude API key (rule 12); the source ships none, and the Worker's
+   `ANTHROPIC_API_KEY` / `OWNER_TOKEN` exist only as Cloudflare secrets.
 6. **Accessibility.** Canvases carry `role="img"` + `aria-label` (`data-tt="ar_*"`); controls carry
    `aria-label`. Keep these in sync when changing a chart's meaning.
 7. **Location time, never browser time.** Anything meaning now / today / yesterday / which hourly row to
@@ -711,7 +801,9 @@ These are the non-negotiable house rules for any change:
     `localStorage` `wd_apikey` (or `ASK.memKey` when storage is blocked) and in the `x-api-key` header of the
     request to `api.anthropic.com`. It is never written to `wd_prefs`, `wd_last`, a URL, the console, the DOM
     (only the masked form) or any test or fixture (use a dummy such as `sk-ant-test`); `grep -n "sk-ant"` finds
-    only the masked placeholder example. Questions, answers and the forecast context are never stored either.
+    only the masked placeholder example. Questions, answers and the forecast context are never stored either. The
+    Worker's secrets (`ANTHROPIC_API_KEY`, `OWNER_TOKEN`) never appear in the page, the repo, a test or the
+    console, and the owner cookie is HttpOnly: the page never reads it.
 
 ## Code layout within the single file
 
@@ -757,7 +849,7 @@ Roughly top-to-bottom:
   `tlFullOpen`/`tlFullClose`; state `TL`, cache `TLC`) · maps
   (`loadLeaflet`, the weather map incl. `locateOnMap`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/
   `showView`/`renderActive`/`updateAlertBox`) · Info panel (`renderInfo`, `renderFeeds`, `CHANGELOG`) · **Ask the
-  weather** (`askKeyGet`/`askKeySave`/`askKeyDel`, `askContext`, `askSystem`, `askClaude`, `askUi`; state `ASK`,
+  weather** (`askKeyGet`/`askKeySave`/`askKeyDel`, `askMode`, `askRefreshState`, `askContext`, `askSystem`, `askClaude`, `askReadStream`, `askUi`; state `ASK`,
   declared earlier next to the prefs) — the banner `/* ---------- Ask the weather (A1) ... ---------- */` sits
   between the Info panel and the view router.
 
