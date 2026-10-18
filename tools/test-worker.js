@@ -504,6 +504,26 @@ async function main() {
     s = await (await worker.fetch(stateReq({ cookie: ownerCookie }), mkEnv({ OWNER_TOKEN: 'rotated-token' }), ctx)).json();
     eq(s.owner, false, 'wd_owner stops working after the token is rotated');
 
+    // rate limit: 10 attempts per IP per day (a successful login counts), the 11th is 429
+    {
+      const env2 = mkEnv();
+      const ownIp = (ip, t) => worker.fetch(new Request('https://weath.er45.com/api/owner?t=' + encodeURIComponent(t), { headers: { 'cf-connecting-ip': ip } }), env2, ctx);
+      const codes2 = [];
+      for (let n = 0; n < 9; n++) codes2.push((await ownIp('198.51.100.50', 'wrong-' + n)).status);
+      eq(codes2, [403, 403, 403, 403, 403, 403, 403, 403, 403], 'owner: 9 wrong attempts -> 403');
+      const tenth = await ownIp('198.51.100.50', 'owner-secret-token');
+      eq(tenth.status, 302, 'owner: 10th attempt (right token) still works');
+      const eleventh = await ownIp('198.51.100.50', 'owner-secret-token');
+      eq(eleventh.status, 429, 'owner: 11th attempt -> 429 even with the right token');
+      eq(await eleventh.json(), { error: 'limit' }, 'owner: 429 body');
+      ok(!cookieOf(eleventh, 'wd_owner'), 'owner: refused attempt sets no wd_owner');
+      const other = await ownIp('198.51.100.51', 'owner-secret-token');
+      eq(other.status, 302, 'owner: a different IP has its own budget');
+      const ownKeys = [...env2.QUOTA._objs.keys()].filter((k) => k.startsWith('own:'));
+      eq(ownKeys.length, 2, 'owner: attempts are counted under own:<ipHash> keys');
+      ok(ownKeys.every((k) => /^own:[0-9a-f]{32}$/.test(k)), 'owner: key is own:<32 hex> (hashed IP, no raw IP)');
+    }
+
     // owner bypasses every limit
     const tight = mkEnv({ ASK_DAILY: '1', ASK_DAILY_IP: '1', ASK_DAILY_GLOBAL: '1' });
     const codes = [];
@@ -524,6 +544,87 @@ async function main() {
     eq(v2.status, 429, 'normal visitor limited under the tight env');
   }
 
+  /* ---- refund on a pre-stream upstream failure ---- */
+  {
+    const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zagreb' }).format(new Date());
+    const keys = (env) => [...env.QUOTA._objs.keys()].filter((k) => !k.startsWith('own:'));
+    const usedOf = async (env) => {
+      const out = {};
+      for (const k of keys(env)) out[k.split(':')[0]] = (await env.QUOTA.get(k).fetch('https://q/get?date=' + today()).then((x) => x.json())).used;
+      return out;
+    };
+
+    // upstream 401 -> 502, all three counters back to 0
+    let env = mkEnv();
+    upstreamMode = '401';
+    let r = await worker.fetch(askReq(goodBody(), {}), env, ctx);
+    eq(r.status, 502, 'refund: upstream 401 -> 502');
+    await r.json();
+    await drain();
+    eq(await usedOf(env), { vid: 0, ip: 0, global: 0 }, 'refund: 401 gives back visitor, IP and global hits');
+
+    // timeout before stream (504) -> refunded
+    env = mkEnv({ ASK_TIMEOUT_MS: '60' });
+    upstreamMode = 'hang';
+    r = await worker.fetch(askReq(goodBody(), {}), env, ctx);
+    eq((await r.json()).status, 504, 'refund: timeout answers 502/504');
+    await drain();
+    eq(await usedOf(env), { vid: 0, ip: 0, global: 0 }, 'refund: timeout gives back all three hits');
+
+    // network failure (status 0) -> refunded
+    env = mkEnv();
+    const savedFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      throw new TypeError('network down');
+    };
+    r = await worker.fetch(askReq(goodBody(), {}), env, ctx);
+    eq(await r.json(), { error: 'upstream', status: 0 }, 'refund: network failure body (status 0)');
+    await drain();
+    eq(await usedOf(env), { vid: 0, ip: 0, global: 0 }, 'refund: network failure gives back all three hits');
+    globalThis.fetch = savedFetch;
+
+    // earlier successful question stays counted; only the failing one is refunded
+    env = mkEnv();
+    upstreamMode = 'ok';
+    r = await worker.fetch(askReq(goodBody(), {}), env, ctx);
+    const cookie = cookieVal(cookieOf(r, 'wd_vid'));
+    await r.text();
+    await drain();
+    upstreamMode = '401';
+    r = await worker.fetch(askReq(goodBody(), { cookie }), env, ctx);
+    eq(r.status, 502, 'refund: second question fails upstream');
+    await r.json();
+    await drain();
+    eq(await usedOf(env), { vid: 1, ip: 1, global: 1 }, 'refund: only the failed question is given back');
+    const st = await (await worker.fetch(stateReq({ cookie }), env, ctx)).json();
+    eq([st.used, st.remaining], [1, 9], 'refund: state shows 1 used after a success and a refunded failure');
+
+    // mid-stream failure is NOT refunded
+    env = mkEnv({ ASK_TIMEOUT_MS: '80' });
+    upstreamMode = 'midhang';
+    r = await worker.fetch(askReq(goodBody(), {}), env, ctx);
+    await r.text();
+    await drain();
+    eq(await usedOf(env), { vid: 1, ip: 1, global: 1 }, 'refund: mid-stream timeout keeps the hits');
+    env = mkEnv();
+    upstreamMode = 'errorevent';
+    r = await worker.fetch(askReq(goodBody(), {}), env, ctx);
+    await r.text();
+    await drain();
+    eq(await usedOf(env), { vid: 1, ip: 1, global: 1 }, 'refund: upstream error event keeps the hits');
+
+    // owner is never charged, so there is nothing to refund and no ask counters exist
+    env = mkEnv();
+    const oc = cookieVal(cookieOf(await worker.fetch(new Request('https://weath.er45.com/api/owner?t=owner-secret-token'), env, ctx), 'wd_owner'));
+    upstreamMode = '401';
+    r = await worker.fetch(askReq(goodBody(), { cookie: oc }), env, ctx);
+    eq(r.status, 502, 'refund: owner upstream failure -> 502');
+    await r.json();
+    await drain();
+    eq(keys(env), [], 'refund: owner touches no ask counters');
+    upstreamMode = 'ok';
+  }
+
   /* ---- Quota Durable Object directly ---- */
   {
     const storage = makeStorage();
@@ -541,6 +642,27 @@ async function main() {
     eq(await hit('2026-10-19', 2), { used: 1, allowed: true }, 'DO hit on the new date');
     eq((await q.fetch(new Request('https://q/get?date=bogus'))).status, 400, 'DO rejects a bad date');
     eq(await hit('2026-10-19', 'abc'), { used: 1, allowed: false }, 'DO refuses a non-numeric limit');
+    // refund: decrements, never below 0
+    const refund = async (date) => (await q.fetch(new Request('https://q/refund?date=' + date, { method: 'POST' }))).json();
+    eq(await hit('2026-10-19', 1), { used: 1, allowed: false }, 'DO limit 1 is already used up on 10-19 (setup for refund)');
+    eq(await refund('2026-10-19'), { used: 0 }, 'DO refund restores used');
+    eq(await refund('2026-10-19'), { used: 0 }, 'DO refund never goes below 0');
+    eq(await get('2026-10-19'), { used: 0 }, 'DO get after refund');
+    eq(await hit('2026-10-19', 1), { used: 1, allowed: true }, 'DO hit after refund');
+    eq((await q.fetch(new Request('https://q/refund?date=bogus', { method: 'POST' }))).status, 400, 'DO refund rejects a bad date');
+    eq((await q.fetch(new Request('https://q/refund?date=2026-10-19'))).status, 404, 'DO refund needs POST');
+    // midnight race: a late request carrying the OLD date must not reset a newer record
+    eq(await hit('2026-10-19', 5), { used: 2, allowed: true }, 'DO newer record at 2 before the late request');
+    eq(await get('2026-10-18'), { used: 2 }, 'DO stale-date get returns the newer record used');
+    eq(storage._m.get('rec'), { date: '2026-10-19', used: 2 }, 'DO stale-date get does not reset or rewrite the newer record');
+    eq(await hit('2026-10-18', 5), { used: 3, allowed: true }, 'DO stale-date hit counts toward the newer record');
+    eq(storage._m.get('rec'), { date: '2026-10-19', used: 3 }, 'DO stale-date hit keeps the newer date');
+    eq(await refund('2026-10-18'), { used: 2 }, 'DO stale-date refund decrements the newer record');
+    eq(storage._m.get('rec'), { date: '2026-10-19', used: 2 }, 'DO newer record intact after stale refund');
+    eq(await hit('2026-10-18', 2), { used: 2, allowed: false }, 'DO stale-date hit respects the limit of the newer record');
+    // a record whose date is older than the request is still dropped
+    eq(await get('2026-10-20'), { used: 0 }, 'DO older record dropped for a later date');
+    ok(!storage._m.has('rec'), 'DO older record deleted for a later date');
     // alarm: stale record -> wiped; today record -> rescheduled
     await storage.put('rec', { date: '2000-01-01', used: 3 });
     await q.alarm();

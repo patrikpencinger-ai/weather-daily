@@ -6,7 +6,7 @@
  *
  *   GET  /api/ask/state   quota + availability for the current visitor (JSON, no-store)
  *   POST /api/ask         one question -> text/event-stream (meta, delta*, done | error)
- *   GET  /api/owner?t=... owner mode (cookie), then 302 to the Info view
+ *   GET  /api/owner?t=... owner mode (cookie), then 302 to the Info view (max OWNER_ATTEMPTS per IP per day)
  *
  * Secrets (never in files): ANTHROPIC_API_KEY, OWNER_TOKEN - set with `wrangler secret put`.
  * Plain vars (wrangler.toml [vars]): ASK_MODEL, ASK_DAILY, ASK_DAILY_IP, ASK_DAILY_GLOBAL.
@@ -30,6 +30,7 @@ const MAX_PLACE_CHARS = 120;
 const COOKIE_MAX_AGE = 31536000;
 const UPSTREAM_URL = 'https://api.anthropic.com/v1/messages';
 const OWNER_REDIRECT = '/weather-dashboard.html#info';
+const OWNER_ATTEMPTS = 10; // /api/owner attempts per client IP per Zagreb day
 
 /* ---------- small helpers ---------- */
 
@@ -205,6 +206,15 @@ function limitsOf(env) {
     ip: intVar(env.ASK_DAILY_IP, 40),
     global: intVar(env.ASK_DAILY_GLOBAL, 400),
   };
+}
+
+// Give back the three quota hits of a request that failed before any SSE was sent (best-effort).
+function refundHits(env, ctx, id, date) {
+  const p = Promise.all(
+    ['vid', 'ip', 'global'].map((k) => quotaCall(env, id.keys[k], 'POST', '/refund', { date }).catch(() => null))
+  );
+  if (ctx && ctx.waitUntil) ctx.waitUntil(p);
+  return p;
 }
 
 /* ---------- responses ---------- */
@@ -385,6 +395,7 @@ async function handleAsk(request, env, ctx) {
     });
   } catch (e) {
     clearTimeout(timer);
+    if (!id.owner) refundHits(env, ctx, id, date);
     return jsonRes({ error: 'upstream', status: timedOut ? 504 : 0 }, 502, id);
   }
   if (!up.ok || !up.body) {
@@ -393,6 +404,7 @@ async function handleAsk(request, env, ctx) {
       if (up.body) await up.body.cancel();
     } catch (e) {}
     console.error('ask: upstream status', up.status);
+    if (!id.owner) refundHits(env, ctx, id, date);
     return jsonRes({ error: 'upstream', status: up.status }, 502, id);
   }
 
@@ -437,6 +449,12 @@ async function handleAsk(request, env, ctx) {
 
 async function handleOwner(request, env) {
   const id = await identify(request, env);
+  // Brute-force guard: every attempt (also a successful one) counts toward a per-IP daily cap.
+  const attempt = await quotaCall(env, 'own:' + id.keys.ip.slice(3), 'POST', '/hit', {
+    date: zagrebDate(),
+    limit: String(OWNER_ATTEMPTS),
+  });
+  if (!attempt.allowed) return jsonRes({ error: 'limit' }, 429, id);
   const t = new URL(request.url).searchParams.get('t');
   const tok = env.OWNER_TOKEN;
   if (!tok || !t || !timingSafeEqual(t, tok)) return jsonRes({ error: 'forbidden' }, 403, id);
@@ -477,9 +495,12 @@ export default {
 
 /* ---------- Quota Durable Object ---------- */
 /*
- * One object per key (`vid:<id>`, `ip:<hash>`, `global`). Stores a single record {date, used}
- * with the KV-style storage API (get/put/delete). A record from an older date is dropped on
- * access. POST /hit?date=&limit= -> {used, allowed} (counts only when allowed);
+ * One object per key (`vid:<id>`, `ip:<hash>`, `own:<ipHash>`, `global`). Stores a single record
+ * {date, used} with the KV-style storage API (get/put/delete). A record from an OLDER date than
+ * the request's is dropped on access; a record from a NEWER date (a late request from before
+ * midnight) is kept and served as is, so it counts toward the new day and never resets it.
+ * POST /hit?date=&limit= -> {used, allowed} (counts only when allowed);
+ * POST /refund?date= -> {used} (decrements, never below 0);
  * GET /get?date= -> {used}. An alarm wipes the object once its record is no longer today's.
  */
 export class Quota {
@@ -494,10 +515,11 @@ export class Quota {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return Response.json({ error: 'bad_date' }, { status: 400 });
     const st = this.ctx.storage;
     let rec = await st.get('rec');
-    if (rec && rec.date !== date) {
+    if (rec && rec.date < date) {
       await st.delete('rec');
       rec = null;
     }
+    const recDate = rec ? rec.date : date; // a newer stored date wins over the request's date
     const used = rec ? rec.used : 0;
 
     if (u.pathname === '/get' && request.method === 'GET') return Response.json({ used });
@@ -506,11 +528,17 @@ export class Quota {
       const limit = parseInt(u.searchParams.get('limit'), 10);
       if (!Number.isFinite(limit) || limit < 1) return Response.json({ used, allowed: false });
       if (used >= limit) return Response.json({ used, allowed: false });
-      await st.put('rec', { date, used: used + 1 });
+      await st.put('rec', { date: recDate, used: used + 1 });
       try {
         if (st.getAlarm && st.setAlarm && !(await st.getAlarm())) await st.setAlarm(Date.now() + 36 * 3600 * 1000);
       } catch (e) {}
       return Response.json({ used: used + 1, allowed: true });
+    }
+
+    if (u.pathname === '/refund' && request.method === 'POST') {
+      if (!rec || used < 1) return Response.json({ used });
+      await st.put('rec', { date: recDate, used: used - 1 });
+      return Response.json({ used: used - 1 });
     }
     return Response.json({ error: 'not_found' }, { status: 404 });
   }
