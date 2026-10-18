@@ -208,6 +208,8 @@ console.log('F1 Tokyo (UTC+9), now 2026-10-08T20:45, all days 24 rows');
   eq(r.presH.length, 24, 'presH has the 72 h window in 3 h steps'); eq(r.presH[0].dt, '2026-10-07', 'presH starts yesterday');
   eq(r.presNowIdx, 15, 'presNowIdx = position of the 45th row (today 21:00)');
   eq(r.sun.rise, '06:30', 'sun.rise is today'); eq(r.sun.len, 630, 'sun.len in minutes');
+  eq(r.sunDays.length, fx.daily.time.length, 'F2: sunDays has one entry per daily date'); eq(r.sunDays[0].dt, fx.daily.time[0], 'F2: sunDays starts at the first daily date'); eq(r.sunDays[1].rise, '06:30', 'F2: sunDays rise is HH:MM'); eq(r.sunDays[1].set, '17:00', 'F2: sunDays set is HH:MM');
+  ok(r.sunDays.every((s, i) => s.dt === fx.daily.time[i]), 'F2: sunDays dates follow daily.time (yesterday .. last day)');
   eq(r.gustMax, 26, 'gustMax is today (daily index of today)');
   eq(r.uv.max, 5, 'uv.max read');
   ok(r.rain15 && r.rain15[0].h === '20:45', 'rain15 starts with the slot containing now', JSON.stringify(r.rain15 && r.rain15[0]));
