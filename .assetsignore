@@ -7,3 +7,4 @@ worker.js
 CLAUDE.md
 AGENTS.md
 tools/
+.wrangler/
