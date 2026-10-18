@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~4,700 lines). Current version: **v3.22** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~5,900 lines). Current version: **v3.23** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
@@ -43,6 +43,8 @@ label (the label stays for screen readers, visually hidden) and no peek badge. D
 (`T` keys `tabNow`/`tabPlan`/`tabMap`) and peeks, set by `updateTabs()`: `pk-now` the current temperature,
 `pk-plan` the chosen activity's icon plus its tier dot for today (from `scoreDay`), `pk-map` 🌧️/🗺️. The bar **stays visible on the Map view**: `showView()` sets `#tabs.onmap`;
 desktop hides the top tabs there, mobile/mid keep the bar above the map and hide the map's ✕.
+
+The ask bar `#askBar` (v3.23, see "Ask about the weather") is the first element of `#dash`, above the alert banner and the tab bar.
 
 Header controls: the location pill (`#locSel`), ONE language toggle (`btn-lang`, `toggleLang()`, shows
 the current language code) and one alternating sun/moon theme icon (`btn-theme`). There is no refresh
@@ -96,7 +98,7 @@ never intercepts or caches an API or map-tile request — those always go straig
 untouched, exactly as if the service worker did not exist. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.22`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.23`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -108,7 +110,8 @@ footer chip instead.
 ### NOW view (`#view-now`, tab SADA) — DOM order
 
 Above everything, outside `#dash`, sits `#nowBarW` (a zero-height sticky wrapper) holding the sticky now-bar
-`#nowBar` (see below).
+`#nowBar` (see below). Inside `#dash`, above `#alertBox` and `#tabs`, sits the search bar `#askBar` (shared by NOW, PLAN
+and Info; see "Ask about the weather").
 
 1. `#cmpNote` — in comparison mode, one line saying what is compared (`T.cmpNote`, `{A}`/`{B}`).
 2. `.toprow` — `#hero` (`renderHero()`: temperature, feels like, low–high, rain % + mm, icon, and the
@@ -161,67 +164,164 @@ the trail cards and the nonsense numbers. The warning banner `#alertBox` sits ab
 One continuous, zoomable, layered time axis on NOW from six hours ago to the end of the forecast (about 16
 days). It is a **custom Canvas 2D** drawing (`#tlCanvas` inside `#tlWrap`), not Chart.js. Banner
 `/* ---------- VREMENSKA OS / TIMELINE (K1) ... ---------- */`. Only built when `tlOk()` (direct-mode data with
-`D.hr` longer than 24 rows).
+`D.hr` longer than 24 rows). v3.23 made it the one detailed chart of the app: the legend is the series
+control, every series the data has is a layer, and a fullscreen shell shows it all at once. The chart rules
+that shaped it are cited by number in the code comments: C-02 value labels, C-03 line style, C-05 hover
+readout, C-06 contrast-safe ink, C-13 no series without data, C-15 legend as control, C-16 axis furniture
+always drawn, C-17 axis drag / wheel rescale, C-18 Auto / Full, RT-24 series names inside the plot, RT-22 the
+fullscreen shell.
 
-- **DOM.** `#tlSec`: heading (`T.tlTitle`), summary `#tlSum` (one line for the visible window, `tlSummary()`,
-  written only when the text changes), zoom pills `#tlZoom` (`btn-tlz-h` / `btn-tlz-3` / `btn-tlz-d`), layer
-  pills `#tlLayers` (`btn-tll-temp`/`-rain`/`-wind`/`-pres`/`-uv`/`-air`/`-sea`/`-score`/`-norm`, a swipeable row on
-  mobile), the canvas wrapper `#tlWrap` (height set by `applyResponsive()`: 340 / 300 / 250 px for
-  desktop / mid / mobile) with the readout box `#tlReadout`, the legend `#tlLeg` (custom DOM, built by
-  `tlLegend()`), and the screen-reader live region `#tlLive` (`role=status`). The canvas has `tabindex=0`,
-  `role=img` and `data-tt="ar_tl"`; the pill groups use `tlZoomAria` / `tlLayersAria`.
-- **State.** `TL={zoom,layers,x0,cursor}`: `zoom` is `'h'` (hours), `'3'` (every 3 h) or `'d'` (days; the
-  order is `TLZ`); `layers` has the nine flags of `TLLAYERS` (`temp, rain, wind, pres, uv, air, sea, score,
-  norm`); `x0` is the left edge and `cursor` the selected column, both in "location-local wall-clock
-  minutes × 60000" (the `tsMin()` of Open-Meteo's time strings, so a day is always 1440 minutes wide and DST
-  never shifts the axis); `cursor===null` means nothing selected. **Only `zoom` and `layers` are remembered**
-  (`wd_prefs.tl`; `x0` and `cursor` never are). **Defaults** with no stored preference: exactly temperature, rain
-  and score are on; stored preferences win. `TLC` is the derived cache (row minutes `tm`, temperature and
-  pressure scale ranges, per-day wind/gust/UV maxima `ag`, the AQI series, the per-hour and per-day scores
-  `rs`/`ds`, the pending frame ids `raf`/`to`).
+- **DOM.** `#tlSec`: heading row `.hd.tlhd` (`T.tlTitle` and the ⛶ button `btn-tlfs`, `tlFullOpen()`), summary
+  `#tlSum` (one line for the visible window, `tlSummary()`, written only when the text changes; with the
+  visibility / snow layers on it also names the first fog / snow hour in view), the toolbar `#tlTools`
+  (`.tltools`: zoom pills `#tlZoom` with `btn-tlz-h` / `btn-tlz-3` / `btn-tlz-d`, the axis-fit pair `#tlFit`
+  with `btn-tlf-auto` / `btn-tlf-full`, the line-style trio `#tlStyle` with `btn-tls-linear` / `-step` /
+  `-smooth`), the canvas wrapper `#tlWrap` (compact height set by `tlDraw()` itself, never smaller than
+  `applyResponsive()`'s 340 / 300 / 250 px for desktop / mid / mobile, and tall enough for every lane that is
+  on) with the readout box `#tlReadout`, the legend `#tlLeg` (custom DOM, built by `tlLegend()`), and the
+  screen-reader live region `#tlLive` (`role=status`). The canvas has `tabindex=0`, `role=img` and
+  `data-tt="ar_tl"`; the toolbar groups use `tlZoomAria` / `tlFitAria` / `tlStyleAria`. There are no separate
+  layer pills any more: the legend is the only series control (C-15).
+- **State.** `TL={zoom,layers,style,names,axis,x0,cursor,full}`. `zoom` is `'h'` (hours), `'3'` (every 3 h) or
+  `'d'` (days; the order is `TLZ`). `layers` has one flag per entry of `TLLAYERS` (the readout order `TLORDER`,
+  flattened from `TLGROUPS`: `temp, feels, norm, rain, snow, cloud, wind, gust, pres, humid, uv, air, pollen,
+  vis, frz, sea, tide, sun, moon, score`) with **three states**: `0` hidden, `1` visible without value labels,
+  `2` visible with value labels. `style` is `'linear'`, `'step'` or `'smooth'` (`TLSTYLES`, default `smooth`:
+  monotone cubic, no overshoot). `names={c,f}` switches the series-name overlays on for the compact (`c`,
+  default off) and fullscreen (`f`, default on) view. `axis={temp,pres}`, each `{mode:'auto'|'full',lo,hi}`,
+  where `lo`/`hi` are a manual override (both `null` = automatic). `x0` is the left edge and `cursor` the
+  selected column, both in "location-local wall-clock minutes × 60000" (the `tsMin()` of Open-Meteo's time
+  strings, so a day is always 1440 minutes wide and DST never shifts the axis); `cursor===null` means nothing
+  selected; `full` is true while the fullscreen shell is open. **Remembered**
+  (`wd_prefs.tl={v:2,zoom,layers,style,names,axis}`): everything except `x0`, `cursor` and `full`.
+  **Defaults** with no stored preference: exactly temperature, rain and score at state 2, every other layer
+  hidden; stored preferences win (`loadPrefs()` migrates the pre-v3.23 0 / 1 / boolean flags, where a stored
+  "on" becomes 2). `TLC` is the derived cache (row minutes `tm`, the raw temperature and pressure data ranges
+  `tMin`/`tMax`/`pMin`/`pMax`, per-day aggregates `ag` — wind, gust, UV, visibility, snow sum and the means of
+  humidity, freezing level and the three cloud bands — the AQI series, the pollen series `pol`/`polD`, the
+  per-hour and per-day scores `rs`/`ds`, the availability cache `has`, the hover minute `hov`, the legend
+  preview `preview`, the pending frame ids `raf`/`to`, the location key `locKey`).
 - **Scale.** `TLPX[zoom]=[desktop/mid, mobile]` pixels per hour: hours 34 / 26, 3 h 12 / 9, days 3.2 / 2.6
   (`tlPpm()` = px per minute). A row is drawn centred on its timestamp; `tlSnap(m)` maps a free minute to the
   column it belongs to (the hour, the 3-hour row, or noon of the day).
-- **Lanes.** `tlDraw()` lays out lanes top to bottom and collapses lanes that are off: the main area (rain
-  columns + pressure line + temperature line/bars, whichever of those layers are on), then wind (speed
-  with gusts), UV, air (AQI), sea (SST) and the activity-score lane (each its own small band), above a
-  time axis. Day bands, midnight lines with sticky day labels (month labels at day zoom), night shading from
-  `hr[].night`, storm-alert windows from `D.alerts`, the "now" line and the cursor column are drawn under/over
-  the lanes. Rain: bars of rain % plus mm amounts (plus the next-2h `D.rain15` strip at hours zoom). The
-  **score lane** is the planner's activity (`planAct()`): per-hour `scoreHour` bars and the best-window mark
-  from `scoreDay`, so the timeline never disagrees with PLAN; its pill is relabelled with the activity
-  (`tlSyncUi()`). The **norm layer** (day zoom only; its pill is hidden at the other zooms and without
-  `D.climo.byDay`) draws the climatological normal of the daily maximum as a dotted line. Day zoom adds a
-  confidence band for day 8+ on the temperature bars. In comparison mode the temperature lane draws A and B
-  (`TLC.hr2`/`tm2`, `CMP.a`/`CMP.b`); every other lane shows A only.
+- **Layers and their data** (`tlHas()` says which the place offers, `tlAvail(k,has)` also applies the zoom;
+  a series with no data is never drawn and never listed in the legend, C-13). `temp`, `rain` (rain % bars plus
+  mm; the next-2h `D.rain15` strip at hours zoom), `wind`, `pres`, `uv`, `air` (the hourly AQI series
+  `D.air.aqi.series`), `sea` (`D.sea.days`), `norm` (day zoom only, `D.climo.byDay`) and `score` are the v3.22
+  layers. New in v3.23: `feels` (`hr[].fl`, hours and 3 h only; dotted, on the temperature scale), `humid`
+  (`rh`; takes the right-hand axis strip while pressure is off, else a thin lane of its own), `cloud`
+  (`cl`/`cm`/`ch` as three stacked grey bands at the top of the main area; day zoom the daily mean), `snow`
+  (`hr[].snow`, cm, violet bars inside the rain lane: 1.5 cm is full height at hours zoom, 4 cm at 3 h, 15 cm
+  at days), `gust` (`g`, a line over the wind lane), `vis` (`vis`, metres shown in km on a log-ish scale; fog
+  below 1 km in the warning colour), `frz` (`frz`, freezing level in m, a line with its own small scale drawn
+  inside the plot), `sun` (**`D.sunDays=[{dt,rise,set}]`**, added by `buildOpenMeteo` for every day of the
+  response — `D.sun` stays today's — gives the exact-minute night shading `tlNights()` and the sun-up /
+  sun-down ticks on the axis, and with labels the sunrise / sunset times), `moon` (`moonIcon`/`moonName`/
+  `moonIllum`: day zoom one icon per day above the day label, hours / 3 h the icon at local midnight), `tide`
+  (`D.sea.tide` daily high / low levels in cm as ↑ / ↓ marks in the sea lane; the data has no times, which the
+  legend tooltip `tlTideTip` says; omitted inland) and `pollen` (**`D.air.pollenH=[{ts,k,v}]`**, the dominant
+  pollen type and value of every hour, built by `ensureAir()` from the hourly `*_pollen` arrays of the same
+  air-quality response and cached with the same 30 min TTL; `tlPollen()` turns it into minutes; cells are
+  coloured by the `polLvl` bands, state 2 writes the type abbreviation `polAbbr`, at 3 h zoom on every third
+  cell). `TLPAL`/`tlCol(k)` hold the series colours (light, dark; read at draw time), `TLIC` the readout
+  icons, `TLUNIT` the legend units.
+- **Lanes.** `tlDraw()` lays out lanes top to bottom and collapses lanes that are off: the main area (the
+  cloud band, rain / snow columns, the pressure, humidity, freezing-level, normal, feels-like and temperature
+  lines, whichever of those layers are on), then the humidity lane (only when pressure is also on), wind
+  (speed bars with the gust line), UV, air (AQI), pollen, visibility, sea (SST plus tide marks) and the
+  activity-score lane (each its own small band), above an axis band with the time labels, the sun ticks and
+  (state 2) times, and the moon icons. Day bands, midnight lines with sticky day labels (month labels at day
+  zoom), night shading (exact sunset / sunrise with a 35-minute ramp when the sun layer is on, else
+  `hr[].night`), storm-alert windows from `D.alerts`, the "now" line, the cursor column and the hover
+  crosshair are drawn under/over the lanes. The **score lane** is the planner's activity (`planAct()`):
+  per-hour `scoreHour` bars and the best-window mark from `scoreDay`, so the timeline never disagrees with
+  PLAN; its chip is relabelled with the activity (`tlLayerName()`). Day zoom adds a confidence band for day 8+
+  on the temperature bars. In comparison mode the temperature lane draws A and B (`TLC.hr2`/`tm2`,
+  `CMP.a`/`CMP.b`); every other lane shows A only. The compact canvas grows to fit every lane that is on (a
+  phone with many layers gets taller, never clipped); in fullscreen the lanes are scaled up to the free
+  height and the type is 2 px larger.
+- **Legend as control** (`tlLegend()`, one delegated click / pointer listener set on `#tlLeg` in `tlInit()`).
+  One `<button class="tlk s0|s1|s2" data-k="…">` per available layer, grouped by `TLGROUPS` under a muted
+  group title (`tlG_*`: Temperature, Precipitation, Wind, Air, Sea, Sun and moon, Scores). A click calls
+  `tlSetLayer(k)` and cycles 2 → 1 → 0 → 2 (filled swatch / hollow swatch / grey and struck through); the
+  chip's `aria-pressed` means "visible" and its `aria-label` states the state (`tlSt0`/`tlSt1`/`tlSt2`). A
+  mouse hovering a hidden chip previews that series at 35 % (`TLC.preview`; never on touch). The compact view
+  lists only the groups that have a layer on, plus a "More" / "Less" chip (`#tlMore`, `tlToggleMore()`,
+  `TLmore`, `TLC.keep`) for the rest; the fullscreen legend lists every group. The trailing group holds the
+  series-name switch `#tlNames` (`tlToggleNames()`, writes `TL.names.c` or `.f`), the A / B or confidence
+  swatches, the score tier swatches and the muted hint `tlHint` (hidden on touch).
+- **Value labels** (state 2 only, C-02). Each layer prints its numbers when its state is 2 (`LB[k]` in the
+  draw); `fits(key,x,w)` refuses a label that would touch the previous one of the same kind, so labels thin
+  out instead of overlapping; text on a coloured cell uses `tlTextOn(c)` (black or white by luminance) and a
+  series colour used as ink goes through `tlInk(c,BG)` (mixed towards black / white until it reaches 4.5:1,
+  cached in `TLINK`) — C-06.
+- **Series-name overlays** (RT-24, `TL.names`). With the switch on, every visible line series (temperature,
+  feels like, pressure, humidity, freezing level, gusts, normal, and B in comparison mode) writes its short
+  name (`tlN_temp`, `tlN_feels`, `tlN_pres`, `tlN_humid`, `tlN_frz`, `tlN_gust`, `tlN_norm`) inside the plot at
+  the left and right edges next to the line's first and last visible point, with a halo, kept apart from
+  other marks and from the axis labels (`NMS`, `occ`).
+- **Axes** (C-16 / C-17 / C-18). The temperature axis is the left strip (30 px), the pressure axis the right
+  strip (34 px; it shows the humidity scale while pressure is off, and that one is not draggable). Ticks and
+  labels are **always drawn**, dimmed while their series is hidden. `tlAxisCalc(which,rng,zoneH)` returns
+  `{lo,hi,step,ticks,manual,mode}`; `tlRange()` supplies the data range (Auto = the visible window, Full =
+  all data). **Mouse only:** dragging an axis strip vertically (`tlAxisAt` finds the strip, `tlAxisBase` /
+  `tlAxisScale` rescale) or the wheel over it rescales the axis (up = smaller maximum, down = larger; Auto
+  keeps the minimum, Full scales around the middle) and creates a manual override `TL.axis.*.lo/hi`;
+  double-click on the strip, or choosing Auto / Full (`tlSetFit(mode)`), drops it. A touch swipe that starts
+  inside a strip pans like anywhere else (the axis branch of `pointerdown` requires `pointerType==='mouse'`).
+  `tlPrep()` also drops the overrides when the forecast place changes (`TLC.locKey`, from `D.loc` / `D.tz`),
+  since a range set for one place means nothing for another. `tlSetStyle(st)` sets the line style of the
+  temperature (A and B), feels, pressure, humidity, freezing-level, gust, normal and (without labels) sea lines.
 - **Interaction** (`tlInit()`, one-time listeners on the canvas). Pointer events: drag pans (`TL.x0`, clamped
   by `tlClamp()` to now − 6 h … the end of the data), a quick tap (< 5 px, < 700 ms) calls `tlTap(px)`;
-  horizontal wheel / shift+wheel pans. Keyboard (canvas focused): ←/→ `tlMoveCursor(±1)` (one column), Home
-  `tlHome()` (cursor to now), +/− `tlSetZoom` one step, Enter/Space toggles the readout, Esc `tlHide()`.
-  `tlSetZoom(z)` keeps the view centred on the cursor (or the view centre); `tlSetLayer(k)` toggles a layer;
-  both save the prefs and refresh pills + legend. **The cursor is always a column inside the pannable range**
-  (now − 6 h … the last row): `tlCurClamp(m)` snaps and clamps, and `tlTap`, `tlMoveCursor`, `tlHome`,
-  `tlSetZoom` and `tlSyncFromMap` all go through it, so `#tlLive` never announces an off-canvas column.
-- **Readout.** Tap/Enter opens `#tlReadout` next to the cursor column (`tlPlaceReadout()`); its content comes
-  from `tlReadoutLines()` → `{title, lines:[[icon,text]]}` for the **active layers only**, and the same text
-  is mirrored into `#tlLive`. A line whose value is missing is skipped (never a lone `°` or an empty rain
-  line); numbers go through `tlN()` (HR decimal comma) and mm through `tlMm()` in every zoom. Hour/3 h
-  readouts show temperature (+ feels like), rain % · mm (3 h: max % and summed mm), wind (+ gust), pressure,
-  UV, AQI, sea, the score; the day readout shows low … high, rain, wind, pressure, UV, peak AQI, sea, the
-  normal with its delta, **the moon phase** (`moonIcon`/`moonName`/`moonIllum`; it replaces the removed Moon
-  overlay) and the score with its best window.
+  horizontal wheel / shift+wheel pans. A mouse moving over the plot (`tlHoverAt()`, C-05) sets `TLC.hov` and
+  shows the readout of the column under it plus a crosshair, with no tap needed
+  (`tlPlaceReadout(x,m,hover)`); leaving the canvas hides it unless a cursor is set. Keyboard (canvas
+  focused): ←/→ `tlMoveCursor(±1)` (one column), Home `tlHome()` (cursor to now), +/− `tlSetZoom` one step,
+  Enter/Space toggles the readout, Esc `tlHide()` (in fullscreen Esc closes the overlay instead).
+  `tlSetZoom(z)` keeps the view centred on the cursor (or the view centre); `tlSetLayer(k,st)` sets a layer
+  state (without `st` it cycles); all of these save the prefs and refresh the toolbar and the legend. **The
+  cursor is always a column inside the pannable range** (now − 6 h … the last row): `tlCurClamp(m)` snaps and
+  clamps, and `tlTap`, `tlMoveCursor`, `tlHome`, `tlSetZoom` and `tlSyncFromMap` all go through it, so
+  `#tlLive` never announces an off-canvas column.
+- **Readout.** Tap/Enter (or a mouse hover) opens `#tlReadout` next to the column (`tlPlaceReadout()`); its
+  content comes from `tlReadoutLines(m)` → `{title, lines:[[icon,text]]}`: **one line per visible layer, in
+  legend order** (`TLORDER`); with many layers on, the box switches to two columns (`.c2`) rather than
+  outgrow the plot. The text is mirrored into `#tlLive` (not for hover). A line whose value is missing is
+  skipped (never a lone `°` or an empty rain line); numbers go through `tlN()` (HR decimal comma) and mm
+  through `tlMm()` in every zoom. The temperature line keeps its "(feels X°)" suffix while the feels layer is
+  off; with the layer on, the feels line carries it. Hour / 3 h readouts show the value of each active layer
+  (3 h: the window's maximum, the sum for mm and snow, the minimum for visibility); the day readout shows low … high, rain, wind, pressure,
+  UV, peak AQI, sea, the normal with its delta, the day's sunrise / sunset (`sunLine`), the tide
+  (`tideLine`), the strongest pollen hour (`polTxt`), **the moon phase** (`moonIcon`/`moonName`/`moonIllum`)
+  and the score with its best window.
+- **Fullscreen shell** (RT-22). The ⛶ button (`btn-tlfs`) calls `tlFullOpen()`, which **moves** the existing
+  `#tlTools`, `#tlSum`, `#tlWrap` and `#tlLeg` nodes into `#tlFull` (one engine, one canvas, nothing
+  duplicated), remembering where they came from in `TLFS_BACK`; `tlFullClose(fromPop)` puts them back,
+  returns focus to `btn-tlfs` and restores the compact layout. `#tlFull` is a `position:fixed; inset:0;
+  z-index:1200` dialog (`role=dialog`, `aria-modal`, labelled by `#tlFullTitle`) with `#tlFullHead` (title,
+  the `#tlFullTools` slot, the ✕ button `btn-tlfsx`), the rotate hint `#tlFullHint` (`tlRotate`, shown by
+  `tlFullLayout()` on a phone in portrait) and `#tlFullBody` (summary, canvas, legend). It sets `TL.full`, adds
+  `html.tlfs` (locks the page scroll and hides `#askBar`) and `#tabs.onfull` (hides the tab bar), and pushes
+  a history entry (`{tlfull:1}`) so the browser back button closes it (`popstate`). Esc closes it, Tab stays
+  inside it, resize and `orientationchange` call `tlFullLayout()`; `showView()` closes it when NOW is left and
+  `tlRender()` when the data stops supporting a timeline. `#tlWrap` flex-grows to fill the space between the
+  toolbar and the legend; the legend is capped at 34 vh and scrolls inside that cap (24 vh on a viewport at
+  most 520 px high, where the plot keeps at least 160 px), and `#tlFull` itself scrolls (`overflow:auto`) so a
+  very short landscape phone never clips it.
 - **Programmatic access.** `tlGoto(ts)` centres the view on a location-local time string; `tlCursorTs()` returns
   the cursor as `YYYY-MM-DDTHH:MM` (or `null`); `tlInvalidate()` drops the score / AQI / row caches and
   redraws (called by `setAct()` so the score lane follows the planner); `tlRender()` (called from
-  `render()`) shows/hides the section, refreshes pills and legend and draws.
+  `render()`) shows/hides the section, refreshes the toolbar and the legend and draws.
 - **Drawing and performance.** `tlSchedule()` coalesces redraws into one `requestAnimationFrame`, with a 160 ms
   timeout fallback because rAF is throttled in background tabs; `tlDraw()` first cancels a still-pending
-  frame, so `tlSchedule(); tlRender()` draws once. `tlPrep()` and `tlScores()` rebuild their caches only when
-  `D.hr` / `D2.hr` / the activity change (identity checks), never per frame; per frame only the rows between
-  `iA` and `iB` (binary search `tlLb`) are touched. The canvas backing store is `W×dpr` with
-  `dpr=min(3,devicePixelRatio)` and is only resized when the size changes; a `ResizeObserver` on `#tlWrap`
-  redraws on layout changes. **Theme colours are read at draw time** (`C`, `BG`, `txt`, `strong`, `grid`,
-  `halo`, `theme`), so `applyTheme`/`setLang` just trigger a redraw.
+  frame, so `tlSchedule(); tlRender()` draws once (`TLC.ms` holds the duration of the last draw). `tlPrep()`
+  and `tlScores()` rebuild their caches only when `D.hr` / `D2.hr` / the activity change (identity checks),
+  and `tlHas()` / `tlPollen()` / `tlSunBy()` / `tlNights()` only when their source object changes, never per
+  frame; per frame only the rows between `iA` and `iB` (binary search `tlLb`) are touched. The canvas backing
+  store is `W×dpr` with `dpr=min(3,devicePixelRatio)` and is only resized when the size changes; a
+  `ResizeObserver` on `#tlWrap` redraws on layout changes. **Theme colours are read at draw time** (`C`,
+  `BG`, `txt`, `strong`, `grid`, `halo`, `theme`), so `applyTheme`/`setLang` just trigger a redraw.
 
 **Sticky now-bar.** `#nowBar` (inside `#nowBarW`, a 36 px bar pinned to the top of the viewport while the page
 scrolls) shows the place, the current temperature, feels like and today's range (both places when comparing)
@@ -237,6 +337,68 @@ the view with `tlGoto`. Both are wrapped in try/catch.
 
 **Fixed 16-day forecast.** `FCDAYS=16` (the Open-Meteo maximum) is the only forecast span: `fetchFor`, the cache
 keys (`FCDAYS|place`), the AI-feed fallback and `hardRefresh()` all use it; there is no range selector any more.
+
+### Ask about the weather (AI search, `#askBar`)
+
+A natural-language question box at the top of the page (v3.23): the user types a question in Croatian or English
+and Claude answers it from the forecast the app has loaded. It is **optional and bring-your-own-key**: with no
+key the page works exactly as before and the bar only shows a hint.
+
+- **DOM.** `#askBar` (`role=search`) is the first child of `#dash`, above `#alertBox` and `#tabs`: the row
+  `.askrow` with the input `#askIn` (`maxlength=300`, Enter calls `askKey(ev)` → `askSubmit()`), the send button
+  `#askGo` and the key button `#btn-askKey` (🔑, `askKeyGo()`); then the no-key hint `#askHint`, the example
+  chips `#askEx` (`.askchip` buttons from `T.askEx`; the sea question is skipped for inland places; shown only
+  while there is no answer yet) and the answer panel `#askOut` (`aria-live=polite`; header with collapse and
+  Clear, a "no key" note with an "Add key" button, one `.askent` per answer). The bar is hidden on the MAP
+  view (`askUi()` toggles `.hidden`) and, by CSS, while the fullscreen timeline is open (`html.tlfs`); it shows
+  on NOW, PLAN and Info. `askUi()` refreshes it and is called from `applyTitles()`, `showView()`,
+  `renderActive()` and the key handlers; it rebuilds the chips and the panel only when its signature
+  `ASK.sig` (language, theme, state, history) changes and never touches the input itself.
+- **State.** `ASK={model,hist,busy,open,note,setMsg,memKey,ctrl,seq,sig}` with the constants `ASK_KEY`
+  (`'wd_apikey'`), `ASK_URL` and `ASKMODELS`, declared next to the prefs code **before** `T` because
+  `setLang → applyTitles → askUi` already runs during boot.
+- **Settings panel (Info page).** The card `#askSet` sits on the Info view between `#infoAbout` and the data
+  sources: a password-type input `#apiKeyIn` (`autocomplete=off`; Enter saves), `btn-askSave` →
+  `askKeySave()`, `btn-askDel` → `askKeyDel()`, the status line `#askKeyState` (`role=status`; shows the key
+  **masked** by `askKeyMask()`, the first seven characters, an ellipsis and the last four, and a saved /
+  removed message from `T.askMsg`), the model select `#askModel` (`askModelSet(v)`), the cost note
+  (`askSetNote`) and a link to console.anthropic.com/settings/keys. `askSetRender()` fills it from
+  `renderInfo()`; `askKeyGo()` (the 🔑 button, also the "Add key" buttons) opens `#info` and focuses the key
+  field.
+- **BYOK rule (never break it).** The user's Claude API key lives **only** in `localStorage` under `wd_apikey`
+  (`askKeyGet()` / `askKeySave()` / `askKeyDel()`; `askKeyOk()` accepts printable ASCII of 8–300 characters,
+  because a header value must be ISO-8859-1). When storage is blocked the key is kept in `ASK.memKey` for the
+  page session only. It is sent **only** as the `x-api-key` header of the `POST` to `ASK_URL`
+  (`https://api.anthropic.com/v1/messages`, a direct browser call — the one request the app makes to a paid
+  API). It is never written to `wd_prefs` or `wd_last`, a URL or hash, the console or visible text (the input
+  is cleared after saving; only the masked form is shown), and it never appears in the source, the changelog
+  or a test. Headers used: `content-type`, `x-api-key`, `anthropic-version: 2023-06-01` and
+  `anthropic-dangerous-direct-browser-access: true` (the header Anthropic requires for browser calls); the
+  request is sent with `credentials:'omit'`, `referrerPolicy:'no-referrer'` and `cache:'no-store'`. `sw.js`
+  never touches a `POST`. Test with a dummy key such as `sk-ant-test`, never a real one.
+- **Models and cost.** `claude-sonnet-5` (default, more accurate) and `claude-haiku-4-5-20251001` (cheaper),
+  the choice is `wd_prefs.aiModel` (`loadPrefs` accepts only `ASKMODELS`). `max_tokens` is 600 and a request is
+  aborted after 25 s. A question costs roughly 1–3 cents on Sonnet and under 1 cent on Haiku (said in the
+  settings panel, `askSetNote`); the system prompt's rules-and-data block carries `cache_control:
+  ephemeral` and the changing clock line comes after it, so follow-up questions about unchanged data are
+  cheaper. Each answer shows the model and the tokens in / out / cached.
+- **What is sent.** The question (at most 300 characters) and `askContext()`, a compact JSON string of what is
+  already loaded: place and time zone, today's date and weekday (`askDow`, UTC noon, no browser clock), a unit
+  legend, `now` (`askNow`), `hourly` (`askHourly`: 48 hourly rows, then 3-hour blocks up to +168 h; the AI
+  fallback feed sends its 24 rows), `daily` (`askDaily`: 16 days with the day's wind / gust / UV maxima and
+  sunrise / sunset from `D.sunDays`), alerts, sea, air quality with the strongest pollen, climate normals and
+  the activity scores of the next seven days (`askScores`, straight from `scoreDays`), plus the second place
+  in comparison mode (48 h and 7 days). `askSystem(ctx)` builds the two system blocks. No coordinates, no key
+  and nothing personal is included.
+- **Never stored.** The answers live only in `ASK.hist` (the last five questions, in memory; `askClear()`
+  also aborts a pending request); no question, answer or history is written to `localStorage`, and nothing is
+  logged.
+- **Rendering and errors.** Answers are turned into DOM with `textContent` only (`askFormat()` understands
+  `- ` bullets and `**bold**`, never HTML). A failed call is shown inline in its entry (`askErrText`, the
+  `T.askErr` words: key 401 / 403 with an "Add key" button, rate 429, busy 529 / 5xx, net, time, offline,
+  bad 400 / 404 with the API's message cut to 200 characters, http, empty, nodata); it is user-triggered, so it
+  is not a `FEEDS` source. Every `ask*` string exists in both languages; the answer follows the language of
+  the question.
 
 ### Logic shared between views
 
@@ -332,8 +494,10 @@ weekends, and destroys the charts of activity sections that are not showing.
 
 `wd_prefs` (`PREFS_KEY`) is written by `savePrefs()` and read once at boot by `loadPrefs()`. It stores
 `lang`, `theme`, `VEGAN`, `act` (the PLAN activity, `PLAN.act`), `groups` (open state of the four groups) and
-`tl` (`{zoom,layers}` of the timeline; `loadPrefs()` accepts only known zoom values and 0/1/boolean layer flags
-for known layers). The v3.21 keys `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`CMODE` are no longer written; only a stored
+`aiModel` (the AI-search model, one of `ASKMODELS`) and `tl` (`{v:2,zoom,layers,style,names,axis}` of the
+timeline; `loadPrefs()` accepts only known zoom values, 0/1/2/boolean layer flags for known layers — an older
+snapshot's "on" becomes state 2 —, a known line style, the boolean `names.c`/`names.f` and an `axis` mode with a
+numeric `lo < hi` override). The v3.21 keys `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`CMODE` are no longer written; only a stored
 `PRES` is migrated once into `tl.layers.pres` (only when no timeline pressure choice is stored) and disappears
 with the next save. **MP (Monty Python) is deliberately not stored.** `PREFS_LIVE`
 is `false` during boot, so reading the saved prefs never rewrites them; it flips to `true` at the end of
@@ -343,7 +507,10 @@ English) and the theme follows the OS preference. A new switch must be added to 
 
 All `localStorage` keys (every access wrapped in try/catch): `wd_recents` (recent places), `wd_lochint`
 (exact coordinates of places picked from search), `wd_bbqcheck` (BBQ checklist ticks), `wd_last` (last
-direct-mode forecast snapshot `{v:APPV,key,loc,t,D}` with `D.hr` stored columnar as `D.hrc`, ≤ 400 kB), `wd_prefs`.
+direct-mode forecast snapshot `{v:APPV,key,loc,t,D}` with `D.hr` stored columnar as `D.hrc`, ≤ 400 kB), `wd_prefs`
+and `wd_apikey` (the user's own Claude API key for the AI search: **only** the key, written and removed by
+`askKeySave()` / `askKeyDel()`, read by `askKeyGet()`; never copied into `wd_prefs` or `wd_last`; see "Ask about the
+weather").
 
 ### Comparison mode (location A vs B)
 
@@ -447,7 +614,7 @@ monotonically, the hard caps, hike/bike/run specifics, sea inland (`null`), the 
 skipping windows that already ended, the reason keys, `scoreDays`, and the columnar `wd_last` round trip. It
 prints `SCORE TESTS OK` and exits 1 on any failure.
 
-## Data sources (all keyless, all client-side)
+## Data sources (all client-side; keyless except the optional AI search, which uses the visitor's own key)
 
 - **Open-Meteo forecast** — `api.open-meteo.com` (`timezone=auto`, `past_days=1`, a fixed `FCDAYS` = 16 forecast days; hourly + daily +
   `minutely_15` precipitation for the next-2h rain strip, `D.rain15`; hourly carries `pressure_msl`
@@ -474,12 +641,17 @@ prints `SCORE TESTS OK` and exits 1 on any failure.
 - **AI feed (optional secondary)** — a Claude + web-search "interesting fact" / outlook feed. The
   dashboard degrades gracefully when this is unavailable; its reduced forecast object has no `tz`
   (browser time) and none of the hourly extras.
+- **Anthropic Messages API** (`api.anthropic.com/v1/messages`) — only for "Ask about the weather", only when the
+  visitor has stored their own key (`wd_apikey`) and asks a question; a direct browser `POST` with the
+  `anthropic-dangerous-direct-browser-access` header. Models `claude-sonnet-5` / `claude-haiku-4-5-20251001`.
+  See "Ask about the weather" for what is sent and the key rules.
 - **Nominatim** (`nominatim.openstreetmap.org`) — reverse geocoding for map clicks / GPS.
 - **RainViewer** (`api.rainviewer.com` + `tilecache.rainviewer.com`) — rain-radar tile frames for the Map
   view: past ~2 h plus nowcast frames when the public API provides them (lazy; frame list cached ~5 min;
   requires "© RainViewer" attribution).
 
-All requests go through `tfetch(url, ms)`, a `fetch` wrapper with a timeout.
+All data requests go through `tfetch(url, ms)`, a `fetch` wrapper with a timeout (the AI-search call in
+`askClaude()` is the one exception: it carries its own `AbortController` and 25 s timeout).
 
 ## Third-party libraries (CDN only — keep it that way)
 
@@ -512,7 +684,8 @@ These are the non-negotiable house rules for any change:
 4. **Versioned footer.** Footer reads `<span id="foot"></span> · PATRIK'S WEATHER DAILY · vX.YY · by
    Patrik Pencinger · Info & changelog`. Bump the version in `<title>`, the footer and `APPV` together.
 5. **Static & deployable.** No backend, no build, no secrets, no bundler. Everything must work from a
-   plain static host (and reasonably from `file://`).
+   plain static host (and reasonably from `file://`). The only credential the app ever handles is the
+   visitor's own Claude API key (rule 12); the source ships none.
 6. **Accessibility.** Canvases carry `role="img"` + `aria-label` (`data-tt="ar_*"`); controls carry
    `aria-label`. Keep these in sync when changing a chart's meaning.
 7. **Location time, never browser time.** Anything meaning now / today / yesterday / which hourly row to
@@ -525,13 +698,20 @@ These are the non-negotiable house rules for any change:
    a closed group has a size or a Chart.js instance.
 9. **Failures are visible.** A new data source reports through `feedMark()` (with `na` for "nothing
    here"); a failed side source is recorded with `noteSrcFail()` so the footer says so; never swallow a
-   failure into an empty-looking section.
+   failure into an empty-looking section. (A failed AI-search question is shown inline in its answer entry.)
 10. **Tap targets.** Interactive controls are ≥ 36 px tall on desktop and 44 px on `mobile`/`mid`.
 11. **The timeline is canvas, not Chart.js — read theme colours at draw time.** `tlDraw()` takes `C`, `BG`,
     `txt`, `strong`, `grid`, `halo` and `theme` on every frame (no colours cached across frames or hard-coded),
     keeps the summary above (`#tlSum`) and the legend below (`#tlLeg`, custom DOM), and every user-visible
     string it draws or announces (labels, readout, legend, aria) exists in both languages. Keep the cursor
-    inside the pannable range (`tlCurClamp`) and redraw through `tlSchedule()`.
+    inside the pannable range (`tlCurClamp`) and redraw through `tlSchedule()`. The legend is the only series
+    control (three states per series: labels / no labels / hidden), the axis strips always draw their ticks, a
+    series with no data is never drawn or listed, and a touch swipe must never start an axis rescale.
+12. **The API key never appears in the source, prefs or snapshots.** The visitor's Claude API key exists only in
+    `localStorage` `wd_apikey` (or `ASK.memKey` when storage is blocked) and in the `x-api-key` header of the
+    request to `api.anthropic.com`. It is never written to `wd_prefs`, `wd_last`, a URL, the console, the DOM
+    (only the masked form) or any test or fixture (use a dummy such as `sk-ant-test`); `grep -n "sk-ant"` finds
+    only the masked placeholder example. Questions, answers and the forecast context are never stored either.
 
 ## Code layout within the single file
 
@@ -539,12 +719,14 @@ Roughly top-to-bottom:
 
 - `<head>` / CSS — theme variables, responsive layout rules (`#wrap.mobile` / `#wrap.mid` / desktop),
   card/hero/stat/group styles, the control sizes above.
-- `<body>` markup — header (`#locSel`, `btn-lang`, `btn-theme`), `#alertBox`, `#tabs` (NOW, PLAN, MAP —
-  `tab-now`/`tab-plan`/`tab-map`), then `#dash`'s per-view `<section>`s: `#view-now` and `#view-plan` (DOM
+- `<body>` markup — header (`#locSel`, `btn-lang`, `btn-theme`), then `#dash`, which starts with `#askBar` (AI
+  search), `#alertBox` and `#tabs` (NOW, PLAN, MAP — `tab-now`/`tab-plan`/`tab-map`) and continues with the
+  per-view `<section>`s: `#view-now` and `#view-plan` (DOM
   orders above; the BBQ and hike sections live inside PLAN as `#ps-bbq`/`#ps-hike`), `#view-map`, and
-  `#view-info` (about + the `#infoFeeds` status panel + the bilingual `CHANGELOG` array + the Monty
-  Python switch `btn-mp`/`toggleMP()`). The shared footer sits outside `#dash`. The loading and error
-  screens are `#loading` / `#error`.
+  `#view-info` (about + the AI-search settings card `#askSet` + the `#infoFeeds` status panel + the bilingual
+  `CHANGELOG` array + the Monty Python switch `btn-mp`/`toggleMP()`). The shared footer is the last child of
+  `#dash`. The loading and error screens (`#loading` / `#error`) come before `#dash` in `#wrap`, and the
+  fullscreen timeline overlay `#tlFull` after it.
 - **Location selector** (`#locSel` pill in the header → `#locPanel` with `#locSearch` + `#locList`): tap
   the pill (`locOpen()`) to open a panel listing, in order, live search results while typing
   (`locSearchInput()`/`locDoSearch()` against `geocoding-api.open-meteo.com`, 300 ms debounce, shown
@@ -570,21 +752,27 @@ Roughly top-to-bottom:
   `setAct`, `renderPlan`, `renderPlanCard`, `renderPlanSections`, `renderBbqSections`, `renderHikeSections`,
   `renderCondCards`) · chart drawers
   (`drawSea`, `drawTide`, `drawMoon`, `drawBio`, `drawPressure`, `drawAqi`, `drawGrill`, `drawBbqTimeline`,
-  `drawBbqGrill`) · **timeline** (`tlInit`, `tlRender`, `tlDraw`, `tlSchedule`, `tlSetZoom`, `tlSetLayer`, `tlGoto`,
-  `tlCursorTs`, `tlInvalidate`, `tlHome`, `tlMoveCursor`, `tlTap`, `tlReadoutLines`; state `TL`, cache `TLC`) · maps
+  `drawBbqGrill`) · **timeline** (`tlInit`, `tlRender`, `tlDraw`, `tlSchedule`, `tlSetZoom`, `tlSetLayer`, `tlSetFit`, `tlSetStyle`,
+  `tlLegend`, `tlGoto`, `tlCursorTs`, `tlInvalidate`, `tlHome`, `tlMoveCursor`, `tlTap`, `tlReadoutLines`,
+  `tlFullOpen`/`tlFullClose`; state `TL`, cache `TLC`) · maps
   (`loadLeaflet`, the weather map incl. `locateOnMap`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/
-  `showView`/`renderActive`/`updateAlertBox`) · Info panel (`renderInfo`, `renderFeeds`, `CHANGELOG`).
+  `showView`/`renderActive`/`updateAlertBox`) · Info panel (`renderInfo`, `renderFeeds`, `CHANGELOG`) · **Ask the
+  weather** (`askKeyGet`/`askKeySave`/`askKeyDel`, `askContext`, `askSystem`, `askClaude`, `askUi`; state `ASK`,
+  declared earlier next to the prefs) — the banner `/* ---------- Ask the weather (A1) ... ---------- */` sits
+  between the Info panel and the view router.
 
 Notable globals: `lang`, `theme`, `layout` (`'mobile'`/`'mid'`/`'desktop'`), `FCDAYS` (16), comparison state
 (`selB`/`D2`), location caches (`LOCHINT`, `GEO_LOC`, `MAP_LOC`, `LOCTZ`), `GROUPS`, `PLAN`, `TL`/`TLC` (the
-timeline), `HERO_OUT` (sticky now-bar), and the feature toggles (`VEGAN`, `MP`). `MP` is a "Monty Python"
+timeline), `HERO_OUT` (sticky now-bar), `ASK` (AI search), and the feature toggles (`VEGAN`, `MP`). `MP` is a "Monty Python"
 easter-egg label set.
 
 ## Making changes
 
 - Edit `weather-dashboard.html` directly; keep the section-banner organization.
 - When touching the timeline: draw through `tlSchedule()`, set the cursor only through `tlCurClamp`, and check all
-  three zooms, both themes, both languages and keyboard use (arrows, +/−, Home, Esc).
+  three zooms, both themes, both languages and keyboard use (arrows, +/−, Home, Esc), the legend states (labels /
+  no labels / hidden), the fullscreen shell (`tlFullOpen()`; 1280×800 and a 800×360 landscape phone) and mouse
+  versus touch on the axis strips.
 - When touching a chart: update its summary, legend, and `aria-label` together, and make sure it
   redraws correctly across theme switch and language switch, and that it is not drawn while its group is
   closed.
