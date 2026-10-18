@@ -530,7 +530,15 @@ async function runTools(tools, lang, write, outer, ms) {
   const jobs = tools.map((tu, n) => {
     if (tu.name !== 'get_forecast') return { tu, err: 'Unknown tool' };
     const raw = !tu.bad && tu.input && typeof tu.input.place === 'string' ? tu.input.place : '';
-    const place = raw.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, MAX_LOOKUP_PLACE);
+    // control chars -> space; drop lone surrogates (encodeURIComponent would throw on them); cap the length, then
+    // drop a high surrogate the cap may have split off.
+    const place = raw
+      .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+      .replace(/[\ud800-\udbff](?![\udc00-\udfff])/g, '')
+      .replace(/(^|[^\ud800-\udbff])[\udc00-\udfff]/g, '$1')
+      .trim()
+      .slice(0, MAX_LOOKUP_PLACE)
+      .replace(/[\ud800-\udbff]$/, '');
     if (!place) return { tu, err: 'Missing place' };
     if (n >= MAX_TOOLS_PER_ROUND) return { tu, err: 'limit', place };
     return { tu, place };
