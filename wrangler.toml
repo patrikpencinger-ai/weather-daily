@@ -1,9 +1,31 @@
-# Cloudflare Workers config — serves this repo as a static site (assets-only Worker).
+# Cloudflare Workers config — serves this repo as a static site plus a small same-origin API Worker.
 # Connected via Cloudflare Workers Builds: every push to `main` runs `wrangler deploy`,
-# which uploads the static assets below and publishes them. No server code, no build step.
+# which uploads the static assets below and publishes worker.js. No build step.
+#
+# worker.js serves every non-/api/ request from the static assets (env.ASSETS) unchanged and adds
+# the /api/ask routes for "Ask about the weather". Secrets are NOT in this file; set them once with
+# `wrangler secret put ANTHROPIC_API_KEY` and `wrangler secret put OWNER_TOKEN` (or in the dashboard:
+# Workers & Pages -> weather-daily -> Settings -> Variables and Secrets).
 name = "weather-daily"
+main = "worker.js"
 compatibility_date = "2026-06-13"
 
 [assets]
 directory = "."
+binding = "ASSETS"
 # Root "/" serves index.html, which redirects to weather-dashboard.html (the app).
+
+[vars]
+ASK_MODEL = "claude-sonnet-5"
+ASK_DAILY = "10"
+ASK_DAILY_IP = "40"
+ASK_DAILY_GLOBAL = "400"
+
+# Daily question quotas (per visitor, per IP, global) live in a Durable Object (SQLite-backed class).
+[[durable_objects.bindings]]
+name = "QUOTA"
+class_name = "Quota"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Quota"]
