@@ -4111,14 +4111,15 @@ function tlInit(){
   }
   let dx=e.deltaX,dy=e.deltaY;
   if(e.deltaMode===1){dx*=16;dy*=16;}else if(e.deltaMode===2){dx*=100;dy*=100;}
-  if(!e.ctrlKey&&(Math.abs(dx)>Math.abs(dy)||e.shiftKey)){ /* horizontal delta / shift+wheel pans */
+  if(!e.ctrlKey&&!e.metaKey&&(Math.abs(dx)>Math.abs(dy)||e.shiftKey)){ /* horizontal delta / shift+wheel pans */
    const d=Math.abs(dx)>Math.abs(dy)?dx:dy;
    if(!d)return;
    e.preventDefault();
    tlPanTo(TL.x0+d/tlPpm()*60000);tlSchedule();return;
   }
   if(!dy||!D||!tlOk())return;
-  e.preventDefault(); /* T1: vertical wheel (and ctrl+wheel / trackpad pinch) zooms the time scale around the pointer */
+  if(!TL.full&&!e.ctrlKey&&!e.metaKey)return; /* compact view: a plain vertical wheel scrolls the page (no preventDefault); only ctrl/meta+wheel (and a trackpad pinch, sent as ctrl+wheel) zoom */
+  e.preventDefault(); /* fullscreen: the vertical wheel zooms the time scale around the pointer; compact: ctrl/meta+wheel */
   tlApplyScale(tlPxh()*Math.pow(1.15,-Math.max(-300,Math.min(300,dy))/100),p[0]);
   tlHoverAt(cv,p[0],p[1]);
  },{passive:false});

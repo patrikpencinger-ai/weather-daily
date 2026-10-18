@@ -299,8 +299,10 @@ fullscreen shell.
   temperature (A and B), feels, pressure, humidity, freezing-level, gust, normal and (without labels) sea lines.
 - **Interaction** (`tlInit()`, one-time listeners on the canvas). Pointer events: drag pans (`TL.x0`, clamped
   by `tlClamp()` to now − 6 h … the end of the data), a quick tap (< 5 px, < 700 ms) calls `tlTap(px)`;
-  horizontal wheel / shift+wheel pans; the vertical wheel (and ctrl+wheel / a trackpad pinch) zooms the time
-  scale by 1.15^(−Δy/100) around the pointer (`tlApplyScale(np,ax,am)` keeps the minute under `ax` fixed);
+  horizontal wheel / shift+wheel pans; in the fullscreen overlay the plain vertical wheel zooms the time
+  scale, in the compact view only ctrl/meta+wheel (and a trackpad pinch, which arrives as ctrl+wheel) does and a
+  plain vertical wheel scrolls the page (no `preventDefault`); the factor is 1.15^(−Δy/100) around the pointer
+  (`tlApplyScale(np,ax,am)` keeps the minute under `ax` fixed);
   two touch pointers pinch (`tlPts`, `tlPinch`, `tlPinchMove()`: the distance ratio scales `pxh` around the
   midpoint, a second finger drops a pan / tap in progress); a double-click on the plot calls `tlFitX()`, on an
   axis strip it resets that axis. A mouse moving over the plot (`tlHoverAt()`, C-05) sets `TLC.hov` and
