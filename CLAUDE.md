@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~6,000 lines). Current version: **v3.25** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~6,400 lines). Current version: **v3.26** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
@@ -22,10 +22,10 @@ that way: no framework, no build, no other backend.
 
 ### Shape of the app
 
-A **three-tab SPA in one file** — NOW (Croatian SADA), PLAN (PLANIRAJ) and MAP (KARTA) — plus the tab-less
-Info view: a tab bar + hash router over a `VIEWS`/`ROUTES` registry (views `now`/`plan`/`map`/`info`, sections
-`#view-now`/`#view-plan`/`#view-map`/`#view-info`). Routes: `#now` (also the empty hash, `#weather` and `#swim`),
-`#plan`, `#plan-bbq`/`#plan-hike`/`#plan-bike`/`#plan-run`/`#plan-sea` (open PLAN on that activity),
+A **four-tab SPA in one file** — NOW (Croatian SADA), GRAPH (GRAF, v3.26), PLAN (PLANIRAJ) and MAP (KARTA) — plus the tab-less
+Info view: a tab bar + hash router over a `VIEWS`/`ROUTES` registry (views `now`/`graph`/`plan`/`map`/`info`, sections
+`#view-now`/`#view-graph`/`#view-plan`/`#view-map`/`#view-info`). Routes: `#now` (also the empty hash, `#weather` and `#swim`),
+`#graph` (also `#graf`: the full-screen timeline, see "Graph view"), `#plan`, `#plan-bbq`/`#plan-hike`/`#plan-bike`/`#plan-run`/`#plan-sea` (open PLAN on that activity),
 `#bbq` and `#hike` (old links: open PLAN on BBQ / hiking), `#map` (also `#radar`) and `#info`. `ROUTEACT` maps
 the activity-bearing hashes to an activity; `showView('plan')` and the `hashchange` handler apply it to
 `PLAN.act`. The separate BBQ and Hiking tabs/views of v3.17–v3.20 were folded into PLAN as activities in
@@ -41,11 +41,11 @@ so the footer, the retry button and the failure notes show on every view.
 
 The tab bar (`#tabs`) is the classic top bar on desktop. In the `mobile` and `mid` layouts the **same
 element** is restyled (CSS only) into a fixed bottom navigation bar: 30 px monochrome inline-SVG icons
-(cloud-sun, clipboard-check, map, in the order NOW · PLAN · MAP; `tab-now`/`tab-plan`/`tab-map`), no visible
+(cloud-sun, line chart, clipboard-check, map, in the order NOW · GRAPH · PLAN · MAP; `tab-now`/`tab-graph`/`tab-plan`/`tab-map`), no visible
 label (the label stays for screen readers, visually hidden) and no peek badge. Desktop keeps text labels
-(`T` keys `tabNow`/`tabPlan`/`tabMap`) and peeks, set by `updateTabs()`: `pk-now` the current temperature,
-`pk-plan` the chosen activity's icon plus its tier dot for today (from `scoreDay`), `pk-map` 🌧️/🗺️. The bar **stays visible on the Map view**: `showView()` sets `#tabs.onmap`;
-desktop hides the top tabs there, mobile/mid keep the bar above the map and hide the map's ✕.
+(`T` keys `tabNow`/`tabGraph`/`tabPlan`/`tabMap`) and peeks, set by `updateTabs()`: `pk-now` the current temperature,
+`pk-graph` the highest temperature of the next 24 h (`↑NN°`), `pk-plan` the chosen activity's icon plus its tier dot for today (from `scoreDay`), `pk-map` 🌧️/🗺️. The bar **stays visible on the full-screen Map and Graph views**: `showView()` sets `#tabs.onfs`;
+desktop hides the top tabs there, mobile/mid keep the bar above the map / graph and hide the map's ✕ and the graph's ✕. `setNavH()` (called from `applyResponsive()`, `renderGraph()`, `tlUiApply()` and a `ResizeObserver` on `#tabs`) writes the bottom bar's height, 0 when it is not shown, to the CSS variable `--navh`: the graph view and the Layers panel end at its top edge. A **collapsed graph hides the bar too** (`#tabs.tlimm`, `display:none`).
 
 The ask bar `#askBar` (v3.23, see "Ask about the weather") is the first element of `#dash`, above the alert banner and the tab bar.
 
@@ -105,7 +105,7 @@ the fetch handler returns early, before the navigation rule, for every same-orig
 intercepted or cached. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.25`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.26`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -172,24 +172,31 @@ One continuous, zoomable, layered time axis on NOW from six hours ago to the end
 days). It is a **custom Canvas 2D** drawing (`#tlCanvas` inside `#tlWrap`), not Chart.js. Banner
 `/* ---------- VREMENSKA OS / TIMELINE (K1) ... ---------- */`. Only built when `tlOk()` (direct-mode data with
 `D.hr` longer than 24 rows). v3.23 made it the one detailed chart of the app: the legend is the series
-control, every series the data has is a layer, and a fullscreen shell shows it all at once. The chart rules
+control, every series the data has is a layer, and a full-screen view shows it all at once (since v3.26 that is the GRAPH tab). The chart rules
 that shaped it are cited by number in the code comments: C-02 value labels, C-03 line style, C-05 hover
 readout, C-06 contrast-safe ink, C-13 no series without data, C-15 legend as control, C-16 axis furniture
 always drawn, C-17 axis drag / wheel rescale, C-18 Auto / Full, RT-24 series names inside the plot, RT-22 the
-fullscreen shell.
+full-screen shell (now the graph view).
 
-- **DOM.** `#tlSec`: heading row `.hd.tlhd` (`T.tlTitle` and the ⛶ button `btn-tlfs`, `tlFullOpen()`), summary
-  `#tlSum` (one line for the visible window, `tlSummary()`, written only when the text changes; with the
-  visibility / snow layers on it also names the first fog / snow hour in view), the toolbar `#tlTools`
-  (`.tltools`: zoom pills `#tlZoom` with `btn-tlz-h` / `btn-tlz-3` / `btn-tlz-d`, the axis-fit pair `#tlFit`
-  with `btn-tlf-auto` / `btn-tlf-full`, the line-style trio `#tlStyle` with `btn-tls-linear` / `-step` /
-  `-smooth`), the canvas wrapper `#tlWrap` (compact height set by `tlDraw()` itself, never smaller than
+- **DOM** (compact since v3.26: one control bar, one legend row, everything else in a panel). On NOW `#tlSec` holds, in
+  this order and nothing else: the heading row `.hd.tlhd` (`T.tlTitle` and the ⛶ button `btn-tlfs`, `tlFullOpen()`),
+  the summary `#tlSum` (one line for the visible window, `tlSummary()`, written only when the text changes; with the
+  visibility / snow layers on it also names the first fog / snow hour in view), the **control bar `#tlBar`** (one row,
+  no wrap, 36 px desktop / 44 px mobile+mid: the segmented zoom `#tlZoom` with `btn-tlz-h` / `btn-tlz-3` /
+  `btn-tlz-d` — short labels `tlZ_h`/`tlZ_3`/`tlZ_d` "Sat | 3 h | Dan" / "Hour | 3 h | Day" — then the Layers button
+  `btn-tlpanel`: layers icon, `tlPanelBtn` and a count `#tlPanelN` of the visible layers, `aria-haspopup="dialog"`; its
+  title / `aria-label` and the bar's `aria-label` are written by `tlSyncUi()`; below 390 px the word is hidden and only
+  icon + count remain), the canvas wrapper `#tlWrap` (compact height set by `tlDraw()` itself, never smaller than
   `applyResponsive()`'s 340 / 300 / 250 px for desktop / mid / mobile, and tall enough for every lane that is
-  on) with the readout box `#tlReadout`, the legend `#tlLeg` (custom DOM, built by `tlLegend()`), and the
-  screen-reader live region `#tlLive` (`role=status`). The canvas has `tabindex=0`, `role=img` and
-  `data-tt="ar_tl"`; the toolbar groups use `tlZoomAria` / `tlFitAria` / `tlStyleAria`. There are no separate
-  layer pills any more: the legend is the only series control (C-15).
-- **State.** `TL={zoom,layers,style,names,axis,x0,cursor,full,pxh,fit}`. `zoom` is `'h'` (hours), `'3'` (every 3 h) or
+  on) with the readout box `#tlReadout`, the **mini legend `#tlMini`** (a `.dragx` row, `role=group`, built by
+  `tlLegend()`; replaces the old inline grouped legend `#tlLeg`, which is gone) and the screen-reader live region
+  `#tlLive` (`role=status`). The bar also contains four graph-only controls that are hidden on NOW (see "Graph
+  view"): the place + summary slot `#tlBarStart` (`#tlBarLoc`), `btn-tltheme`, `btn-tlcollapse`, `btn-tlfsx`. The
+  rest lives in the **Layers & display panel `#tlPanel`** (see "Legend as control"), whose static markup (backdrop
+  `#tlPanelBk`, then the `<aside>`) sits after `#view-graph` at the end of `#wrap`. The canvas has `tabindex=0`,
+  `role=img` and `data-tt="ar_tl"`; the zoom group uses `tlZoomAria`, the panel's pairs `tlFitAria` / `tlStyleAria`.
+  There are no separate layer pills any more: the legend chips are the only series control (C-15).
+- **State.** `TL={zoom,layers,style,names,axis,x0,cursor,full,pxh,fit,ui}`. `zoom` is `'h'` (hours), `'3'` (every 3 h) or
   `'d'` (days; the order is `TLZ`): the last chosen preset / the current representation, and what is saved. `pxh` is
   the continuous horizontal scale in px per hour (session only, `null` = the preset of `zoom`), `fit` is true while
   all days are fitted to the width (see Scale). `layers` has one flag per entry of `TLLAYERS` (the readout order `TLORDER`,
@@ -197,12 +204,12 @@ fullscreen shell.
   vis, frz, sea, tide, sun, moon, score`) with **three states**: `0` hidden, `1` visible without value labels,
   `2` visible with value labels. `style` is `'linear'`, `'step'` or `'smooth'` (`TLSTYLES`, default `smooth`:
   monotone cubic, no overshoot). `names={c,f}` switches the series-name overlays on for the compact (`c`,
-  default off) and fullscreen (`f`, default on) view. `axis={temp,pres}`, each `{mode:'auto'|'full',lo,hi}`,
+  default off) and graph-view (`f`, default on) timeline. `ui={c:0|1}` is the graph view's collapsed state (see "Graph view"). `axis={temp,pres}`, each `{mode:'auto'|'full',lo,hi}`,
   where `lo`/`hi` are a manual override (both `null` = automatic). `x0` is the left edge and `cursor` the
   selected column, both in "location-local wall-clock minutes × 60000" (the `tsMin()` of Open-Meteo's time
   strings, so a day is always 1440 minutes wide and DST never shifts the axis); `cursor===null` means nothing
-  selected; `full` is true while the fullscreen shell is open. **Remembered**
-  (`wd_prefs.tl={v:2,zoom,layers,style,names,axis}`): everything except `x0`, `cursor`, `full`, `pxh` and `fit`;
+  selected; `full` is true while the timeline is mounted in the graph view. **Remembered**
+  (`wd_prefs.tl={v:2,zoom,layers,style,names,axis,ui}`): everything except `x0`, `cursor`, `full`, `pxh` and `fit`;
   restoring `zoom` applies that preset's px/hour.
   **Defaults** with no stored preference: exactly temperature, rain and score at state 2, every other layer
   hidden; stored preferences win (`loadPrefs()` migrates the pre-v3.23 0 / 1 / boolean flags, where a stored
@@ -210,7 +217,7 @@ fullscreen shell.
   `tMin`/`tMax`/`pMin`/`pMax`, per-day aggregates `ag` — wind, gust, UV, visibility, snow sum and the means of
   humidity, freezing level and the three cloud bands — the AQI series, the pollen series `pol`/`polD`, the
   per-hour and per-day scores `rs`/`ds`, the availability cache `has`, the hover minute `hov`, the legend
-  preview `preview`, the pending frame ids `raf`/`to`, the location key `locKey`).
+  preview `preview`, the mini legend's "just turned off" chips `ghost` with their 8 s timer `gt`, the pending frame ids `raf`/`to`, the location key `locKey`).
 - **Scale** (continuous since v3.24). The horizontal scale is `TL.pxh` px per hour (`tlPxh()`, `tlPpm()` = px per
   minute); a new value comes from a preset, the wheel, a pinch, `+`/`−` or a fit. The representation follows
   from it: `tlRep()` → `'h'` (hourly rows) when `pxh` ≥ 18, `'3'` (3-hourly) when 8 ≤ `pxh` < 18, else `'d'`
@@ -220,11 +227,11 @@ fullscreen shell.
   fit-all (plot width over every hour from now − 6 h to the end of the last row, `tlRangeStart()`),
   `tlPxhMax()` = 60 (48 on mobile); `tlScaleFix(W)` clamps `pxh` once per `tlDraw()`. Presets (`tlSetZoom(z)`,
   `tlPresetPxh(z)`): Hours `TLPX.h`, 3 h `TLPX['3']`, Days `TLPX.d` = 34 / 26, 12 / 9, 3.2 / 2.6 (desktop/mid,
-  mobile) in the compact view; **in fullscreen Days = fit-to-width** (`tlFitX()`: `pxh=tlPxhMin()`, `x0` = range
+  mobile) in the compact view; **in the graph view Days = fit-to-width** (`tlFitX()`: `pxh=tlPxhMin()`, `x0` = range
   start, so the last day's right edge is the plot's right edge). `TL.fit` stays true until the user pans or
   zooms (`tlPanTo()` clears it only when the view really moved; zooming out to the minimum sets it again);
   while it is true `tlScaleFix()` and the `ResizeObserver` refit on every resize / layout step. Entering
-  fullscreen with the Days representation refits; leaving restores the compact Days preset. A row is drawn
+  the graph view with the Days representation refits; leaving restores the compact Days preset. A row is drawn
   centred on its timestamp; `tlSnap(m)` maps a free minute to the column it belongs to (the hour, the 3-hour row,
   or noon of the day). Bars, cells and labels use the real column width (`pxH` in `tlDraw`); label cadence
   (value labels, hour ticks, day ticks, score cells) is chosen from `pxh` with the `fits()` decimation, so no
@@ -263,18 +270,29 @@ fullscreen shell.
   PLAN; its chip is relabelled with the activity (`tlLayerName()`). Day zoom adds a confidence band for day 8+
   on the temperature bars. In comparison mode the temperature lane draws A and B (`TLC.hr2`/`tm2`,
   `CMP.a`/`CMP.b`); every other lane shows A only. The compact canvas grows to fit every lane that is on (a
-  phone with many layers gets taller, never clipped); in fullscreen the lanes are scaled up to the free
+  phone with many layers gets taller, never clipped); in the graph view the lanes are scaled up to the free
   height and the type is 2 px larger.
-- **Legend as control** (`tlLegend()`, one delegated click / pointer listener set on `#tlLeg` in `tlInit()`).
-  One `<button class="tlk s0|s1|s2" data-k="…">` per available layer, grouped by `TLGROUPS` under a muted
-  group title (`tlG_*`: Temperature, Precipitation, Wind, Air, Sea, Sun and moon, Scores). A click calls
-  `tlSetLayer(k)` and cycles 2 → 1 → 0 → 2 (filled swatch / hollow swatch / grey and struck through); the
-  chip's `aria-pressed` means "visible" and its `aria-label` states the state (`tlSt0`/`tlSt1`/`tlSt2`). A
-  mouse hovering a hidden chip previews that series at 35 % (`TLC.preview`; never on touch). The compact view
-  lists only the groups that have a layer on, plus a "More" / "Less" chip (`#tlMore`, `tlToggleMore()`,
-  `TLmore`, `TLC.keep`) for the rest; the fullscreen legend lists every group. The trailing group holds the
-  series-name switch `#tlNames` (`tlToggleNames()`, writes `TL.names.c` or `.f`), the A / B or confidence
-  swatches, the score tier swatches and the muted hint `tlHint` (hidden on touch).
+- **Legend as control** (`tlLegend()`; one delegated click / pointer listener set on `#tlMini` and on `#tlPanel` in
+  `tlInit()`). Chips are `<button class="tlk s0|s1|s2" data-k="…">`. A click calls `tlSetLayer(k)` and cycles 2 → 1 → 0 → 2
+  (filled swatch / hollow swatch / grey and struck through); the chip's `aria-pressed` means "visible" and its
+  `aria-label` states the state (`tlSt0`/`tlSt1`/`tlSt2`). A mouse hovering a hidden chip previews that series at 35 %
+  (`TLC.preview`; never on touch). **Mini legend `#tlMini`** — one horizontal `.dragx` row, no wrap (36 / 44 px): one chip per
+  available layer whose state is above 0 (swatch + short name `tlL_*`, no unit), in `TLORDER`; the A / B swatches when
+  comparing; and a last chip `#tlMiniMore` "＋ Layers" (`.tlmm`, opens the panel). A chip tapped to 0 stays in the row, grey and struck
+  through, as a **ghost** (`TLC.ghost`, `tlGhost(k)`) so a wrong tap can be undone; the ghosts go when the panel opens or
+  closes, the zoom changes (`tlSetZoom`, `tlScaleDone`) or after 8 s (`tlGhostClear()`). **Layers & display panel
+  `#tlPanel`** (`<aside role="dialog" aria-modal="true" aria-labelledby="tlPanelT">`, title `tlPanelTitle`, close `btn-tlpx`;
+  `TLP={open,opener}`, `tlPanelOpen(opener)` / `tlPanelClose(restore)`): mobile/mid = a bottom sheet (fixed, bottom at
+  `var(--navh)` so the tab bar stays visible, rounded top corners, max-height 70 vh, scrolls inside), desktop = a 340 px right side
+  sheet over the full viewport height; `#tlPanelBk` is the tap-to-close backdrop. Content: every available layer in its
+  `TLGROUPS` group under a muted title (`tlG_*`: Temperature, Precipitation, Wind, Air, Sea, Sun and moon, Scores) with all
+  states and the unit (`#tlPanelGroups`, filled by `tlLegend()` only while open), the confidence-band and score-tier swatches,
+  then the "Display" block (`tlDisplay`): Auto / Full `#tlFit` (`btn-tlf-auto`/`-full`, `tlSetFit`), line style `#tlStyle`
+  (`btn-tls-linear`/`-step`/`-smooth`, `tlSetStyle`), the series-names switch `#tlNames` (`tlToggleNames()`, writes
+  `TL.names.c` or `.f`, `aria-pressed` kept by `tlSyncUi()`) and the muted hint `tlHint` (hidden on touch). Opening moves focus to
+  `btn-tlpx`; Tab is trapped inside (`document` keydown in `tlInit()`); Esc, the ✕ or the backdrop close it and focus returns to the
+  opener (`TLP.opener` is an id, because the mini chip is re-rendered). A view change or a collapse closes it. The old inline
+  grouped legend, the "More / Less" chip (`#tlMore`, `tlToggleMore()`, `TLmore`, `TLC.keep`) and the `tlMore` / `tlLess` keys are gone.
 - **Value labels** (state 2 only, C-02). Each layer prints its numbers when its state is 2 (`LB[k]` in the
   draw); `fits(key,x,w)` refuses a label that would touch the previous one of the same kind, so labels thin
   out instead of overlapping; text on a coloured cell uses `tlTextOn(c)` (black or white by luminance) and a
@@ -299,7 +317,7 @@ fullscreen shell.
   temperature (A and B), feels, pressure, humidity, freezing-level, gust, normal and (without labels) sea lines.
 - **Interaction** (`tlInit()`, one-time listeners on the canvas). Pointer events: drag pans (`TL.x0`, clamped
   by `tlClamp()` to now − 6 h … the end of the data), a quick tap (< 5 px, < 700 ms) calls `tlTap(px)`;
-  horizontal wheel / shift+wheel pans; in the fullscreen overlay the plain vertical wheel zooms the time
+  horizontal wheel / shift+wheel pans; in the graph view the plain vertical wheel zooms the time
   scale, in the compact view only ctrl/meta+wheel (and a trackpad pinch, which arrives as ctrl+wheel) does and a
   plain vertical wheel scrolls the page (no `preventDefault`); the factor is 1.15^(−Δy/100) around the pointer
   (`tlApplyScale(np,ax,am)` keeps the minute under `ax` fixed);
@@ -309,7 +327,7 @@ fullscreen shell.
   shows the readout of the column under it plus a crosshair, with no tap needed
   (`tlPlaceReadout(x,m,hover)`); leaving the canvas hides it unless a cursor is set. Keyboard (canvas
   focused): ←/→ `tlMoveCursor(±1)` (one column), Home `tlHome()` (cursor to now), +/− `tlStepScale(±1)` (×1.5 / ÷1.5 around the cursor or the view centre),
-  Enter/Space toggles the readout, Esc `tlHide()` (in fullscreen Esc closes the overlay instead).
+  Enter/Space toggles the readout, Esc `tlHide()` (in the graph view the document handler runs instead: panel → expand → leave, see "Graph view").
   `tlSetZoom(z)` (a preset) keeps the view centred on the cursor (or the view centre); `tlSetLayer(k,st)` sets a layer
   state (without `st` it cycles); all of these save the prefs and refresh the toolbar and the legend. **The
   cursor is always a column inside the pannable range** (now − 6 h … the last row): `tlCurClamp(m)` snaps and
@@ -326,20 +344,33 @@ fullscreen shell.
   UV, peak AQI, sea, the normal with its delta, the day's sunrise / sunset (`sunLine`), the tide
   (`tideLine`), the strongest pollen hour (`polTxt`), **the moon phase** (`moonIcon`/`moonName`/`moonIllum`)
   and the score with its best window.
-- **Fullscreen shell** (RT-22). The ⛶ button (`btn-tlfs`) calls `tlFullOpen()`, which **moves** the existing
-  `#tlTools`, `#tlSum`, `#tlWrap` and `#tlLeg` nodes into `#tlFull` (one engine, one canvas, nothing
-  duplicated), remembering where they came from in `TLFS_BACK`; `tlFullClose(fromPop)` puts them back,
-  returns focus to `btn-tlfs` and restores the compact layout. `#tlFull` is a `position:fixed; inset:0;
-  z-index:1200` dialog (`role=dialog`, `aria-modal`, labelled by `#tlFullTitle`) with `#tlFullHead` (title,
-  the `#tlFullTools` slot, the ✕ button `btn-tlfsx`), the rotate hint `#tlFullHint` (`tlRotate`, shown by
-  `tlFullLayout()` on a phone in portrait) and `#tlFullBody` (summary, canvas, legend). It sets `TL.full`, adds
-  `html.tlfs` (locks the page scroll and hides `#askBar`) and `#tabs.onfull` (hides the tab bar), and pushes
-  a history entry (`{tlfull:1}`) so the browser back button closes it (`popstate`). Esc closes it, Tab stays
-  inside it, resize and `orientationchange` call `tlFullLayout()`; `showView()` closes it when NOW is left and
-  `tlRender()` when the data stops supporting a timeline. `#tlWrap` flex-grows to fill the space between the
-  toolbar and the legend; the legend is capped at 34 vh and scrolls inside that cap (24 vh on a viewport at
-  most 520 px high, where the plot keeps at least 160 px), and `#tlFull` itself scrolls (`overflow:auto`) so a
-  very short landscape phone never clips it.
+- **Graph view** (G1 v3.26 = the old RT-22 full-screen overlay turned into a tab; G2 v3.26 = compact controls). View `graph` / section
+  `#view-graph` (`role=tabpanel`, labelled by the visually hidden `#tlGraphH`), route `#graph` (`#graf`), tab `tab-graph`. The ⛶ button
+  (`btn-tlfs`) calls `tlFullOpen()` (sets `TL.fromApp`, navigates to `#graph`); `tlFullClose()` (✕, Esc) goes `history.back()` when it was
+  opened that way, else to `TL.backTo` (the view it was opened from; set by `showView`). `renderGraph()` (`VIEWS.graph.render`)
+  **mounts** the existing nodes into the view with `tlMountGraph()` (one engine, one canvas, nothing duplicated; `TLFS_BACK` remembers
+  where each came from): `#tlSum` into `#tlBarStart`, `#tlBar` into the top slot `#tlFullTop`, `#tlWrap`, `#tlMini` and `#tlLive` into
+  `#tlFullBody`; `tlUnmountGraph()` puts them back into `#tlSec` when the view is left or the data stops supporting a timeline (then
+  `#graphEmpty` shows `graphNeed`). `TL.full` is true while mounted. The view is `position:fixed; inset:0` (z-index 1000, like the map):
+  desktop hides the top tabs (`#tabs.onfs`), mobile/mid keep the bottom bar and the view ends at `--navh`. `html.tlfs` locks the page
+  scroll; `#askBar` is hidden. The graph-view bar is the view's top row (36 / 44 px): at the start the place name `#tlBarLoc` (both places
+  when comparing) and `#tlSum` (one line, ellipsis; hidden on mobile, where the readout carries the details), then the zoom, the
+  Layers button and, right-aligned, `btn-tltheme` (sun / moon, `toggleTheme()`, `data-tt="tt_theme"`; `applyTheme()` keeps its icon in
+  step with `btn-theme`, so the graph has its own light/dark switch), `btn-tlcollapse` (`tt_tlcollapse`) and `btn-tlfsx` ✕ (desktop only).
+  `#tlWrap` flex-grows between the bar and `#tlMini`; the view scrolls (`overflow:auto`) only if a very short viewport cannot fit the
+  bar, a 140 px plot and the legend row.
+  **Collapse (immersive).** `TL.ui={c:0|1}`, remembered in `wd_prefs.tl.ui` (a missing or invalid value is 0). `tlSetCollapsed(c)` saves it,
+  closes the panel and calls `tlUiApply()`, which toggles `#view-graph.imm` and `#tabs.tlimm` (`tlImm()` = graph view active, `TL.ui.c===1`
+  and a timeline exists) and refreshes `--navh`. Collapsed: `#tlBar`, `#tlSum`, `#tlMini` and the panel are hidden, on mobile/mid the
+  bottom tab bar is hidden too (`--navh` becomes 0), the view's padding is only `env(safe-area-inset-*)`, `#tlWrap` loses its border and
+  radius and the canvas fills the whole viewport (desktop 100 vw × 100 vh; the `ResizeObserver` on `#tlWrap` redraws). One floating round
+  button `#tlExpand` (top-right inside the safe area, 40 px desktop / 44 px mobile+mid, semi-transparent `var(--bg)` with backdrop blur,
+  `tt_tlexpand`, sliders icon) restores the controls; focus moves between it and `btn-tlcollapse`. While collapsed `tlPlaceReadout()`
+  keeps the readout out of a 56 × 56 px top-right exclusion (below it, or left of it). **Esc order in the graph view** (the one `document`
+  keydown handler in `tlInit()`): close the panel → expand (when collapsed) → leave the graph view (`tlFullClose`).
+  **Rotate hint.** `tlRotateToast()` shows `tlRotate` once per page load, as a 4 s toast `#tlToast` (`role=status`, in `#tlFullBody`, over the top
+  of the canvas), when the graph opens on a phone in portrait; there is no layout row for it any more.
+  `#tlLive` is mounted into the view too, so the readout is still announced there.
 - **Programmatic access.** `tlGoto(ts)` centres the view on a location-local time string; `tlCursorTs()` returns
   the cursor as `YYYY-MM-DDTHH:MM` (or `null`); `tlInvalidate()` drops the score / AQI / row caches and
   redraws (called by `setAct()` so the score lane follows the planner); `tlRender()` (called from
@@ -363,7 +394,7 @@ and every render call it); its label is `T.nowBarAria`.
 
 **Map ⏱ sync.** `mapSyncFromTl()` (called by `showView('map')`) puts the map's time-scrub slider
 (`#gridSlider`, `gridSeek`) on the hour of the timeline cursor when it lies 0–23 h ahead; `tlSyncFromMap()`
-(only when the previous view was the map, via `prevView` in `showView`) moves the cursor to the hour the map was left on (`GRIDHR` > 0) and centres
+(only when NOW or the graph view is opened from the map, via `prevView` in `showView`) moves the cursor to the hour the map was left on (`GRIDHR` > 0) and centres
 the view with `tlGoto`. Both are wrapped in try/catch.
 
 **Fixed 16-day forecast.** `FCDAYS=16` (the Open-Meteo maximum) is the only forecast span: `fetchFor`, the cache
@@ -392,7 +423,7 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
   case index 9 (the same question for Rijeka) shows instead; shown only while there is no answer yet) and the answer panel `#askOut` (`aria-live=polite`,
   `aria-busy` while an answer streams so screen readers read the finished text; header with collapse and Clear,
   a note — "no key" or "limit reached" — with a button, one `.askent` per answer). The bar is hidden on the MAP
-  view (`askUi()` toggles `.hidden`) and, by CSS, while the fullscreen timeline is open (`html.tlfs`); it shows
+  view and the graph view (`askUi()` toggles `.hidden` for `#view-map` and `#view-graph`; `html.tlfs` also hides it by CSS); it shows
   on NOW, PLAN and Info. `askUi()` refreshes it and is called from `applyTitles()`, `showView()`,
   `renderActive()`, the key handlers and `askRefreshState()`; it rebuilds the chips and the panel only when its
   signature `ASK.sig` (language, theme, state, mode, hint text, history) changes and never touches the input.
@@ -637,10 +668,10 @@ weekends, and destroys the charts of activity sections that are not showing.
 
 `wd_prefs` (`PREFS_KEY`) is written by `savePrefs()` and read once at boot by `loadPrefs()`. It stores
 `lang`, `theme`, `VEGAN`, `act` (the PLAN activity, `PLAN.act`), `groups` (open state of the four groups) and
-`aiModel` (the AI-search model, one of `ASKMODELS`) and `tl` (`{v:2,zoom,layers,style,names,axis}` of the
+`aiModel` (the AI-search model, one of `ASKMODELS`) and `tl` (`{v:2,zoom,layers,style,names,axis,ui}` of the
 timeline; `loadPrefs()` accepts only known zoom values, 0/1/2/boolean layer flags for known layers — an older
 snapshot's "on" becomes state 2 —, a known line style, the boolean `names.c`/`names.f` and an `axis` mode with a
-numeric `lo < hi` override). The v3.21 keys `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`CMODE` are no longer written; only a stored
+numeric `lo < hi` override, and `ui.c` only when it is 1 or `true`, otherwise 0). The v3.21 keys `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`CMODE` are no longer written; only a stored
 `PRES` is migrated once into `tl.layers.pres` (only when no timeline pressure choice is stored) and disappears
 with the next save. **MP (Monty Python) is deliberately not stored.** `PREFS_LIVE`
 is `false` during boot, so reading the saved prefs never rewrites them; it flips to `true` at the end of
@@ -862,9 +893,9 @@ These are the non-negotiable house rules for any change:
 10. **Tap targets.** Interactive controls are ≥ 36 px tall on desktop and 44 px on `mobile`/`mid`.
 11. **The timeline is canvas, not Chart.js — read theme colours at draw time.** `tlDraw()` takes `C`, `BG`,
     `txt`, `strong`, `grid`, `halo` and `theme` on every frame (no colours cached across frames or hard-coded),
-    keeps the summary above (`#tlSum`) and the legend below (`#tlLeg`, custom DOM), and every user-visible
+    keeps the summary above (`#tlSum`) and the legend below (`#tlMini`, custom DOM, plus the panel chips in `#tlPanel`), and every user-visible
     string it draws or announces (labels, readout, legend, aria) exists in both languages. Keep the cursor
-    inside the pannable range (`tlCurClamp`) and redraw through `tlSchedule()`. The legend is the only series
+    inside the pannable range (`tlCurClamp`) and redraw through `tlSchedule()`. The legend chips (mini row and panel) are the only series
     control (three states per series: labels / no labels / hidden), the axis strips always draw their ticks, a
     series with no data is never drawn or listed, and a touch swipe must never start an axis rescale.
 12. **The API key never appears in the source, prefs or snapshots.** The visitor's Claude API key exists only in
@@ -882,13 +913,14 @@ Roughly top-to-bottom:
 - `<head>` / CSS — theme variables, responsive layout rules (`#wrap.mobile` / `#wrap.mid` / desktop),
   card/hero/stat/group styles, the control sizes above.
 - `<body>` markup — header (`#locSel`, `btn-lang`, `btn-theme`), then `#dash`, which starts with `#askBar` (AI
-  search), `#alertBox` and `#tabs` (NOW, PLAN, MAP — `tab-now`/`tab-plan`/`tab-map`) and continues with the
+  search), `#alertBox` and `#tabs` (NOW, GRAPH, PLAN, MAP — `tab-now`/`tab-graph`/`tab-plan`/`tab-map`) and continues with the
   per-view `<section>`s: `#view-now` and `#view-plan` (DOM
   orders above; the BBQ and hike sections live inside PLAN as `#ps-bbq`/`#ps-hike`), `#view-map`, and
   `#view-info` (about + the AI-search settings card `#askSet` + the `#infoFeeds` status panel + the bilingual
   `CHANGELOG` array + the Monty Python switch `btn-mp`/`toggleMP()`). The shared footer is the last child of
   `#dash`. The loading and error screens (`#loading` / `#error`) come before `#dash` in `#wrap`, and the
-  fullscreen timeline overlay `#tlFull` after it.
+  graph view `#view-graph` (a full-screen `position:fixed` section, like `#view-map`; it holds `#tlFullTop`, `#graphEmpty`, `#tlFullBody` with
+  `#tlToast`, and `#tlExpand`) after it, followed by the Layers panel (`#tlPanelBk`, `#tlPanel`).
 - **Location selector** (`#locSel` pill in the header → `#locPanel` with `#locSearch` + `#locList`): tap
   the pill (`locOpen()`) to open a panel listing, in order, live search results while typing
   (`locSearchInput()`/`locDoSearch()` against `geocoding-api.open-meteo.com`, 300 ms debounce, shown
@@ -915,8 +947,8 @@ Roughly top-to-bottom:
   `renderCondCards`) · chart drawers
   (`drawSea`, `drawTide`, `drawMoon`, `drawBio`, `drawPressure`, `drawAqi`, `drawGrill`, `drawBbqTimeline`,
   `drawBbqGrill`) · **timeline** (`tlInit`, `tlRender`, `tlDraw`, `tlSchedule`, `tlSetZoom`, `tlFitX`, `tlApplyScale`, `tlRep`, `tlSetLayer`, `tlSetFit`, `tlSetStyle`,
-  `tlLegend`, `tlGoto`, `tlCursorTs`, `tlInvalidate`, `tlHome`, `tlMoveCursor`, `tlTap`, `tlReadoutLines`,
-  `tlFullOpen`/`tlFullClose`; state `TL`, cache `TLC`) · maps
+  `tlLegend`, `tlPanelOpen`/`tlPanelClose`, `tlGoto`, `tlCursorTs`, `tlInvalidate`, `tlHome`, `tlMoveCursor`, `tlTap`, `tlReadoutLines`,
+  `renderGraph`, `tlMountGraph`/`tlUnmountGraph`, `tlUiApply`/`tlSetCollapsed`/`tlImm`, `tlRotateToast`, `tlFullOpen`/`tlFullClose`, `setNavH`; state `TL`, `TLP`, cache `TLC`) · maps
   (`loadLeaflet`, the weather map incl. `locateOnMap`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/
   `showView`/`renderActive`/`updateAlertBox`) · Info panel (`renderInfo`, `renderFeeds`, `CHANGELOG`) · **Ask the
   weather** (`askKeyGet`/`askKeySave`/`askKeyDel`, `askMode`, `askRefreshState`, `askContext`, `askSystem`, `askClaude`, `askReadStream`, `askUi`; state `ASK`,
@@ -933,8 +965,9 @@ easter-egg label set.
 - Edit `weather-dashboard.html` directly; keep the section-banner organization.
 - When touching the timeline: draw through `tlSchedule()`, set the cursor only through `tlCurClamp`, and check all
   three zooms, both themes, both languages and keyboard use (arrows, +/−, Home, Esc), the legend states (labels /
-  no labels / hidden), the fullscreen shell (`tlFullOpen()`; 1280×800 and a 800×360 landscape phone) and mouse
-  versus touch on the axis strips.
+  no labels / hidden, plus the ghost chip), the Layers & display panel (bottom sheet at 412×891 and 891×412, side sheet at 1440×900, Tab
+  trap, Esc), the graph view expanded and collapsed (canvas = the whole viewport when collapsed, 360 px wide with no horizontal scroll,
+  the theme switch in both themes) and mouse versus touch on the axis strips.
 - When touching a chart: update its summary, legend, and `aria-label` together, and make sure it
   redraws correctly across theme switch and language switch, and that it is not drawn while its group is
   closed.

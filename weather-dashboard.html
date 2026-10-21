@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Patrik's weather daily — v3.25</title>
+<title>Patrik's weather daily — v3.26</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#16243a">
@@ -196,8 +196,6 @@ body{padding:20px;transition:background .2s}
 #tlCanvas.drag{cursor:grabbing}
 #tlCanvas:focus-visible{outline:2px solid var(--tp);outline-offset:-2px}
 #tlZoom .lbtn,#tlFit .lbtn,#tlStyle .lbtn{gap:5px;flex:0 0 auto}
-.tltools{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:0 0 10px}
-.tltools .rng{margin:0}
 .tlhd{display:flex;align-items:center;justify-content:space-between;gap:8px}
 #btn-tlfs,#btn-tlfsx{padding:4px 9px;flex:0 0 auto}
 #btn-tlfs svg{display:block}
@@ -210,17 +208,52 @@ body{padding:20px;transition:background .2s}
 .tlrt{font-weight:600;margin:0 0 4px;white-space:nowrap}
 .tlrl{display:flex;gap:6px;align-items:baseline;margin:1px 0}
 .tlrl span:first-child{flex:0 0 auto;width:1.4em;text-align:center}
-#tlLeg{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin:4px 0 0;font-size:12px}
-/* F2: legend groups with a muted title, the More chip and the series-names switch */
+/* G2: compact control bar (#tlBar: zoom + Layers button; in the graph view also place/summary, theme, hide-controls and close), the one-row legend (#tlMini, a .dragx strip) and the Layers & display panel (#tlPanel) */
+#tlBar{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-height:36px;min-width:0;margin:0 0 8px}
+#wrap.mobile #tlBar,#wrap.mid #tlBar{min-height:44px}
+#tlBar .rng{margin:0;flex:0 0 auto;flex-wrap:nowrap}
+#tlBar .lbtn{flex:0 0 auto}
+#tlZoom{gap:0}
+#tlZoom .lbtn{border-radius:0!important;padding:4px 9px!important;margin-left:-1px;min-width:40px}
+#tlZoom .lbtn:first-child{border-radius:8px 0 0 8px!important;margin-left:0}
+#tlZoom .lbtn:last-child{border-radius:0 8px 8px 0!important}
+#btn-tlpanel{gap:6px;padding:4px 10px;white-space:nowrap;color:var(--tp)}
+#btn-tlpanel svg{display:block;flex:0 0 auto}
+#btn-tlpanel .tlcnt{min-width:18px;height:18px;border-radius:9px;background:var(--tp);color:var(--bg);font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 5px;box-sizing:border-box}
+@media (max-width:389px){#btn-tlpanel .tlpl{display:none}}
+#tlBar .gonly,#tlBar #btn-tlfsx,#tlBarStart{display:none}
+#btn-tltheme,#btn-tlcollapse{width:36px;padding:0;color:var(--tp)}
+#wrap.mobile #btn-tltheme,#wrap.mid #btn-tltheme,#wrap.mobile #btn-tlcollapse,#wrap.mid #btn-tlcollapse{width:44px}
+#btn-tltheme svg,#btn-tlcollapse svg{display:block}
+#tlMini{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;margin:6px 0 0;font-size:12px;min-height:36px;padding:0 0 1px}
+#wrap.mobile #tlMini,#wrap.mid #tlMini{min-height:44px}
+#tlMini .tlk,#tlMini .tlmm,#tlMini .tlli{flex:0 0 auto;white-space:nowrap}
+/* F2: panel legend groups with a muted title, the series-names switch */
 .tlg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
 .tlgt{color:var(--ts);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-right:2px}
-#wrap.mobile .tlg{flex:1 1 100%}
-.tlmore,.tlnm{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:2px 12px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:var(--tp);font:inherit;font-size:12px;font-weight:500;cursor:pointer;box-sizing:border-box}
-#wrap.mobile .tlmore,#wrap.mid .tlmore,#wrap.mobile .tlnm,#wrap.mid .tlnm{min-height:44px}
-.tlmore:hover,.tlnm:hover{border-color:var(--tp)}
-.tlmore:focus-visible,.tlnm:focus-visible{outline:2px solid var(--tp);outline-offset:2px}
+.tlmm,.tlnm{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:2px 12px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:var(--tp);font:inherit;font-size:12px;font-weight:500;cursor:pointer;box-sizing:border-box}
+#wrap.mobile .tlmm,#wrap.mid .tlmm,#wrap.mobile .tlnm,#wrap.mid .tlnm{min-height:44px}
+.tlmm:hover,.tlnm:hover{border-color:var(--tp)}
+.tlmm:focus-visible,.tlnm:focus-visible{outline:2px solid var(--tp);outline-offset:2px}
 .tlnm[aria-pressed="true"]{background:var(--tp);color:var(--bg);border-color:var(--tp)}
 .tlli{display:inline-flex;align-items:center;gap:5px;margin:0 4px}
+/* G2: Layers & display - a right side sheet on desktop, a bottom sheet (above the bottom bar, --navh) on mobile/mid */
+#tlPanelBk{position:fixed;inset:0;z-index:1290;background:rgba(0,0,0,.38)}
+#wrap.mobile #tlPanelBk,#wrap.mid #tlPanelBk{bottom:var(--navh,0px)}
+#tlPanel{position:fixed;z-index:1300;top:0;right:0;bottom:0;width:340px;max-width:100vw;background:var(--bg);color:var(--tp);border:1px solid var(--bd);border-width:0 0 0 1px;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;box-shadow:0 8px 30px rgba(0,0,0,.3);padding:0 14px calc(14px + env(safe-area-inset-bottom))}
+#wrap.mobile #tlPanel,#wrap.mid #tlPanel{top:auto;left:0;right:0;bottom:var(--navh,0px);width:auto;max-width:none;max-height:70vh;border-width:1px 0 0;border-radius:16px 16px 0 0;padding-bottom:14px}
+#tlPanel.hidden,#tlPanelBk.hidden{display:none}
+.tlph{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg);padding:12px 0 8px}
+.tlph h2{margin:0;font-size:15px;font-weight:600;letter-spacing:.02em}
+#tlPanelGroups .tlg{margin:0 0 10px}
+#tlPanelGroups .tlgt{flex:1 0 100%;margin:0}
+.tlpd{border-top:1px solid var(--bd);padding-top:10px;margin-top:4px}
+.tlpd .hd{font-size:13px;margin:0 0 8px}
+.tlprow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;min-height:36px}
+#wrap.mobile .tlprow,#wrap.mid .tlprow{min-height:44px}
+.tlprow .rng{margin:0}
+.tlprl{font-size:12.5px;color:var(--ts)}
+#tlPanel .tlhint{display:block;margin:8px 0 0}
 /* F1: the legend is the series control - filled swatch = visible + labels, hollow = visible, grey + struck through = hidden */
 .tlk{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:2px 10px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:var(--tp);font:inherit;font-size:12px;font-weight:500;cursor:pointer;box-sizing:border-box}
 #wrap.mobile .tlk,#wrap.mid .tlk{min-height:44px}
@@ -233,27 +266,39 @@ body{padding:20px;transition:background .2s}
 .tlk.s0 span{text-decoration:line-through}
 .tlhint{color:var(--ts);font-size:11.5px;margin-left:4px}
 @media (hover:none),(pointer:coarse){.tlhint{display:none}}
-/* G1: the graph view (GRAF) - the same #tlWrap / #tlLeg / #tlSum / tools nodes are moved in here, nothing is duplicated. Full screen like the map: desktop hides the top tabs (#tabs.onfs), mobile/mid keep the bottom bar and the view ends at its top edge (--navh, measured by setNavH()) */
-#view-graph{position:fixed;inset:0;z-index:1000;background:var(--bg);color:var(--tp);display:flex;flex-direction:column;gap:6px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-sizing:border-box;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;margin:0}
+/* G1/G2: the graph view (GRAF) - the same #tlBar / #tlSum / #tlWrap / #tlMini / #tlLive nodes are moved in here, nothing is duplicated. Full screen like the map: desktop hides the top tabs (#tabs.onfs), mobile/mid keep the bottom bar and the view ends at its top edge (--navh, measured by setNavH()). Collapsed (.imm) hides every control (and the bottom bar, #tabs.tlimm) so the canvas fills the viewport */
+#view-graph{position:fixed;inset:0;z-index:1000;background:var(--bg);color:var(--tp);display:flex;flex-direction:column;gap:6px;padding:max(8px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));box-sizing:border-box;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;margin:0}
 #view-graph.hidden{display:none}
-#wrap.mobile #view-graph,#wrap.mid #view-graph{bottom:var(--navh,0px);padding-bottom:10px}
+#wrap.mobile #view-graph,#wrap.mid #view-graph{bottom:var(--navh,0px);padding-bottom:8px}
 #graphEmpty{margin:4px 0}
 #graphEmpty.hidden{display:none}
-#tlFullHead{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap}
-#tlFullHead .hd{margin:0}
-#tlFullTools{display:flex;flex:1 1 auto;flex-wrap:wrap;gap:6px 14px;align-items:center}
-#view-graph .tltools{margin:0}
-#wrap.mobile #tlFullTitle{order:1}
-#wrap.mobile #btn-tlfsx,#wrap.mid #btn-tlfsx{display:none} /* the bottom bar leaves the graph view, like the map's close button */
-#wrap.mobile #tlFullTools{order:3;flex:1 1 100%}
-#tlFullHint{margin:0;font-size:12.5px}
-#tlFullBody{flex:1 0 auto;display:flex;flex-direction:column;gap:6px} /* R23: grows to fill the overlay, never shrinks below its content (a short landscape phone scrolls the overlay instead of clipping) */
-#view-graph #tlSum{margin:0!important}
+#tlFullTop{flex:0 0 auto;min-width:0}
+#tlFullBody{flex:1 0 auto;display:flex;flex-direction:column;gap:0;position:relative} /* R23: grows to fill the view, never shrinks below its content (a short landscape phone scrolls the view instead of clipping) */
+#view-graph #tlBar{margin:0}
+#view-graph #tlBar .gonly{display:inline-flex}
+#view-graph #tlBar #btn-tlfsx{display:inline-flex}
+#wrap.mobile #view-graph #tlBar #btn-tlfsx,#wrap.mid #view-graph #tlBar #btn-tlfsx{display:none} /* the bottom bar leaves the graph view, like the map's close button */
+#view-graph #tlBar #btn-tltheme{margin-left:auto}
+#view-graph #tlBarStart{display:flex;align-items:center;gap:10px;flex:1 1 0;min-width:0}
+#wrap.mobile #view-graph #tlBarStart{display:none} /* a phone: the readout carries the details */
+#view-graph #tlBarLoc{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%;flex:0 1 auto}
+#view-graph #tlSum{margin:0!important;flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #view-graph #tlWrap{flex:1 1 0;height:auto!important;min-height:140px;margin:0!important}
 #view-graph #tlCanvas{touch-action:none}
-#view-graph #tlLeg{max-height:34vh;overflow-y:auto;flex:0 0 auto}
-@media (max-height:520px){#view-graph #tlLeg{max-height:24vh}#view-graph #tlWrap{min-height:160px}} /* R23: phone in landscape - the legend scrolls inside its cap, the plot keeps a usable height */
+@media (max-height:520px){#view-graph #tlWrap{min-height:160px}}
 #view-graph #tlReadout{max-width:min(320px,calc(100% - 8px));font-size:13px}
+#view-graph #tlMini{flex:0 0 auto}
+#tlExpand{position:fixed;z-index:1100;top:calc(env(safe-area-inset-top) + 8px);right:calc(env(safe-area-inset-right) + 8px);width:40px;height:40px;padding:0;border-radius:50%;display:none;color:var(--tp);background:var(--bg);background:color-mix(in srgb,var(--bg) 68%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#wrap.mobile #tlExpand,#wrap.mid #tlExpand{width:44px;height:44px}
+#tlExpand svg{display:block}
+#view-graph.imm #tlExpand{display:inline-flex}
+#view-graph.imm,#wrap.mobile #view-graph.imm,#wrap.mid #view-graph.imm{bottom:0;gap:0;overflow:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#view-graph.imm #tlFullTop,#view-graph.imm #tlBar,#view-graph.imm #tlSum,#view-graph.imm #tlMini{display:none}
+#view-graph.imm #tlFullBody{flex:1 1 0;min-height:0}
+#view-graph.imm #tlWrap{border:0;border-radius:0;min-height:0}
+#tabs.tlimm,#wrap.mobile #tabs.onfs.tlimm,#wrap.mid #tabs.onfs.tlimm{display:none} /* the graph view collapsed: the bottom bar goes too */
+#tlToast{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:6;width:max-content;max-width:calc(100% - 24px);box-sizing:border-box;background:var(--tp);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:13px;text-align:center;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,0.25)}
+#tlToast.hidden{display:none}
 html.tlfs,html.tlfs body{overflow:hidden}
 .tlsw{display:inline-block;width:12px;height:8px;border-radius:2px;flex:0 0 auto}
 .tlsr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -436,27 +481,23 @@ html.tlfs #askBar{display:none}
 <div id="tlSec" class="hidden" style="margin:0 0 2rem;">
 <div class="hd tlhd"><span data-i="tlTitle">TIMELINE</span><button type="button" class="lbtn" id="btn-tlfs" onclick="tlFullOpen()" data-tt="tt_tlfs"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
 <p class="lab" id="tlSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
-<div class="tltools" id="tlTools">
+<div id="tlBar" role="group">
+<div id="tlBarStart"><span id="tlBarLoc"></span></div>
 <div class="rng" id="tlZoom" role="group" data-tt="tlZoomAria">
-  <button class="lbtn" id="btn-tlz-h" onclick="tlSetZoom('h')" aria-pressed="true" data-i="tlZ_h">Hours</button>
+  <button class="lbtn" id="btn-tlz-h" onclick="tlSetZoom('h')" aria-pressed="true" data-i="tlZ_h">Hour</button>
   <button class="lbtn" id="btn-tlz-3" onclick="tlSetZoom('3')" aria-pressed="false" data-i="tlZ_3">3 h</button>
-  <button class="lbtn" id="btn-tlz-d" onclick="tlSetZoom('d')" aria-pressed="false" data-i="tlZ_d">Days</button>
+  <button class="lbtn" id="btn-tlz-d" onclick="tlSetZoom('d')" aria-pressed="false" data-i="tlZ_d">Day</button>
 </div>
-<div class="rng" id="tlFit" role="group" data-tt="tlFitAria">
-  <button class="lbtn" id="btn-tlf-auto" onclick="tlSetFit('auto')" aria-pressed="true" data-i="tlFit_auto">Auto</button>
-  <button class="lbtn" id="btn-tlf-full" onclick="tlSetFit('full')" aria-pressed="false" data-i="tlFit_full">Full</button>
-</div>
-<div class="rng" id="tlStyle" role="group" data-tt="tlStyleAria">
-  <button class="lbtn" id="btn-tls-linear" onclick="tlSetStyle('linear')" aria-pressed="false" data-i="tlSty_linear">Linear</button>
-  <button class="lbtn" id="btn-tls-step" onclick="tlSetStyle('step')" aria-pressed="false" data-i="tlSty_step">Step</button>
-  <button class="lbtn" id="btn-tls-smooth" onclick="tlSetStyle('smooth')" aria-pressed="true" data-i="tlSty_smooth">Smooth</button>
-</div>
+<button type="button" class="lbtn" id="btn-tlpanel" onclick="tlPanelOpen(this)" aria-haspopup="dialog" aria-controls="tlPanel" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/></svg><span class="tlpl" data-i="tlPanelBtn">Layers</span><span class="tlcnt" id="tlPanelN" aria-hidden="true">0</span></button>
+<button type="button" class="lbtn gonly" id="btn-tltheme" onclick="toggleTheme()" data-tt="tt_theme"></button>
+<button type="button" class="lbtn gonly" id="btn-tlcollapse" onclick="tlSetCollapsed(1)" data-tt="tt_tlcollapse"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14"/><path d="m6 16 6-6 6 6"/></svg></button>
+<button type="button" class="lbtn" id="btn-tlfsx" onclick="tlFullClose()" data-tt="tt_tlfsx">✕</button>
 </div>
 <div id="tlWrap" style="position:relative;width:100%;height:340px;margin:0 0 6px;">
   <canvas id="tlCanvas" tabindex="0" role="img" data-tt="ar_tl"></canvas>
   <div id="tlReadout" class="hidden" aria-hidden="true"></div>
 </div>
-<div class="lab" id="tlLeg"></div>
+<div class="lab dragx" id="tlMini" role="group"></div>
 <span id="tlLive" class="tlsr" role="status" aria-live="polite"></span>
 </div>
 
@@ -697,14 +738,36 @@ html.tlfs #askBar{display:none}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.25 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.26 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
-<section id="view-graph" class="hidden" role="tabpanel" aria-labelledby="tlFullTitle">
-<div id="tlFullHead"><span class="hd" id="tlFullTitle" data-i="tlTitle">TIMELINE</span><div id="tlFullTools"></div><button type="button" class="lbtn" id="btn-tlfsx" onclick="tlFullClose()" data-tt="tt_tlfsx">✕</button></div>
-<p class="lab hidden" id="tlFullHint" data-i="tlRotate">Rotate the phone for a wider view</p>
+<section id="view-graph" class="hidden" role="tabpanel" aria-labelledby="tlGraphH">
+<h2 class="tlsr" id="tlGraphH" data-i="tlTitle">TIMELINE</h2>
+<div id="tlFullTop"></div>
 <div id="graphEmpty" class="hidden"></div>
-<div id="tlFullBody"></div>
+<div id="tlFullBody"><div id="tlToast" class="hidden" role="status"></div></div>
+<button type="button" class="lbtn" id="tlExpand" onclick="tlSetCollapsed(0)" data-tt="tt_tlexpand"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10"/><path d="M18 7h2"/><path d="M4 17h2"/><path d="M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
 </section>
+<div id="tlPanelBk" class="hidden" onclick="tlPanelClose()"></div>
+<aside id="tlPanel" class="hidden" role="dialog" aria-modal="true" aria-labelledby="tlPanelT" tabindex="-1">
+<div class="tlph"><h2 id="tlPanelT" data-i="tlPanelTitle">Layers &amp; display</h2><button type="button" class="lbtn" id="btn-tlpx" onclick="tlPanelClose()" data-tt="tt_tlpx">✕</button></div>
+<div id="tlPanelGroups"></div>
+<div class="tlpd">
+  <div class="hd" data-i="tlDisplay">Display</div>
+  <div class="tlprow"><span class="tlprl" data-i="tlFitLbl">Value axis</span>
+  <div class="rng" id="tlFit" role="group" data-tt="tlFitAria">
+    <button class="lbtn" id="btn-tlf-auto" onclick="tlSetFit('auto')" aria-pressed="true" data-i="tlFit_auto">Auto</button>
+    <button class="lbtn" id="btn-tlf-full" onclick="tlSetFit('full')" aria-pressed="false" data-i="tlFit_full">Full</button>
+  </div></div>
+  <div class="tlprow"><span class="tlprl" data-i="tlStyleLbl">Line style</span>
+  <div class="rng" id="tlStyle" role="group" data-tt="tlStyleAria">
+    <button class="lbtn" id="btn-tls-linear" onclick="tlSetStyle('linear')" aria-pressed="false" data-i="tlSty_linear">Linear</button>
+    <button class="lbtn" id="btn-tls-step" onclick="tlSetStyle('step')" aria-pressed="false" data-i="tlSty_step">Step</button>
+    <button class="lbtn" id="btn-tls-smooth" onclick="tlSetStyle('smooth')" aria-pressed="true" data-i="tlSty_smooth">Smooth</button>
+  </div></div>
+  <div class="tlprow"><button type="button" class="tlnm" id="tlNames" aria-pressed="false" data-i="tlNames">Series names</button></div>
+  <span class="tlhint" data-i="tlHint">drag an axis to rescale · double-click resets</span>
+</div>
+</aside>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" defer></script>
@@ -718,7 +781,7 @@ const ICON_NIGHT={sun:'🌙',partcloud:ICON.cloud}; /* I2: night variants of the
 function iconFor(r){if(!r)return'';return (r.night&&ICON_NIGHT[r.cond])||ICON[r.cond]||'';}
 const ICON_SUN='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 const ICON_MOON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-const APPV='3.25';
+const APPV='3.26';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -753,7 +816,7 @@ function polLvl(v){return v<10?0:v<50?1:2;}
 let BRANGE='h';
 function setBRange(v){BRANGE=v;markBtns();if(D&&D.bio)drawBio();}
 let GRANGE='h';
-let TL={zoom:'h',layers:{temp:2,feels:0,norm:0,rain:2,snow:0,cloud:0,wind:0,gust:0,pres:0,humid:0,uv:0,air:0,pollen:0,vis:0,frz:0,sea:0,tide:0,sun:0,moon:0,score:2},style:'smooth',names:{c:false,f:true},axis:{temp:{mode:'auto',lo:null,hi:null},pres:{mode:'auto',lo:null,hi:null}},x0:null,cursor:null,full:false,pxh:null,fit:false}; /* T1: pxh = px per hour (continuous scale, session only, never saved; null = the preset of zoom), fit = all days fitted to the width. K1/K2/F1: VREMENSKA OS state. layers: 0 hidden / 1 visible / 2 visible + value labels (default temperature + rain + score at 2); style = line style; axis = value-axis fit mode + manual override; F2: 20 layers in 7 legend groups, names = the series-name overlay switch per view (c compact, f fullscreen); zoom + layers + style + names + axis are remembered (wd_prefs.tl), x0 / cursor / full never are */
+let TL={zoom:'h',layers:{temp:2,feels:0,norm:0,rain:2,snow:0,cloud:0,wind:0,gust:0,pres:0,humid:0,uv:0,air:0,pollen:0,vis:0,frz:0,sea:0,tide:0,sun:0,moon:0,score:2},style:'smooth',names:{c:false,f:true},axis:{temp:{mode:'auto',lo:null,hi:null},pres:{mode:'auto',lo:null,hi:null}},x0:null,cursor:null,full:false,pxh:null,fit:false,ui:{c:0}}; /* G2: ui.c = the graph view's controls are collapsed (0 / 1, remembered in wd_prefs.tl.ui). T1: pxh = px per hour (continuous scale, session only, never saved; null = the preset of zoom), fit = all days fitted to the width. K1/K2/F1: VREMENSKA OS state. layers: 0 hidden / 1 visible / 2 visible + value labels (default temperature + rain + score at 2); style = line style; axis = value-axis fit mode + manual override; F2: 20 layers in 7 legend groups, names = the series-name overlay switch per view (c compact, f fullscreen); zoom + layers + style + names + axis are remembered (wd_prefs.tl), x0 / cursor / full never are */
 let PLAN={act:'bbq',date:null}; /* J2: PLANIRAJ - chosen activity (remembered in wd_prefs.act) and day (never saved) */
 function setGRange(v){GRANGE=v;markBtns();if(D&&D.days)drawGrill();}
 function bioLvl(s){return s<=1?0:s<=3?1:2;}
@@ -779,7 +842,7 @@ let GROUPS={air:false,cmp:false,sea:false,bio:false}; /* P1: open state of the f
    migrated once into the timeline's pressure layer (loadPrefs) and disappears with the next save; the other stale keys are simply ignored. */
 function savePrefs(){ /* I2: language, theme and the switches survive a reload (MP is deliberately not saved) */
  if(!PREFS_LIVE)return;
- try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS,aiModel:ASK.model,tl:{v:2,zoom:TL.zoom,layers:TL.layers,style:TL.style,names:TL.names,axis:TL.axis}}));}catch(e){}
+ try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS,aiModel:ASK.model,tl:{v:2,zoom:TL.zoom,layers:TL.layers,style:TL.style,names:TL.names,axis:TL.axis,ui:{c:TL.ui.c?1:0}}}));}catch(e){}
 }
 function loadPrefs(){
  let p=null;
@@ -804,6 +867,7 @@ function loadPrefs(){
     else if(x===1)TL.layers[k]=v2?1:2;});
   }
   if(TLSTYLES.indexOf(p.tl.style)>=0)TL.style=p.tl.style;
+  TL.ui.c=(p.tl.ui&&typeof p.tl.ui==='object'&&(p.tl.ui.c===1||p.tl.ui.c===true))?1:0; /* G2: a missing / invalid value is 0 */
   if(p.tl.names&&typeof p.tl.names==='object'){['c','f'].forEach(w=>{if(typeof p.tl.names[w]==='boolean')TL.names[w]=p.tl.names[w];});}
   if(p.tl.axis&&typeof p.tl.axis==='object'){['temp','pres'].forEach(w=>{
    const a=p.tl.axis[w],ax=TL.axis[w];if(!a||typeof a!=='object')return;
@@ -1113,13 +1177,13 @@ const T={
   ar_grill:"Grilling score forecast (today\'s grilling hours or upcoming days) as colored bars with tier icons",
   ar_radarBox:"Full-screen weather map with radar, lightning, temperature, wind, rain and cloud layers",ar_rainStrip:"Rain expected in the next two hours in 15-minute steps",ar_heatLeg:"Temperature layer colour legend",
   ar_bioInfo:"Biometeo criteria",
-  tlTitle:"TIMELINE",tlZ_h:"Hours",tlZ_3:"3 h",tlZ_d:"Days",tlL_temp:"Temperature",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV index",tlL_air:"Air quality",tlL_sea:"Sea",tlL_norm:"Normal",
+  tlTitle:"TIMELINE",tlZ_h:"Hour",tlZ_3:"3 h",tlZ_d:"Day",tlL_temp:"Temperature",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV index",tlL_air:"Air quality",tlL_sea:"Sea",tlL_norm:"Normal",
   tlZoomAria:"Timeline zoom",tlFitAria:"Value-axis scale: fit the visible window or all data",tlFit_auto:"Auto",tlFit_full:"Full",tlStyleAria:"Line style",tlSty_linear:"Linear",tlSty_step:"Step",tlSty_smooth:"Smooth",
   tlSt0:"hidden",tlSt1:"visible, no labels",tlSt2:"visible with labels",tlHint:"drag an axis to rescale · double-click resets",
   tlL_feels:"Feels like",tlL_humid:"Humidity",tlL_cloud:"Cloud cover",tlL_gust:"Gusts",tlL_vis:"Visibility",tlL_frz:"Freezing level",tlL_snow:"Snow",tlL_sun:"Sunrise / sunset",tlL_moon:"Moon phase",tlL_tide:"Tide",tlL_pollen:"Pollen",
   tlN_temp:"Temperature",tlN_feels:"Feels like",tlN_pres:"Pressure",tlN_humid:"Humidity",tlN_frz:"Freezing lvl",tlN_gust:"Gusts",tlN_norm:"Normal",
   tlG_temp:"Temperature",tlG_rain:"Precipitation",tlG_wind:"Wind",tlG_air:"Air",tlG_sea:"Sea",tlG_sun:"Sun and moon",tlG_score:"Scores",
-  tlNames:"Series names",tlMore:"More",tlLess:"Less",tlTideTip:"daily high and low levels - the times are not in the data",
+  tlNames:"Series names",tlPanelBtn:"Layers",tlPanelTitle:"Layers & display",tlDisplay:"Display",tlFitLbl:"Value axis",tlStyleLbl:"Line style",tlMiniAria:"Visible layers",tlBarAria:"Timeline controls",tt_tlpanel:"Layers & display",tt_tlpx:"Close",tt_tlcollapse:"Hide controls",tt_tlexpand:"Show controls",tlTideTip:"daily high and low levels - the times are not in the data",
   polAbbr:{alder:'Ald',birch:'Bir',grass:'Gra',mugwort:'Mug',olive:'Oli',ragweed:'Rag'},
   tt_tlfs:"Full screen",tt_tlfsx:"Close full screen",tlRotate:"Rotate the phone for a wider view",
   ar_story:"Today, tomorrow, outlook and weekend in words",nowBarAria:"Back to the top, current weather",
@@ -1177,13 +1241,13 @@ const T={
   ar_grill:"Prognoza ocjene roštilja (današnji sati za roštilj ili nadolazeći dani) u obojenim stupcima s ikonama razina",
   ar_radarBox:"Vremenska karta preko cijelog zaslona s radarom, munjama te slojevima temperature, vjetra, kiše i oblaka",ar_rainStrip:"Očekivana kiša u sljedeća dva sata u koracima od 15 minuta",ar_heatLeg:"Legenda boja sloja temperature",
   ar_bioInfo:"Kriteriji biometeorologije",
-  tlTitle:"VREMENSKA OS",tlZ_h:"Sati",tlZ_3:"3 h",tlZ_d:"Dani",tlL_temp:"Temperatura",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV indeks",tlL_air:"Kvaliteta zraka",tlL_sea:"More",tlL_norm:"Normala",
+  tlTitle:"VREMENSKA OS",tlZ_h:"Sat",tlZ_3:"3 h",tlZ_d:"Dan",tlL_temp:"Temperatura",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV indeks",tlL_air:"Kvaliteta zraka",tlL_sea:"More",tlL_norm:"Normala",
   tlZoomAria:"Zoom vremenske osi",tlFitAria:"Mjerilo osi vrijednosti: vidljivi prozor ili svi podaci",tlFit_auto:"Auto",tlFit_full:"Puni",tlStyleAria:"Stil linije",tlSty_linear:"Ravno",tlSty_step:"Stepenasto",tlSty_smooth:"Glatko",
   tlSt0:"skriveno",tlSt1:"vidljivo bez oznaka",tlSt2:"vidljivo s oznakama",tlHint:"povuci os za mjerilo · dvoklik vraća",
   tlL_feels:"Osjet",tlL_humid:"Vlaga",tlL_cloud:"Naoblaka",tlL_gust:"Udari vjetra",tlL_vis:"Vidljivost",tlL_frz:"Granica smrzavanja",tlL_snow:"Snijeg",tlL_sun:"Izlazak / zalazak",tlL_moon:"Mjesečeva mijena",tlL_tide:"Plima i oseka",tlL_pollen:"Pelud",
   tlN_temp:"Temperatura",tlN_feels:"Osjet",tlN_pres:"Tlak",tlN_humid:"Vlaga",tlN_frz:"Smrzavanje",tlN_gust:"Udari",tlN_norm:"Normala",
   tlG_temp:"Temperatura",tlG_rain:"Oborine",tlG_wind:"Vjetar",tlG_air:"Zrak",tlG_sea:"More",tlG_sun:"Sunce i mjesec",tlG_score:"Ocjene",
-  tlNames:"Imena serija",tlMore:"Više",tlLess:"Manje",tlTideTip:"dnevne razine plime i oseke - vremena nisu u podacima",
+  tlNames:"Imena serija",tlPanelBtn:"Slojevi",tlPanelTitle:"Slojevi i prikaz",tlDisplay:"Prikaz",tlFitLbl:"Os vrijednosti",tlStyleLbl:"Stil linije",tlMiniAria:"Vidljivi slojevi",tlBarAria:"Kontrole vremenske osi",tt_tlpanel:"Slojevi i prikaz",tt_tlpx:"Zatvori",tt_tlcollapse:"Sakrij kontrole",tt_tlexpand:"Prikaži kontrole",tlTideTip:"dnevne razine plime i oseke - vremena nisu u podacima",
   polAbbr:{alder:'Joh',birch:'Bre',grass:'Tra',mugwort:'Pel',olive:'Mas',ragweed:'Amb'},
   tt_tlfs:"Cijeli zaslon",tt_tlfsx:"Zatvori cijeli zaslon",tlRotate:"Okreni telefon za širi prikaz",
   ar_story:"Danas, sutra, izgledi i vikend riječima",nowBarAria:"Natrag na vrh, trenutno vrijeme",
@@ -2830,7 +2894,7 @@ function drawTide(){
    ctx.restore();}}]
  });
 }
-function applyTheme(t){theme=t;calc();document.getElementById('wrap').classList.toggle('dark',t==='dark');document.body.style.background=BG;const bt=document.getElementById('btn-theme');if(bt)bt.innerHTML=(t==='dark'?ICON_SUN:ICON_MOON);markBtns();savePrefs();if(D)renderActive();}
+function applyTheme(t){theme=t;calc();document.getElementById('wrap').classList.toggle('dark',t==='dark');document.body.style.background=BG;const bt=document.getElementById('btn-theme');if(bt)bt.innerHTML=(t==='dark'?ICON_SUN:ICON_MOON);const bt2=document.getElementById('btn-tltheme');if(bt2)bt2.innerHTML=(t==='dark'?ICON_SUN:ICON_MOON);markBtns();savePrefs();if(D)renderActive();}
 function toggleTheme(){applyTheme(theme==='dark'?'light':'dark');}
 function applyTitles(){
  ['lang','theme','mp','vegan'].forEach(id=>{
@@ -2867,7 +2931,7 @@ const TLORDER=[].concat.apply([],TLGROUPS.map(g=>g[1]));
 const TLLAYERS=TLORDER.slice();
 const TLSTYLES=['linear','step','smooth'];
 const TLIC={temp:'🌡️',feels:'🧥',norm:'📏',rain:'🌧️',snow:'❄️',cloud:'☁️',wind:'💨',gust:'🌬️',pres:'📈',humid:'💧',uv:'☀️',air:'🍃',pollen:'🌼',vis:'👁️',frz:'🧊',sea:'🌊',tide:'↕️',sun:'🌅'};
-const TLC={hr:null,hr2:null,dd:null,tm:null,tm2:null,ag:null,tMin:0,tMax:10,pMin:1000,pMax:1020,preview:null,hov:null,dom:null,lay:null,air:[],airSrc:undefined,airHr:null,scD:null,scK:'',scH:null,rs:null,ds:null,act:'bbq',raf:0,to:0,sum:null,pm:0,xm:0,W:0,H:0,keep:{},ms:0};
+const TLC={hr:null,hr2:null,dd:null,tm:null,tm2:null,ag:null,tMin:0,tMax:10,pMin:1000,pMax:1020,preview:null,hov:null,dom:null,lay:null,air:[],airSrc:undefined,airHr:null,scD:null,scK:'',scH:null,rs:null,ds:null,act:'bbq',raf:0,to:0,sum:null,pm:0,xm:0,W:0,H:0,ghost:{},gt:0,ms:0};
 let tlRO=false; /* is the readout box open */
 let tlPtr=null;
 function tlOk(){return !!(D&&D.mode!=='ai'&&D.hr&&D.hr.length>24);}
@@ -2903,7 +2967,7 @@ function tlScaleFix(W){ /* once per draw: keep the scale inside its bounds, keep
 function tlScaleDone(old){ /* after any scale change: a new representation re-snaps the cursor, updates the preset pills, the legend and the saved preset */
  const r=tlRep();
  if(r!==old){
-  TL.zoom=r;TLC.hov=null;
+  TL.zoom=r;TLC.hov=null;TLC.ghost={};
   if(TL.cursor!=null&&TLC.tm)TL.cursor=tlCurClamp(TL.cursor/60000)*60000;
   savePrefs();markBtns();tlLegend();
  }
@@ -2992,6 +3056,7 @@ function tlClamp(W){
 function tlWidth(){const w=document.getElementById('tlWrap');return(w&&w.clientWidth)||320;}
 function tlSetZoom(z){ /* a preset: Hours / 3 h = a fixed px/hour, Days = fit-to-width in full screen (the compact px/hour otherwise); keeps the cursor or the view centre */
  if(TLZ.indexOf(z)<0)return;
+ TLC.ghost={}; /* G2: a chip turned off a moment ago leaves the mini legend with the zoom change */
  if(D&&tlOk())tlPrep();
  const W=tlWidth();
  if(z==='d'&&TL.full&&D&&tlOk()){TL.zoom=z;tlFitX();savePrefs();markBtns();tlLegend();return;}
@@ -3159,6 +3224,9 @@ function tlPlaceReadout(x,m,hover){ /* m = the column (minute) to describe, hove
  let l=x+12;if(l+bw>W-4)l=x-12-bw;
  l=Math.max(4,Math.min(l,W-bw-4));
  let t=20;if(t+bh>H-4)t=Math.max(4,H-bh-4);
+ if(tlImm()&&l+bw>W-56&&t<56){ /* G2: collapsed graph - a 56 x 56 px top-right exclusion for #tlExpand: go below it, else slide left of it */
+  if(60+bh<=H-4)t=60;else l=Math.max(4,W-60-bw);
+ }
  box.style.left=Math.round(l)+'px';box.style.top=Math.round(t)+'px';box.style.visibility='visible';
 }
 
@@ -3198,6 +3266,15 @@ function tlSyncUi(){
  TLZ.forEach(z=>{const b=document.getElementById('btn-tlz-'+z);if(b)b.setAttribute('aria-pressed',tlRep()===z?'true':'false');});
  ['auto','full'].forEach(m=>{const b=document.getElementById('btn-tlf-'+m);if(b)b.setAttribute('aria-pressed',TL.axis.temp.mode===m?'true':'false');});
  TLSTYLES.forEach(s=>{const b=document.getElementById('btn-tls-'+s);if(b)b.setAttribute('aria-pressed',TL.style===s?'true':'false');});
+ const nb=document.getElementById('tlNames');if(nb)nb.setAttribute('aria-pressed',(TL.names&&TL.names[TL.full?'f':'c'])?'true':'false');
+ { /* G2: the Layers button carries the number of visible layers; the bar and the mini legend get their accessible names here (they follow the language) */
+  let n=0;
+  if(D&&D.hr){const has=tlHas();TLORDER.forEach(k=>{if((TL.layers[k]|0)>0&&tlAvail(k,has))n++;});}
+  const pb=document.getElementById('btn-tlpanel'),pn=document.getElementById('tlPanelN'),bar=document.getElementById('tlBar');
+  if(pn)pn.textContent=String(n);
+  if(pb){const t=(LBL.tt_tlpanel||'')+' ('+n+')';pb.title=t;pb.setAttribute('aria-label',t);pb.setAttribute('aria-expanded',TLP.open?'true':'false');}
+  if(bar&&LBL.tlBarAria)bar.setAttribute('aria-label',LBL.tlBarAria);
+ }
 }
 /* F1: the legend IS the series control. One button per layer cycles 2 (visible + value labels, filled swatch) -> 1 (visible, no labels,
    hollow swatch) -> 0 (hidden, grey + struck through) -> 2. A hidden series is previewed faintly while a mouse hovers its chip. */
@@ -3282,52 +3359,79 @@ function tlInk(c,bg){
  for(let t=0;t<=10;t++){cur=[0,1,2].map(i=>Math.round(a[i]+(tgt[i]-a[i])*t/10));const l=tlLum(cur);if((Math.max(l,lb)+0.05)/(Math.min(l,lb)+0.05)>=4.5)break;}
  return TLINK[key]='rgb('+cur.join(',')+')';
 }
-let TLmore=false; /* compact view: are the groups with every layer off expanded (the "More" chip) */
-function tlToggleMore(){TLmore=!TLmore;if(!TLmore)TLC.keep={};tlLegend();}
 function tlToggleNames(){
  if(!TL.names)TL.names={c:false,f:true};
  const w=TL.full?'f':'c';TL.names[w]=!TL.names[w];
- savePrefs();tlLegend();tlSchedule();
+ savePrefs();tlSyncUi();tlSchedule();
 }
+/* G2: tlLegend() renders the one-row mini legend #tlMini (one chip per visible layer, a chip turned off a moment ago stays as a grey ghost so a wrong tap can be undone, the comparison swatches, and the final "+ Layers" chip) and, while #tlPanel is open, the grouped chips of every available layer in #tlPanelGroups. */
+const TLP={open:false,opener:''}; /* the Layers & display panel: open flag + the id of the control that opened it (focus returns there) */
+function tlGhost(k){TLC.ghost[k]=1;clearTimeout(TLC.gt);TLC.gt=setTimeout(tlGhostClear,8000);} /* the chip stays 8 s (or until the panel opens / closes or the zoom changes) */
+function tlGhostClear(){clearTimeout(TLC.gt);if(!Object.keys(TLC.ghost).length)return;TLC.ghost={};if(D&&tlOk())tlLegend();}
 function tlLegend(){
- const el=document.getElementById('tlLeg');if(!el||!D)return;
+ const el=document.getElementById('tlMini');if(!el||!D)return;
  if(!D.hr){el.innerHTML='';return;}
- const hrv=lang==='hr',La=TL.layers,isC=cmp(),h=[],has=tlHas();
+ const hrv=lang==='hr',La=TL.layers,isC=cmp(),has=tlHas();
+ const pg=TLP.open?document.getElementById('tlPanelGroups'):null;
  const ae=document.activeElement;
- let fk=null;
- if(ae&&ae.classList&&el.contains(ae)){fk=ae.classList.contains('tlk')?'.tlk[data-k="'+ae.getAttribute('data-k')+'"]':(ae.id?'#'+ae.id:null);}
+ let fk=null,fc=null;
+ [el,pg].forEach(c=>{if(c&&ae&&ae.classList&&c.contains(ae)){fc=c;fk=ae.classList.contains('tlk')?'.tlk[data-k="'+ae.getAttribute('data-k')+'"]':(ae.id?'#'+ae.id:null);}});
  const sw=(css,txt2)=>'<span class="tlli"><i class="tlsw" style="'+css+'"></i>'+esc(txt2)+'</span>';
- const chip=k=>{
+ const chip=(k,mini)=>{
   const s=La[k]|0,nmx=tlLayerName(k),unit=TLUNIT[k]||'';
-  const label=(k==='score'?((ACTICON[planAct()]||'')+' '):'')+nmx+(unit?' '+unit:'');
+  const label=(k==='score'?((ACTICON[planAct()]||'')+' '):'')+nmx+((!mini&&unit)?' '+unit:'');
   const tip=nmx+': '+LBL['tlSt'+s]+(k==='tide'?'. '+LBL.tlTideTip:'');
   return '<button type="button" class="tlk s'+s+'" data-k="'+k+'" aria-pressed="'+(s>0?'true':'false')+'" aria-label="'+esc(tip)+'" title="'+esc(tip)+'" style="--c:'+tlCol(k)+'"><i class="tlsw" aria-hidden="true"></i><span>'+esc(label)+'</span></button>';
  };
- let hidden=0;
- if(!TLC.keep)TLC.keep={};
- TLGROUPS.forEach(g=>{
-  const ks=g[1].filter(k=>tlAvail(k,has));
-  if(!ks.length)return;
-  const anyOn=ks.some(k=>(La[k]|0)>0);
-  if(!(TL.full||TLmore||anyOn||TLC.keep[g[0]])){hidden++;return;}
-  if(!TL.full&&!TLmore)TLC.keep[g[0]]=true; /* a group that was shown stays until the chip is pressed again */
-  const gt=LBL['tlG_'+g[0]];
-  h.push('<div class="tlg" role="group" aria-label="'+esc(gt)+'"><span class="tlgt">'+esc(gt)+'</span>'+ks.map(chip).join('')+'</div>');
- });
- const ext=[];
- if(!TL.full&&(hidden>0||TLmore))ext.push('<button type="button" class="tlmore" id="tlMore" aria-expanded="'+(TLmore?'true':'false')+'" title="'+esc(TLmore?LBL.tlLess:LBL.tlMore)+'">'+esc(TLmore?LBL.tlLess:LBL.tlMore)+(TLmore?' ▴':' ▾')+'</button>');
- const nOn=!!(TL.names&&TL.names[TL.full?'f':'c']);
- ext.push('<button type="button" class="tlnm" id="tlNames" aria-pressed="'+(nOn?'true':'false')+'">'+esc(LBL.tlNames)+'</button>');
- if(La.temp>0&&tlAvail('temp',has)){
-  if(isC){ext.push(sw('background:'+CMP.a,D.loc||locA()));ext.push(sw('border-top:2px dashed '+CMP.b+';background:none',D2.loc||selB));}
-  else if(tlRep()==='d')ext.push(sw('background:'+C.hi+'33',hrv?'pouzdanost (od 8. dana)':'confidence band (day 8+)'));
+ const mh=[];
+ TLORDER.forEach(k=>{if(!tlAvail(k,has))return;if((La[k]|0)>0||TLC.ghost[k])mh.push(chip(k,true));});
+ if(isC&&La.temp>0&&tlAvail('temp',has)){mh.push(sw('background:'+CMP.a,D.loc||locA()));mh.push(sw('border-top:2px dashed '+CMP.b+';background:none',D2.loc||selB));}
+ mh.push('<button type="button" class="tlmm" id="tlMiniMore" aria-haspopup="dialog" aria-controls="tlPanel" aria-expanded="'+(TLP.open?'true':'false')+'" aria-label="'+esc(LBL.tt_tlpanel)+'" title="'+esc(LBL.tt_tlpanel)+'">\uFF0B '+esc(LBL.tlPanelBtn)+'</button>');
+ el.setAttribute('aria-label',LBL.tlMiniAria||'');
+ el.innerHTML=mh.join('');
+ if(pg){
+  const h=[];
+  TLGROUPS.forEach(g=>{
+   const ks=g[1].filter(k=>tlAvail(k,has));
+   if(!ks.length)return;
+   const gt=LBL['tlG_'+g[0]];
+   h.push('<div class="tlg" role="group" aria-label="'+esc(gt)+'"><span class="tlgt">'+esc(gt)+'</span>'+ks.map(k=>chip(k,false)).join('')+'</div>');
+  });
+  const ext=[];
+  if(La.temp>0&&tlAvail('temp',has)&&!isC&&tlRep()==='d')ext.push(sw('background:'+C.hi+'33',hrv?'pouzdanost (od 8. dana)':'confidence band (day 8+)'));
+  if(La.score>0)ext.push('<span class="tlli">'+ACTCOL.map((c,i)=>'<i class="tlsw" style="background:'+c+'" title="'+esc(LBL.actTier[i])+'"></i>').join('')+'</span>');
+  if(ext.length)h.push('<div class="tlg tlx">'+ext.join('')+'</div>');
+  pg.innerHTML=h.join('');
  }
- if(La.score>0){ext.push('<span class="tlli">'+ACTCOL.map((c,i)=>'<i class="tlsw" style="background:'+c+'" title="'+esc(LBL.actTier[i])+'"></i>').join('')+'</span>');}
- ext.push('<span class="tlhint">'+esc(LBL.tlHint)+'</span>');
- h.push('<div class="tlg tlx">'+ext.join('')+'</div>');
  TLC.preview=null;
- el.innerHTML=h.join('');
- if(fk){const nb=el.querySelector(fk);if(nb){try{nb.focus({preventScroll:true});}catch(e){}}}
+ if(fk){
+  const nb=fc&&fc.querySelector(fk);
+  if(nb){try{nb.focus({preventScroll:true});}catch(e){}}
+  else if(fc===el){const mb=document.getElementById('tlMiniMore');if(mb){try{mb.focus({preventScroll:true});}catch(e){}}} /* the focused ghost chip expired */
+ }
+}
+function tlPanelOpen(opener){ /* the Layers & display dialog: focus moves in, Tab is trapped (tlKeys), Esc / close button / backdrop close it */
+ if(TLP.open||!D||!tlOk())return;
+ const p=document.getElementById('tlPanel'),bk=document.getElementById('tlPanelBk');if(!p||!bk)return;
+ TLP.open=true;TLP.opener=(opener&&opener.id)||'btn-tlpanel';
+ TLC.ghost={};clearTimeout(TLC.gt);
+ p.classList.remove('hidden');bk.classList.remove('hidden');
+ tlSyncUi();tlLegend();
+ const x=document.getElementById('btn-tlpx');if(x){try{x.focus({preventScroll:true});}catch(e){}}
+}
+function tlVis(el){return !!(el&&(el.offsetWidth||el.offsetHeight||el.getClientRects().length));} /* rendered (a position:fixed node has no offsetParent) */
+function tlPanelClose(restore){ /* restore === false: no focus handling (the view is going away) */
+ if(!TLP.open)return;
+ TLP.open=false;
+ const p=document.getElementById('tlPanel'),bk=document.getElementById('tlPanelBk');
+ if(p)p.classList.add('hidden');if(bk)bk.classList.add('hidden');
+ TLC.ghost={};clearTimeout(TLC.gt);TLC.preview=null;
+ if(D&&tlOk()){tlSyncUi();tlLegend();tlSchedule();}
+ if(restore===false)return;
+ let t=document.getElementById(TLP.opener);
+ if(!tlVis(t))t=document.getElementById('btn-tlpanel');
+ if(!tlVis(t))t=document.getElementById('tlCanvas');
+ if(t){try{t.focus({preventScroll:true});}catch(e){}}
 }
 
 /* --- series helpers (F1) --- */
@@ -4148,14 +4252,20 @@ function tlInit(){
   else if(k==='Escape'){if(!TL.full)tlHide();} /* fullscreen: Esc closes the overlay (document handler below) */
   else if(k==='Enter'||k===' '){e.preventDefault();if(TL.cursor==null)tlHome();else{tlRO=!tlRO;tlSchedule();}}
  });
- /* the legend is the series control: click cycles 2 -> 1 -> 0, a mouse hovering a hidden series previews it */
- const leg=document.getElementById('tlLeg');
- if(leg){
+ /* the legend is the series control: a click on a chip cycles 2 -> 1 -> 0, a mouse hovering a hidden series previews it. Same handlers on the one-row mini legend and on the panel's grouped chips. */
+ [document.getElementById('tlMini'),document.getElementById('tlPanel')].forEach(leg=>{
+  if(!leg)return;
+  const mini=(leg.id==='tlMini');
   leg.addEventListener('click',e=>{
    const t=e.target;if(!t||!t.closest)return;
-   const mb=t.closest('#tlMore');if(mb&&leg.contains(mb)){tlToggleMore();return;}
+   const mb=t.closest('#tlMiniMore');if(mb&&leg.contains(mb)){tlPanelOpen(mb);return;}
    const nb=t.closest('#tlNames');if(nb&&leg.contains(nb)){tlToggleNames();return;}
-   const b=t.closest('.tlk');if(b&&leg.contains(b))tlSetLayer(b.getAttribute('data-k'));
+   const b=t.closest('.tlk');
+   if(b&&leg.contains(b)){
+    const k=b.getAttribute('data-k'),cur=TL.layers[k]|0;
+    if(mini){const nx=(cur===2?1:(cur===1?0:2));if(nx===0)tlGhost(k);else delete TLC.ghost[k];} /* a chip turned off stays as a grey ghost for a few seconds: undo a wrong tap */
+    tlSetLayer(k);
+   }
   });
   leg.addEventListener('pointerover',e=>{
    if(e.pointerType!=='mouse')return;
@@ -4170,15 +4280,26 @@ function tlInit(){
    if(to===b)return;
    if(TLC.preview){TLC.preview=null;tlSchedule();}
   });
- }
- try{const ro=new ResizeObserver(()=>{if(D){if(TL.fit&&tlOk())tlFitX();else tlSchedule();}});ro.observe(document.getElementById('tlWrap'));}catch(e){}
- /* graph view: Esc leaves it (desktop and mobile), the rotate hint follows the orientation */
- document.addEventListener('keydown',e=>{
-  if(active!=='graph'||e.defaultPrevented)return;
-  if(e.key==='Escape'){e.preventDefault();tlFullClose();}
  });
- window.addEventListener('resize',()=>{if(TL.full)tlFullLayout();});
- window.addEventListener('orientationchange',()=>{if(TL.full)setTimeout(tlFullLayout,150);});
+ try{const ro=new ResizeObserver(()=>{if(D){if(TL.fit&&tlOk())tlFitX();else tlSchedule();}});ro.observe(document.getElementById('tlWrap'));}catch(e){}
+ /* G2: Esc order - close the panel, then show the controls again (collapsed graph), then leave the graph view; Tab stays inside the open panel */
+ document.addEventListener('keydown',e=>{
+  if(e.key==='Tab'&&TLP.open){
+   const p=document.getElementById('tlPanel');if(!p)return;
+   const els=Array.prototype.filter.call(p.querySelectorAll('button:not([disabled]),[tabindex="0"]'),x=>x.offsetParent!==null);
+   if(!els.length)return;
+   const first=els[0],last=els[els.length-1];
+   if(!p.contains(document.activeElement)){e.preventDefault();first.focus();}
+   else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+   return;
+  }
+  if(e.key!=='Escape')return;
+  if(TLP.open){e.preventDefault();tlPanelClose();return;}
+  if(active!=='graph'||e.defaultPrevented)return;
+  e.preventDefault();
+  if(tlImm())tlSetCollapsed(0);else tlFullClose();
+ });
 }
 let tlAxD=null; /* an axis-strip drag in progress */
 let tlPts={},tlPinch=null; /* T1: active touch pointers {id:{x,y}} and the two-finger pinch in progress {ids,d0,p0,am} */
@@ -4201,24 +4322,44 @@ function tlPinchMove(cv){
  tlApplyScale(tlPinch.p0*d/tlPinch.d0,mx,tlPinch.am);
 }
 
-/* --- graph view (G1; was the RT-22 fullscreen overlay): the SAME #tlWrap / #tlLeg / #tlSum / tools nodes move into #view-graph, so there is one engine and one canvas --- */
+/* --- graph view (G1; was the RT-22 fullscreen overlay): the SAME #tlBar / #tlSum / #tlWrap / #tlMini / #tlLive nodes move into #view-graph, so there is one engine and one canvas; G2: collapse (immersive) state --- */
 let TLFS_BACK=[];
-function tlFullLayout(){
- const h=document.getElementById('tlFullHint');
- if(h)h.classList.toggle('hidden',!(window.innerWidth<700&&window.innerHeight>window.innerWidth)); /* phone in portrait: suggest rotating */
- tlSchedule();
+function tlImm(){return active==='graph'&&TL.ui.c===1&&!!(D&&tlOk());} /* the graph view with its controls collapsed */
+function tlUiApply(){ /* G2: collapsed = no controls, no panel, and (mobile/mid) no bottom bar - the canvas fills the whole viewport (the ResizeObserver on #tlWrap redraws) */
+ const c=tlImm();
+ const g=document.getElementById('view-graph'),tb=document.getElementById('tabs');
+ if(g)g.classList.toggle('imm',c);
+ if(tb)tb.classList.toggle('tlimm',c);
+ if(c)tlPanelClose(false);
+ setNavH();
+ if(D&&tlOk())tlSchedule();
+}
+function tlSetCollapsed(c){ /* the hide-controls button and the floating show-controls button */
+ TL.ui.c=c?1:0;TLC.hov=null;
+ savePrefs();
+ tlPanelClose(false);
+ tlUiApply();
+ const t=document.getElementById(c?'tlExpand':'btn-tlcollapse');if(tlVis(t)){try{t.focus({preventScroll:true});}catch(e){}}
+}
+let TLROT=false; /* the rotate hint shows once per page load */
+function tlRotateToast(){ /* a phone in portrait opens the graph: suggest rotating, as a 4 s toast over the top of the canvas */
+ if(TLROT||!(window.innerWidth<700&&window.innerHeight>window.innerWidth))return;
+ const t=document.getElementById('tlToast');if(!t)return;
+ TLROT=true;
+ t.textContent=LBL.tlRotate;t.classList.remove('hidden');
+ clearTimeout(t._h);t._h=setTimeout(()=>t.classList.add('hidden'),4000);
 }
 function tlMountGraph(){ /* move the timeline nodes into the graph view; idempotent */
  if(TLFS_BACK.length)return true;
- const body=document.getElementById('tlFullBody'),slot=document.getElementById('tlFullTools');
- if(!body||!slot)return false;
+ const body=document.getElementById('tlFullBody'),top=document.getElementById('tlFullTop'),start=document.getElementById('tlBarStart');
+ if(!body||!top||!start)return false;
  const mv=(id,to)=>{const el=document.getElementById(id);if(!el)return;TLFS_BACK.push({el:el,parent:el.parentNode,next:el.nextSibling});to.appendChild(el);};
- mv('tlTools',slot);mv('tlSum',body);mv('tlWrap',body);mv('tlLeg',body);
+ mv('tlSum',start);mv('tlBar',top);mv('tlWrap',body);mv('tlMini',body);mv('tlLive',body);
  return true;
 }
 function tlUnmountGraph(){ /* put the nodes back into #tlSec on NOW and restore the compact Days preset */
  const was=TL.full||TLFS_BACK.length>0;
- TL.full=false;TLC.hov=null;
+ TL.full=false;TLC.hov=null;tlPanelClose(false);
  for(let i=TLFS_BACK.length-1;i>=0;i--){const b=TLFS_BACK[i];if(b.parent)b.parent.insertBefore(b.el,(b.next&&b.next.parentNode===b.parent)?b.next:null);}
  TLFS_BACK=[];
  if(!was)return;
@@ -4229,7 +4370,7 @@ function renderGraph(){ /* VIEWS.graph.render: the timeline full screen, or a bi
  setNavH();
  const em=document.getElementById('graphEmpty');
  if(!D||!tlOk()){
-  tlUnmountGraph();
+  tlUnmountGraph();tlUiApply();
   if(em){em.innerHTML=emptyCard(esc(LBL.graphNeed),'','info');em.classList.remove('hidden');}
   return;
  }
@@ -4237,8 +4378,10 @@ function renderGraph(){ /* VIEWS.graph.render: the timeline full screen, or a bi
  const first=!(TL.full&&TLFS_BACK.length);
  if(!tlMountGraph())return;
  TL.full=true;TLC.hov=null;
+ {const bl=document.getElementById('tlBarLoc');if(bl)bl.textContent=(D.loc||locA())+((cmp()&&D2)?' · '+(D2.loc||selB):'');} /* the place (both when comparing) at the start of the bar */
  if(first&&tlRep()==='d')tlFitX(); /* T1: the Days preset fills the whole width in the graph view */
- tlSyncUi();tlLegend();tlFullLayout();
+ tlSyncUi();tlLegend();tlUiApply();
+ if(first)tlRotateToast();
  if(first&&TL.fromApp){const cv=document.getElementById('tlCanvas');if(cv){try{cv.focus({preventScroll:true});}catch(e){}}} /* opened with the full-screen button: the canvas takes the keyboard; a tab click keeps focus on the tab bar */
  tlSchedule();
 }
@@ -5510,6 +5653,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.26',d:'2026-10-21',en:'<b>New GRAPH tab:</b> the timeline full screen, with the bottom menu kept on phones. <b>Compact controls:</b> one bar with the zoom and a Layers &amp; display panel, and a one-row legend below the chart. In the graph, one tap hides every control so the chart fills the whole screen; a light/dark switch is in the graph bar.',hr:'<b>Nova kartica GRAF:</b> vremenska os preko cijelog zaslona, a na telefonu donji izbornik ostaje. <b>Kompaktne kontrole:</b> jedna traka sa zoomom i pločom Slojevi i prikaz te legenda u jednom retku ispod grafa. U grafu jedan dodir sakriva sve kontrole pa graf ispunjava cijeli zaslon; prekidač svijetle/tamne teme nalazi se u traci grafa.'},
  {v:'3.25',d:'2026-10-18',en:'<b>Ask about any place.</b> The assistant can now answer about any place you name — it fetches that place\'s forecast itself; an “Open &lt;place&gt;” button switches the app to it.',hr:'<b>Pitaj o bilo kojem mjestu.</b> Pomoćnik sada odgovara o bilo kojem mjestu koje navedeš — sam dohvaća prognozu tog mjesta; gumb „Otvori &lt;mjesto&gt;“ prebacuje aplikaciju na njega.'},
  {v:'3.24',d:'2026-10-18',en:'<b>Ask about the weather works without a key.</b> Every visitor can ask 10 questions a day per device (Claude Sonnet) and the answers stream in as they are written; the bar shows how many questions are left today. Your own key on the Info page still gives unlimited use, goes straight to Anthropic and streams too. <b>Timeline:</b> Days fill the whole width in full screen; double-click fits all days; the mouse wheel zooms in full screen (ctrl + wheel in the normal view), pinch zooms on touch.',hr:'<b>Pitaj o vremenu radi i bez ključa.</b> Svaki posjetitelj može postaviti 10 pitanja dnevno po uređaju (Claude Sonnet), a odgovori pristižu dok se pišu; traka pokazuje koliko je pitanja ostalo danas. Tvoj vlastiti ključ na stranici Info i dalje daje neograničenu upotrebu, ide izravno Anthropicu i također prikazuje odgovor tijekom pisanja. <b>Vremenska os:</b> U cijelom zaslonu dani ispunjavaju cijelu širinu; dvoklik prilagodi sve dane; kotačić miša zumira u cijelom zaslonu (ctrl + kotačić u običnom prikazu), štipanje zumira na dodir.'},
  {v:'3.23',d:'2026-10-18',en:'<b>Timeline, much more detailed.</b> The legend below the timeline is now the control: tap a series to cycle it between labels on, labels off and hidden, and hover a hidden series to preview it. Drag an axis up or down to rescale it (double-tap resets), switch the axes between Auto and Full scale, and pick a line style (linear, step or smooth). The ⛶ button opens the timeline full screen (Esc closes it). <b>Full screen shows every series the data has</b>: feels like, humidity, cloud cover (low, mid and high), gusts, visibility, freezing level, snowfall, sunrise and sunset, moon phase, tide levels and pollen, grouped in the legend, with the series names written inside the chart. <b>Ask about the weather</b>: a search bar at the top answers questions in Croatian or English from the forecast that is loaded, using your own Claude API key. The key stays in this browser only; example questions help you start, and you set the key on the Info page.',hr:'<b>Vremenska os, puno detaljnija.</b> Legenda ispod vremenske osi sada je upravljanje: dodirni seriju da prijeđeš između oznaka uključenih, oznaka isključenih i skrivene serije, a prelazak mišem preko skrivene serije prikazuje njen pregled. Povuci os gore ili dolje za promjenu mjerila (dvostruki dodir vraća), prebaci osi između automatskog i punog mjerila te odaberi stil linije (ravno, stepenasto ili glatko). Gumb ⛶ otvara vremensku os preko cijelog zaslona (Esc zatvara). <b>Cijeli zaslon prikazuje svaku seriju koju podaci imaju</b>: osjet temperature, vlagu, naoblaku (nisku, srednju i visoku), udare vjetra, vidljivost, granicu smrzavanja, snijeg, izlazak i zalazak sunca, mjesečevu mijenu, razine plime i oseke te pelud, grupirano u legendi, s nazivima serija upisanim unutar grafikona. <b>Pitaj o vremenu</b>: traka za pretraživanje na vrhu odgovara na pitanja na hrvatskom ili engleskom iz učitane prognoze, uz tvoj vlastiti Claude API ključ. Ključ ostaje samo u ovom pregledniku; primjeri pitanja pomažu pri početku, a ključ postavljaš na stranici Info.'},
@@ -6253,12 +6397,14 @@ function tlSyncFromMap(){
 }
 function showView(name){
  if(!VIEWS[name])name='now';const prevView=active;active=name;
+ try{tlPanelClose(false);}catch(e){} /* G2: a view change closes the Layers & display panel */
  if(prevView==='graph'&&name!=='graph'){try{tlUnmountGraph();}catch(e){console.log('tlUnmountGraph',e);}TL.fromApp=false;} /* G1: the timeline nodes go back to #tlSec on NOW */
  if(name==='graph'&&prevView!=='graph')TL.backTo=prevView||'now'; /* the close button returns to where the graph was opened from */
  if(name==='plan'){const ra=ROUTEACT[hashKey()];if(ra){PLAN.act=ra;savePrefs();}} /* #plan-hike, #bbq ... pick the activity */
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
  document.getElementById('tabs').classList.toggle('onfs',name==='map'||name==='graph'); /* v3.19: the bar stays on the full-screen map (G1: and the graph view); desktop hides the top tabs there */
  document.documentElement.classList.toggle('tlfs',name==='graph'); /* scroll lock while the graph view is up */
+ try{tlUiApply();}catch(e){console.log('tlUiApply',e);} /* G2: collapsed graph = no controls and no bottom bar */
  try{askUi();}catch(e){} /* A1: the ask bar is hidden on the map */
  destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
  try{updateNowBar();}catch(e){}
