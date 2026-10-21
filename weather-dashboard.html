@@ -167,8 +167,8 @@ body{padding:20px;transition:background .2s}
 #tabs .tab.on{background:var(--tp);color:var(--bg);border-color:var(--tp)}
 #tabs .tab .pk{font-size:11px;font-weight:600;opacity:.85}
 #tabs .tabic{display:none;line-height:0}
-#tabs.onmap{display:none}
-#wrap.mobile #tabs.onmap,#wrap.mid #tabs.onmap{display:flex;z-index:1200}
+#tabs.onfs{display:none}
+#wrap.mobile #tabs.onfs,#wrap.mid #tabs.onfs{display:flex;z-index:1200}
 #wrap.mobile #mapClose,#wrap.mid #mapClose{display:none}
 #wrap.mobile #view-map .leaflet-bottom.leaflet-right,#wrap.mid #view-map .leaflet-bottom.leaflet-right{bottom:auto;top:54px} /* zoom + locate: clear of the bottom panel */
 #wrap.mobile #view-map .leaflet-control-attribution,#wrap.mid #view-map .leaflet-control-attribution{display:none} /* attribution text is in the bottom panel */
@@ -233,26 +233,28 @@ body{padding:20px;transition:background .2s}
 .tlk.s0 span{text-decoration:line-through}
 .tlhint{color:var(--ts);font-size:11.5px;margin-left:4px}
 @media (hover:none),(pointer:coarse){.tlhint{display:none}}
-/* F1: fullscreen shell - the same #tlWrap / #tlLeg / #tlSum / tools nodes are moved in here, nothing is duplicated */
-#tlFull{position:fixed;inset:0;z-index:1200;background:var(--bg);color:var(--tp);display:flex;flex-direction:column;gap:6px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-sizing:border-box;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
-#tlFull.hidden{display:none}
+/* G1: the graph view (GRAF) - the same #tlWrap / #tlLeg / #tlSum / tools nodes are moved in here, nothing is duplicated. Full screen like the map: desktop hides the top tabs (#tabs.onfs), mobile/mid keep the bottom bar and the view ends at its top edge (--navh, measured by setNavH()) */
+#view-graph{position:fixed;inset:0;z-index:1000;background:var(--bg);color:var(--tp);display:flex;flex-direction:column;gap:6px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-sizing:border-box;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;margin:0}
+#view-graph.hidden{display:none}
+#wrap.mobile #view-graph,#wrap.mid #view-graph{bottom:var(--navh,0px);padding-bottom:10px}
+#graphEmpty{margin:4px 0}
+#graphEmpty.hidden{display:none}
 #tlFullHead{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap}
 #tlFullHead .hd{margin:0}
 #tlFullTools{display:flex;flex:1 1 auto;flex-wrap:wrap;gap:6px 14px;align-items:center}
-#tlFull .tltools{margin:0}
+#view-graph .tltools{margin:0}
 #wrap.mobile #tlFullTitle{order:1}
-#wrap.mobile #btn-tlfsx{order:2;margin-left:auto}
+#wrap.mobile #btn-tlfsx,#wrap.mid #btn-tlfsx{display:none} /* the bottom bar leaves the graph view, like the map's close button */
 #wrap.mobile #tlFullTools{order:3;flex:1 1 100%}
 #tlFullHint{margin:0;font-size:12.5px}
 #tlFullBody{flex:1 0 auto;display:flex;flex-direction:column;gap:6px} /* R23: grows to fill the overlay, never shrinks below its content (a short landscape phone scrolls the overlay instead of clipping) */
-#tlFull #tlSum{margin:0!important}
-#tlFull #tlWrap{flex:1 1 0;height:auto!important;min-height:140px;margin:0!important}
-#tlFull #tlCanvas{touch-action:none}
-#tlFull #tlLeg{max-height:34vh;overflow-y:auto;flex:0 0 auto}
-@media (max-height:520px){#tlFull #tlLeg{max-height:24vh}#tlFull #tlWrap{min-height:160px}} /* R23: phone in landscape - the legend scrolls inside its cap, the plot keeps a usable height */
-#tlFull #tlReadout{max-width:min(320px,calc(100% - 8px));font-size:13px}
+#view-graph #tlSum{margin:0!important}
+#view-graph #tlWrap{flex:1 1 0;height:auto!important;min-height:140px;margin:0!important}
+#view-graph #tlCanvas{touch-action:none}
+#view-graph #tlLeg{max-height:34vh;overflow-y:auto;flex:0 0 auto}
+@media (max-height:520px){#view-graph #tlLeg{max-height:24vh}#view-graph #tlWrap{min-height:160px}} /* R23: phone in landscape - the legend scrolls inside its cap, the plot keeps a usable height */
+#view-graph #tlReadout{max-width:min(320px,calc(100% - 8px));font-size:13px}
 html.tlfs,html.tlfs body{overflow:hidden}
-#tabs.onfull,#wrap.mobile #tabs.onfull,#wrap.mid #tabs.onfull{display:none}
 .tlsw{display:inline-block;width:12px;height:8px;border-radius:2px;flex:0 0 auto}
 .tlsr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* K2: story column next to the timeline (desktop 2/3 + 1/3, stacked below that), sticky now-bar */
@@ -419,6 +421,7 @@ html.tlfs #askBar{display:none}
 <div id="alertBox" class="hidden" style="border-radius:12px;padding:0.6rem 1.1rem;margin:0 0 1.25rem;"></div>
 <nav id="tabs" role="tablist">
   <a class="tab on" id="tab-now" role="tab" href="#now" data-view="now" aria-controls="view-now" tabindex="0"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg></span><span class="tablabel" data-i="tabNow">NOW</span><span class="pk" id="pk-now"></span></a>
+  <a class="tab" id="tab-graph" role="tab" href="#graph" data-view="graph" aria-controls="view-graph" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-5 4 3 5-7"/></svg></span><span class="tablabel" data-i="tabGraph">GRAPH</span><span class="pk" id="pk-graph"></span></a>
   <a class="tab" id="tab-plan" role="tab" href="#plan" data-view="plan" aria-controls="view-plan" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></span><span class="tablabel" data-i="tabPlan">PLAN</span><span class="pk" id="pk-plan"></span></a>
   <a class="tab" id="tab-map" role="tab" href="#map" data-view="map" aria-controls="view-map" tabindex="-1"><span class="tabic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg></span><span class="tablabel" data-i="tabMap">MAP</span><span class="pk" id="pk-map"></span></a>
 </nav>
@@ -431,7 +434,7 @@ html.tlfs #askBar{display:none}
 
 <div class="tlrow" id="tlRow">
 <div id="tlSec" class="hidden" style="margin:0 0 2rem;">
-<div class="hd tlhd"><span data-i="tlTitle">TIMELINE</span><button type="button" class="lbtn" id="btn-tlfs" onclick="tlFullOpen()" data-tt="tt_tlfs" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+<div class="hd tlhd"><span data-i="tlTitle">TIMELINE</span><button type="button" class="lbtn" id="btn-tlfs" onclick="tlFullOpen()" data-tt="tt_tlfs"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
 <p class="lab" id="tlSum" style="margin:-2px 0 10px;font-size:12.5px;line-height:1.5;"></p>
 <div class="tltools" id="tlTools">
 <div class="rng" id="tlZoom" role="group" data-tt="tlZoomAria">
@@ -696,11 +699,12 @@ html.tlfs #askBar{display:none}
 
 <p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.25 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
-<div id="tlFull" class="hidden" role="dialog" aria-modal="true" aria-labelledby="tlFullTitle">
+<section id="view-graph" class="hidden" role="tabpanel" aria-labelledby="tlFullTitle">
 <div id="tlFullHead"><span class="hd" id="tlFullTitle" data-i="tlTitle">TIMELINE</span><div id="tlFullTools"></div><button type="button" class="lbtn" id="btn-tlfsx" onclick="tlFullClose()" data-tt="tt_tlfsx">✕</button></div>
 <p class="lab hidden" id="tlFullHint" data-i="tlRotate">Rotate the phone for a wider view</p>
+<div id="graphEmpty" class="hidden"></div>
 <div id="tlFullBody"></div>
-</div>
+</section>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" defer></script>
@@ -1081,7 +1085,7 @@ const T={
   vsY:"vs yesterday",vsLY:"vs last year",vsN:"vs normal",norm:"normal",yest:"yesterday",
   zeroRain:"0% precip across the whole range",myLoc:"My location",locThis:"This location",locSearchPh:"Search a place…",locDone:"Done",locSelLbl:"Location search",moonLeg:"moon phase",tideHi:"High tide",tideLo:"Low tide",h5moon:"MOON",h5tide:"TIDE",cMoon:"Moon",cPol:"Pollen",moonIllLeg:"illumination %",uvLevels:['Low','Moderate','High','Very high','Extreme'],polLevels:['low','moderate','high'],polNames:{alder:'Alder',birch:'Birch',grass:'Grass',mugwort:'Mugwort',olive:'Olive',ragweed:'Ragweed'},h6:"BIOMETEO",hPres:"PRESSURE TREND",h7:"INTERESTING FACT",grH:"GRILLING",grToday:"TODAY",wkH:"WEEKEND PLANS",wkB:"WEEKENDS",mapLoading:"Loading…",
   grpAir:"AIR",grpCmp:"COMPARISONS",grpSea:"SEA",grpBio:"BIO, PRESSURE & MOON",cRain:"Rain",stAir:"Air",heroToday:"today",heroLbl:"Current weather",
-  tabNow:"NOW",tabPlan:"PLAN",tabMap:"MAP",tabInfo:"Info",tShort:"Patrik's weather",
+  tabNow:"NOW",tabGraph:"GRAPH",tabPlan:"PLAN",tabMap:"MAP",graphNeed:"The graph needs the hourly forecast — wait for it to load or pick another place.",tabInfo:"Info",tShort:"Patrik's weather",
   planHead:"PLAN",planNote:"Shown for today",dayToday:"Today",dayTomorrow:"Tomorrow",planBest:"Best",planOver:"Done for today — best was",planNoHr:"Hourly data is still loading — the plan appears in a moment.",planNoAi:"The planner needs the direct Open-Meteo feed — the reduced AI feed has no hourly data.",planNoDay:"No hourly forecast for this day.",planBars:"Score by hour",tt_actRow:"Pick an activity",tt_dayRow:"Pick a day",bikeTag:"Wind decides everything — pick the hours between the gusts.",runTag:"Cool, dry and daylight beat everything else.",seaTag:"Sea temperature, waves and tide for the day you pick.",
   infoHead:"ℹ️ About & changelog",infoTag:"What this dashboard is, where its data comes from, and what changed in every version.",infoChangeH:"VERSION HISTORY",infoFeedsH:"DATA SOURCES · STATUS",infoBack:"← Back",infoLink:"Info & changelog",
   infoAbout:"<b>Patrik's weather daily</b> is a free, bilingual (EN/HR) weather dashboard — one self-contained page, no account, no tracking, no ads. It runs entirely in your browser against keyless public APIs: <b>Open-Meteo</b> (forecast, marine, air quality, climatology), <b>RainViewer</b> (rain radar), <b>Blitzortung.org</b> (live lightning), <b>OpenStreetMap</b>/<b>Overpass</b> (maps &amp; nearby pools), and an optional AI 'interesting fact' feed. Built and maintained by Patrik Pencinger with Claude.",
@@ -1145,7 +1149,7 @@ const T={
   vsY:"vs jučer",vsLY:"vs lani",vsN:"vs normala",norm:"normala",yest:"jučer",
   zeroRain:"0% oborina u cijelom rasponu",myLoc:"Moja lokacija",locThis:"Ova lokacija",locSearchPh:"Traži mjesto…",locDone:"Gotovo",locSelLbl:"Pretraga lokacije",moonLeg:"mjesečeve mijene",tideHi:"Plima",tideLo:"Oseka",h5moon:"MJESEC",h5tide:"MORSKE MIJENE",cMoon:"Mjesec",cPol:"Pelud",moonIllLeg:"osvijetljenost %",uvLevels:['Nizak','Umjeren','Visok','Vrlo visok','Ekstreman'],polLevels:['nisko','umjereno','visoko'],polNames:{alder:'Joha',birch:'Breza',grass:'Trava',mugwort:'Pelin',olive:'Maslina',ragweed:'Ambrozija'},h6:"BIOMETEO",hPres:"TREND TLAKA",h7:"ZANIMLJIVOST",grH:"RO\u0160TILJ",grToday:"DANAS",wkH:"VIKEND PLANOVI",wkB:"VIKENDI",
   grpAir:"ZRAK",grpCmp:"USPOREDBE",grpSea:"MORE",grpBio:"BIO, TLAK I MJESEC",cRain:"Kiša",stAir:"Zrak",heroToday:"danas",heroLbl:"Trenutno vrijeme",mapLoading:"U\u010ditavam\u2026",
-  tabNow:"SADA",tabPlan:"PLANIRAJ",tabMap:"KARTA",tabInfo:"Info",tShort:"Patrikova prognoza",
+  tabNow:"SADA",tabGraph:"GRAF",tabPlan:"PLANIRAJ",tabMap:"KARTA",graphNeed:"Graf treba satnu prognozu — pričekaj učitavanje ili odaberi drugo mjesto.",tabInfo:"Info",tShort:"Patrikova prognoza",
   planHead:"PLANIRAJ",planNote:"Prikaz za danas",dayToday:"Danas",dayTomorrow:"Sutra",planBest:"Najbolje",planOver:"Danas gotovo — najbolje je bilo",planNoHr:"Satni podaci se još učitavaju — plan se pojavljuje za trenutak.",planNoAi:"Planiranje treba izravni Open-Meteo izvor — ograničeni AI izvor nema satne podatke.",planNoDay:"Nema satne prognoze za ovaj dan.",planBars:"Ocjena po satu",tt_actRow:"Odaberi aktivnost",tt_dayRow:"Odaberi dan",bikeTag:"Vjetar odlučuje sve — biraj sate između udara.",runTag:"Svježe, suho i dnevno svjetlo pobjeđuju sve ostalo.",seaTag:"Temperatura mora, valovi i plima za dan koji odabereš.",
   infoHead:"\u2139\ufe0f O aplikaciji i povijest izmjena",infoTag:"\u0160to je ova plo\u010da, odakle dolaze podaci i \u0161to se promijenilo u svakoj verziji.",infoChangeH:"POVIJEST VERZIJA",infoFeedsH:"IZVORI PODATAKA \u00b7 STATUS",infoBack:"\u2190 Natrag",infoLink:"Info i izmjene",
   infoAbout:"<b>Patrikova dnevna prognoza</b> je besplatna, dvojezi\u010dna (EN/HR) vremenska plo\u010da \u2014 jedna samostalna stranica, bez ra\u010duna, bez pra\u0107enja, bez oglasa. Radi u potpunosti u tvom pregledniku preko javnih API-ja bez klju\u010da: <b>Open-Meteo</b> (prognoza, more, kvaliteta zraka, klimatologija), <b>RainViewer</b> (radar ki\u0161e), <b>Blitzortung.org</b> (munje u\u017eivo), <b>OpenStreetMap</b>/<b>Overpass</b> (karte i obli\u017enji bazeni) te opcionalni AI izvor 'zanimljivosti'. Izradio i odr\u017eava Patrik Pencinger uz pomo\u0107 Claudea.",
@@ -4168,23 +4172,13 @@ function tlInit(){
   });
  }
  try{const ro=new ResizeObserver(()=>{if(D){if(TL.fit&&tlOk())tlFitX();else tlSchedule();}});ro.observe(document.getElementById('tlWrap'));}catch(e){}
- /* fullscreen: Esc closes, Tab stays inside the overlay, the rotate hint follows the orientation */
+ /* graph view: Esc leaves it (desktop and mobile), the rotate hint follows the orientation */
  document.addEventListener('keydown',e=>{
-  if(!TL.full)return;
+  if(active!=='graph'||e.defaultPrevented)return;
   if(e.key==='Escape'){e.preventDefault();tlFullClose();}
-  else if(e.key==='Tab'){
-   const f=document.getElementById('tlFull');if(!f)return;
-   const els=Array.prototype.filter.call(f.querySelectorAll('button:not([disabled]),[tabindex="0"]'),x=>x.offsetParent!==null);
-   if(!els.length)return;
-   const first=els[0],last=els[els.length-1];
-   if(!f.contains(document.activeElement)){e.preventDefault();first.focus();}
-   else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
-   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
-  }
  });
  window.addEventListener('resize',()=>{if(TL.full)tlFullLayout();});
  window.addEventListener('orientationchange',()=>{if(TL.full)setTimeout(tlFullLayout,150);});
- window.addEventListener('popstate',()=>{if(TL.full)tlFullClose(true);}); /* the browser back button closes the overlay */
 }
 let tlAxD=null; /* an axis-strip drag in progress */
 let tlPts={},tlPinch=null; /* T1: active touch pointers {id:{x,y}} and the two-finger pinch in progress {ids,d0,p0,am} */
@@ -4207,60 +4201,78 @@ function tlPinchMove(cv){
  tlApplyScale(tlPinch.p0*d/tlPinch.d0,mx,tlPinch.am);
 }
 
-/* --- fullscreen shell (RT-22): the SAME #tlWrap / #tlLeg / #tlSum / tools nodes move into #tlFull, so there is one engine and one canvas --- */
+/* --- graph view (G1; was the RT-22 fullscreen overlay): the SAME #tlWrap / #tlLeg / #tlSum / tools nodes move into #view-graph, so there is one engine and one canvas --- */
 let TLFS_BACK=[];
 function tlFullLayout(){
  const h=document.getElementById('tlFullHint');
  if(h)h.classList.toggle('hidden',!(window.innerWidth<700&&window.innerHeight>window.innerWidth)); /* phone in portrait: suggest rotating */
  tlSchedule();
 }
-function tlFullOpen(){
- if(TL.full||!D||!tlOk())return;
- const f=document.getElementById('tlFull'),body=document.getElementById('tlFullBody'),slot=document.getElementById('tlFullTools');
- if(!f||!body||!slot)return;
+function tlMountGraph(){ /* move the timeline nodes into the graph view; idempotent */
+ if(TLFS_BACK.length)return true;
+ const body=document.getElementById('tlFullBody'),slot=document.getElementById('tlFullTools');
+ if(!body||!slot)return false;
  const mv=(id,to)=>{const el=document.getElementById(id);if(!el)return;TLFS_BACK.push({el:el,parent:el.parentNode,next:el.nextSibling});to.appendChild(el);};
- TLFS_BACK=[];
  mv('tlTools',slot);mv('tlSum',body);mv('tlWrap',body);mv('tlLeg',body);
- TL.full=true;TLC.hov=null;
- f.classList.remove('hidden');
- document.documentElement.classList.add('tlfs');
- const tb=document.getElementById('tabs');if(tb)tb.classList.add('onfull');
- try{history.pushState({tlfull:1},'');}catch(e){}
- if(tlRep()==='d')tlFitX(); /* T1: the Days preset fills the whole width in full screen */
- tlSyncUi();tlLegend();tlFullLayout();
- const cv=document.getElementById('tlCanvas');if(cv){try{cv.focus({preventScroll:true});}catch(e){}}
- tlSchedule();
+ return true;
 }
-function tlFullClose(fromPop){
- if(!TL.full)return;
+function tlUnmountGraph(){ /* put the nodes back into #tlSec on NOW and restore the compact Days preset */
+ const was=TL.full||TLFS_BACK.length>0;
  TL.full=false;TLC.hov=null;
  for(let i=TLFS_BACK.length-1;i>=0;i--){const b=TLFS_BACK[i];if(b.parent)b.parent.insertBefore(b.el,(b.next&&b.next.parentNode===b.parent)?b.next:null);}
  TLFS_BACK=[];
- const f=document.getElementById('tlFull');if(f)f.classList.add('hidden');
- document.documentElement.classList.remove('tlfs');
- const tb=document.getElementById('tabs');if(tb)tb.classList.remove('onfull');
+ if(!was)return;
  if(TL.fit||tlRep()==='d'){TL.fit=false;TL.pxh=TLPX.d[layout==='mobile'?1:0];} /* T1: back to the compact Days preset */
- if(!fromPop){try{if(history.state&&history.state.tlfull)history.back();}catch(e){}}
- tlSyncUi();tlLegend();
- const b=document.getElementById('btn-tlfs');if(b){try{b.focus({preventScroll:true});}catch(e){}}
+ tlSyncUi();tlLegend();tlSchedule();
+}
+function renderGraph(){ /* VIEWS.graph.render: the timeline full screen, or a bilingual note while there is no hourly forecast */
+ setNavH();
+ const em=document.getElementById('graphEmpty');
+ if(!D||!tlOk()){
+  tlUnmountGraph();
+  if(em){em.innerHTML=emptyCard(esc(LBL.graphNeed),'','info');em.classList.remove('hidden');}
+  return;
+ }
+ if(em){em.innerHTML='';em.classList.add('hidden');}
+ const first=!(TL.full&&TLFS_BACK.length);
+ if(!tlMountGraph())return;
+ TL.full=true;TLC.hov=null;
+ if(first&&tlRep()==='d')tlFitX(); /* T1: the Days preset fills the whole width in the graph view */
+ tlSyncUi();tlLegend();tlFullLayout();
+ if(first&&TL.fromApp){const cv=document.getElementById('tlCanvas');if(cv){try{cv.focus({preventScroll:true});}catch(e){}}} /* opened with the full-screen button: the canvas takes the keyboard; a tab click keeps focus on the tab bar */
  tlSchedule();
+}
+function tlFullOpen(){ /* the full-screen button on NOW opens the graph view */
+ if(!D||!tlOk()||active==='graph')return;
+ TL.fromApp=true;location.hash='#graph';
+}
+function tlFullClose(){ /* the close button and Esc: back to where the graph was opened from */
+ if(active!=='graph')return;
+ if(TL.fromApp&&history.length>1){history.back();return;}
+ location.hash='#'+(TL.backTo&&TL.backTo!=='graph'?TL.backTo:'now');
 }
 function tlRender(){ /* called from render(): show/hide the section, refresh pills + legend, redraw */
  const sec=document.getElementById('tlSec');if(!sec)return;
  const ok=!!(D&&tlOk());
  sec.classList.toggle('hidden',!ok);
- if(!ok){if(TL.full)tlFullClose();tlRO=false;return;}
+ if(!ok){tlRO=false;return;} /* G1: only hides #tlSec - renderGraph owns the graph view */
  tlSyncUi();tlLegend();
  tlDraw();
 }
 tlInit();
 
+function setNavH(){ /* G1: the height of the fixed bottom bar (incl. safe area) -> --navh, the graph view ends at its top edge */
+ try{const t=document.getElementById('tabs');if(!t)return;
+  const h=(layout==='mobile'||layout==='mid')?t.getBoundingClientRect().height:0;
+  document.documentElement.style.setProperty('--navh',(Math.round(h*100)/100)+'px');}catch(e){}
+}
+try{new ResizeObserver(()=>setNavH()).observe(document.getElementById('tabs'));}catch(e){}
 function applyResponsive(){
  /* three layout steps: mobile <700px, mid 700-1099px, desktop >=1100px. every existing layout==='mobile'
     check keeps meaning "narrow phone"; 'mid' falls through to the desktop branch of those ternaries. */
  const w=window.innerWidth;
  const want=w<700?'mobile':(w<1100?'mid':'desktop');
- if(layout===want)return;layout=want;
+ if(layout===want){setNavH();return;}layout=want;
  if(!TL.fit)TL.pxh=null; /* T1: the presets differ per layout step */
  document.getElementById('wrap').classList.toggle('mobile',want==='mobile');
  document.getElementById('wrap').classList.toggle('mid',want==='mid');
@@ -4272,6 +4284,7 @@ function applyResponsive(){
  document.getElementById('grwrap').style.height=want==='mobile'?'160px':'180px';
  const vw={bbqtlwrap:['220px','250px'],bbqgrwrap:['150px','180px'],aqiwrap:['150px','170px'],preswrap:['150px','170px']};
  for(const id in vw){const e=document.getElementById(id);if(e)e.style.height=want==='mobile'?vw[id][0]:vw[id][1];}
+ setNavH(); /* after the layout classes: the bar is the fixed bottom bar now */
  if(D)renderActive();
  markBtns();
 }
@@ -6178,8 +6191,8 @@ function askRenderOut(out,mode){
 }
 function askUi(){ /* refresh the bar: visibility, placeholder, hint, key button, chips, answer panel (the input itself is never touched) */
  const bar=document.getElementById('askBar');if(!bar)return;
- const mapEl=document.getElementById('view-map');
- bar.classList.toggle('hidden',!!(mapEl&&!mapEl.classList.contains('hidden'))); /* hidden on the full-screen map (and, via CSS, while the fullscreen timeline is open) */
+ const mapEl=document.getElementById('view-map'),grEl=document.getElementById('view-graph');
+ bar.classList.toggle('hidden',!!((mapEl&&!mapEl.classList.contains('hidden'))||(grEl&&!grEl.classList.contains('hidden')))); /* hidden on the full-screen map and in the graph view */
  const g=id=>document.getElementById(id),mode=askMode(),hasKey=(mode==='key');
  const inp=g('askIn');if(inp&&LBL.askPh)inp.placeholder=LBL.askPh;
  const go=g('askGo');if(go)go.disabled=ASK.busy;
@@ -6208,9 +6221,9 @@ function askUi(){ /* refresh the bar: visibility, placeholder, hint, key button,
 }
 
 /* ---------- view router ---------- */
-const ROUTES={'':'now','#now':'now','#weather':'now','#swim':'now','#plan':'plan','#plan-bbq':'plan','#plan-hike':'plan','#plan-bike':'plan','#plan-run':'plan','#plan-sea':'plan','#bbq':'plan','#hike':'plan','#map':'map','#radar':'map','#info':'info'};
+const ROUTES={'':'now','#now':'now','#weather':'now','#swim':'now','#plan':'plan','#plan-bbq':'plan','#plan-hike':'plan','#plan-bike':'plan','#plan-run':'plan','#plan-sea':'plan','#bbq':'plan','#hike':'plan','#map':'map','#radar':'map','#graph':'graph','#graf':'graph','#info':'info'};
 const ROUTEACT={'#plan-bbq':'bbq','#bbq':'bbq','#plan-hike':'hike','#hike':'hike','#plan-bike':'bike','#plan-run':'run','#plan-sea':'sea'}; /* the hash suffix picks the activity inside PLANIRAJ */
-const VIEWS={now:{el:'view-now',render:render},plan:{el:'view-plan',render:renderPlan},map:{el:'view-map',render:renderMapFull},info:{el:'view-info',render:renderInfo}};
+const VIEWS={now:{el:'view-now',render:render},plan:{el:'view-plan',render:renderPlan},map:{el:'view-map',render:renderMapFull},graph:{el:'view-graph',render:renderGraph},info:{el:'view-info',render:renderInfo}};
 let active='now';
 function hashKey(){return (location.hash||'').split('?')[0];}
 function route(){return ROUTES[hashKey()]||'now';}
@@ -6220,6 +6233,7 @@ function updateTabs(){
  if(D){try{const el=id=>document.getElementById(id);
   if(el('pk-now'))el('pk-now').textContent=(D.now&&D.now.t!=null)?D.now.t+'°':'';
   if(el('pk-plan')){const pa=planAct(),ps=scoreDay(pa,todayIso(),D);el('pk-plan').textContent=ACTICON[pa]+(ps?TIERIC[ps.tier]:'');}
+  if(el('pk-graph')){let pg='';if(tlOk()&&D.hrNow!=null&&D.hrNow>=0){let mx=null;for(let i=D.hrNow;i<Math.min(D.hr.length,D.hrNow+24);i++){const t=D.hr[i].t;if(t!=null&&(mx==null||t>mx))mx=t;}if(mx!=null)pg='\u2191'+Math.round(mx)+'\u00B0';}el('pk-graph').textContent=pg;} /* the highest temperature of the next 24 h */
   if(el('pk-map'))el('pk-map').textContent=(D.hours||[]).some(h=>(h.pp||0)>=40)?'🌧️':'🗺️';
  }catch(e){}}
  const cap=active.charAt(0).toUpperCase()+active.slice(1);
@@ -6239,17 +6253,19 @@ function tlSyncFromMap(){
 }
 function showView(name){
  if(!VIEWS[name])name='now';const prevView=active;active=name;
- if(TL.full&&name!=='now'){try{tlFullClose();}catch(e){}} /* F1: leaving NOW closes the fullscreen timeline */
+ if(prevView==='graph'&&name!=='graph'){try{tlUnmountGraph();}catch(e){console.log('tlUnmountGraph',e);}TL.fromApp=false;} /* G1: the timeline nodes go back to #tlSec on NOW */
+ if(name==='graph'&&prevView!=='graph')TL.backTo=prevView||'now'; /* the close button returns to where the graph was opened from */
  if(name==='plan'){const ra=ROUTEACT[hashKey()];if(ra){PLAN.act=ra;savePrefs();}} /* #plan-hike, #bbq ... pick the activity */
  for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
- document.getElementById('tabs').classList.toggle('onmap',name==='map'); /* v3.19: the bar stays on the full-screen map; desktop hides the top tabs there */
+ document.getElementById('tabs').classList.toggle('onfs',name==='map'||name==='graph'); /* v3.19: the bar stays on the full-screen map (G1: and the graph view); desktop hides the top tabs there */
+ document.documentElement.classList.toggle('tlfs',name==='graph'); /* scroll lock while the graph view is up */
  try{askUi();}catch(e){} /* A1: the ask bar is hidden on the map */
  destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
  try{updateNowBar();}catch(e){}
- if(!D)return;
+ if(!D){if(name==='graph'){try{renderGraph();}catch(e){console.log('renderGraph',e);}}return;}
  if(name==='map'){try{mapSyncFromTl();}catch(e){console.log('mapSyncFromTl',e);}}
  setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}try{updateAlertBox();}catch(e){}try{updateFoot();}catch(e){}updateTabs();
-  if(name==='now'&&prevView==='map'){try{tlSyncFromMap();}catch(e){console.log('tlSyncFromMap',e);}}},0);
+  if((name==='now'||name==='graph')&&prevView==='map'){try{tlSyncFromMap();}catch(e){console.log('tlSyncFromMap',e);}}},0);
 }
 /* the warning banner sits above the tabs, so every view render refreshes it */
 function updateAlertBox(){
