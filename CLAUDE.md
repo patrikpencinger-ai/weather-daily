@@ -45,7 +45,7 @@ element** is restyled (CSS only) into a fixed bottom navigation bar: 30 px monoc
 label (the label stays for screen readers, visually hidden) and no peek badge. Desktop keeps text labels
 (`T` keys `tabNow`/`tabGraph`/`tabPlan`/`tabMap`) and peeks, set by `updateTabs()`: `pk-now` the current temperature,
 `pk-graph` the highest temperature of the next 24 h (`↑NN°`), `pk-plan` the chosen activity's icon plus its tier dot for today (from `scoreDay`), `pk-map` 🌧️/🗺️. The bar **stays visible on the full-screen Map and Graph views**: `showView()` sets `#tabs.onfs`;
-desktop hides the top tabs there, mobile/mid keep the bar above the map / graph and hide the map's ✕ and the graph's ✕. `setNavH()` (called from `applyResponsive()`, `renderGraph()`, `tlUiApply()` and a `ResizeObserver` on `#tabs`) writes the bottom bar's height, 0 when it is not shown, to the CSS variable `--navh`: the graph view and the Layers panel end at its top edge. A **collapsed graph hides the bar too** (`#tabs.tlimm`, `display:none`).
+desktop hides the top tabs there, mobile/mid keep the bar above the map / graph and hide the map's ✕ and the graph's ✕. `setNavH()` (called from `applyResponsive()`, `renderGraph()`, `tlUiApply()` and a `ResizeObserver` on `#tabs`) writes the bottom bar's height, 0 when it is not shown, to the CSS variable `--navh`: the graph view and the Layers panel end at its top edge. A **collapsed graph hides the bar too** (`#tabs.tlimm`, `display:none`). **Tab keyboard (manual activation, WAI-ARIA tabs):** ←/→ (wrapping), Home and End on a focused tab only move focus and the roving `tabindex`; Enter or Space (and a click) open the focused tab; `aria-selected` always sits on the active view's tab (`updateTabs()`), so an arrow press never changes the view.
 
 The ask bar `#askBar` (v3.23, see "Ask about the weather") is the first element of `#dash`, above the alert banner and the tab bar.
 
@@ -347,7 +347,11 @@ full-screen shell (now the graph view).
 - **Graph view** (G1 v3.26 = the old RT-22 full-screen overlay turned into a tab; G2 v3.26 = compact controls). View `graph` / section
   `#view-graph` (`role=tabpanel`, labelled by the visually hidden `#tlGraphH`), route `#graph` (`#graf`), tab `tab-graph`. The ⛶ button
   (`btn-tlfs`) calls `tlFullOpen()` (sets `TL.fromApp`, navigates to `#graph`); `tlFullClose()` (✕, Esc) goes `history.back()` when it was
-  opened that way, else to `TL.backTo` (the view it was opened from; set by `showView`). `renderGraph()` (`VIEWS.graph.render`)
+  opened that way, else to `TL.backTo` (the view it was opened from; set by `showView`); it sets `TL.closing` on the first call so a second Esc / ✕ in
+  the same tick does nothing, and `showView()` clears the flag when the active view changes. **Focus on leaving the graph** (`graphLeaveFocus()`, called
+  by `showView` after the target view rendered): `btn-tlfs` when the graph was opened with ⛶ and the user returns to NOW, else the tab of the view
+  returned to. **No data yet:** while `D` is null `showView('graph')` keeps `#view-graph` hidden (and `html.tlfs` off), so `#loading` / `#error` with its
+  retry button stay visible; the `showView(route())` after the load shows it. `renderGraph()` (`VIEWS.graph.render`)
   **mounts** the existing nodes into the view with `tlMountGraph()` (one engine, one canvas, nothing duplicated; `TLFS_BACK` remembers
   where each came from): `#tlSum` into `#tlBarStart`, `#tlBar` into the top slot `#tlFullTop`, `#tlWrap`, `#tlMini` and `#tlLive` into
   `#tlFullBody`; `tlUnmountGraph()` puts them back into `#tlSec` when the view is left or the data stops supporting a timeline (then

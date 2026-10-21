@@ -4390,7 +4390,8 @@ function tlFullOpen(){ /* the full-screen button on NOW opens the graph view */
  TL.fromApp=true;location.hash='#graph';
 }
 function tlFullClose(){ /* the close button and Esc: back to where the graph was opened from */
- if(active!=='graph')return;
+ if(active!=='graph'||TL.closing)return;
+ TL.closing=true;setTimeout(()=>{TL.closing=false;},1500); /* G1: two presses in one tick must not call history.back() twice; showView() clears it when the view changes, the timeout if the navigation never changes the view */
  if(TL.fromApp&&history.length>1){history.back();return;}
  location.hash='#'+(TL.backTo&&TL.backTo!=='graph'?TL.backTo:'now');
 }
@@ -6398,20 +6399,32 @@ function tlSyncFromMap(){
 function showView(name){
  if(!VIEWS[name])name='now';const prevView=active;active=name;
  try{tlPanelClose(false);}catch(e){} /* G2: a view change closes the Layers & display panel */
- if(prevView==='graph'&&name!=='graph'){try{tlUnmountGraph();}catch(e){console.log('tlUnmountGraph',e);}TL.fromApp=false;} /* G1: the timeline nodes go back to #tlSec on NOW */
+ if(prevView!==name)TL.closing=false; /* G1: the close guard of tlFullClose() ends with the view change */
+ const gLeft=prevView==='graph'&&name!=='graph',gBtn=gLeft&&!!TL.fromApp; /* G1: leaving the graph; was it opened with the full-screen button? (focus goes back there) */
+ if(gLeft){try{tlUnmountGraph();}catch(e){console.log('tlUnmountGraph',e);}TL.fromApp=false;} /* G1: the timeline nodes go back to #tlSec on NOW */
  if(name==='graph'&&prevView!=='graph')TL.backTo=prevView||'now'; /* the close button returns to where the graph was opened from */
  if(name==='plan'){const ra=ROUTEACT[hashKey()];if(ra){PLAN.act=ra;savePrefs();}} /* #plan-hike, #bbq ... pick the activity */
- for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name);}
+ for(const k in VIEWS){const e=document.getElementById(VIEWS[k].el);if(e)e.classList.toggle('hidden',k!==name||(k==='graph'&&!D));} /* G1: the fixed graph view stays hidden while there is no data, so #loading / #error (and its retry button) stay visible; showView(route()) after the load shows it */
  document.getElementById('tabs').classList.toggle('onfs',name==='map'||name==='graph'); /* v3.19: the bar stays on the full-screen map (G1: and the graph view); desktop hides the top tabs there */
- document.documentElement.classList.toggle('tlfs',name==='graph'); /* scroll lock while the graph view is up */
+ document.documentElement.classList.toggle('tlfs',name==='graph'&&!!D); /* scroll lock while the graph view is up */
  try{tlUiApply();}catch(e){console.log('tlUiApply',e);} /* G2: collapsed graph = no controls and no bottom bar */
  try{askUi();}catch(e){} /* A1: the ask bar is hidden on the map */
  destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
  try{updateNowBar();}catch(e){}
- if(!D){if(name==='graph'){try{renderGraph();}catch(e){console.log('renderGraph',e);}}return;}
+ if(!D){if(name==='graph'){try{renderGraph();}catch(e){console.log('renderGraph',e);}}if(gLeft)graphLeaveFocus(name,gBtn);return;}
  if(name==='map'){try{mapSyncFromTl();}catch(e){console.log('mapSyncFromTl',e);}}
  setTimeout(()=>{try{VIEWS[active].render();}catch(e){console.log('render '+active,e);}try{updateAlertBox();}catch(e){}try{updateFoot();}catch(e){}updateTabs();
-  if((name==='now'||name==='graph')&&prevView==='map'){try{tlSyncFromMap();}catch(e){console.log('tlSyncFromMap',e);}}},0);
+  if((name==='now'||name==='graph')&&prevView==='map'){try{tlSyncFromMap();}catch(e){console.log('tlSyncFromMap',e);}}
+  if(gLeft)graphLeaveFocus(name,gBtn);},0); /* G1: after the view rendered (btn-tlfs sits in #tlSec, shown by the NOW render) */
+}
+function graphLeaveFocus(name,viaBtn){ /* G1: focus after leaving the graph view: the full-screen button it was opened with, else the tab of the view the user returns to */
+ try{
+  if(active!==name)return; /* another view change came first */
+  let el=viaBtn&&name==='now'?document.getElementById('btn-tlfs'):null;
+  if(el&&el.closest('.hidden'))el=null;
+  if(!el)el=document.getElementById('tab-'+name);
+  if(el)el.focus({preventScroll:true});
+ }catch(e){}
 }
 /* the warning banner sits above the tabs, so every view render refreshes it */
 function updateAlertBox(){
@@ -6430,19 +6443,28 @@ addEventListener('hashchange',()=>{
  if(r==='plan'&&ra&&ra!==PLAN.act&&r===active){PLAN.act=ra;savePrefs();renderActive();return;}
  if(r!==active)showView(r);
 });
-/* FIX-8: roving-tabindex arrow-key navigation for the tab bar (ArrowLeft/Right wrap, Home/End). */
+/* FIX-8 / G1: tab bar keyboard, WAI-ARIA tabs with MANUAL activation: ArrowLeft/Right (wrap) and Home/End only move focus and the roving tabindex; Enter / Space (and a click) open the focused tab. aria-selected stays on the active view's tab (updateTabs). */
 document.getElementById('tabs').addEventListener('keydown',function(e){
+ const tabs=[...document.querySelectorAll('#tabs .tab')];
+ if(e.ctrlKey||e.metaKey||e.altKey)return;
+ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){
+  const c=e.target&&e.target.closest?e.target.closest('#tabs .tab'):null;
+  if(!c)return;
+  e.preventDefault();
+  location.hash='#'+c.dataset.view;
+  return;
+ }
  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight'&&e.key!=='Home'&&e.key!=='End')return;
  e.preventDefault();
- const tabs=[...document.querySelectorAll('#tabs .tab')];
- let i=tabs.findIndex(t=>t.dataset.view===active);if(i<0)i=0;
+ let i=tabs.indexOf(document.activeElement);
+ if(i<0)i=tabs.findIndex(t=>t.dataset.view===active);
+ if(i<0)i=0;
  if(e.key==='ArrowRight')i=(i+1)%tabs.length;
  else if(e.key==='ArrowLeft')i=(i-1+tabs.length)%tabs.length;
  else if(e.key==='Home')i=0;
  else if(e.key==='End')i=tabs.length-1;
- const t=tabs[i];
- location.hash='#'+t.dataset.view;
- t.focus();
+ tabs.forEach((t,j)=>t.setAttribute('tabindex',j===i?'0':'-1'));
+ tabs[i].focus();
 });
 /* arrow-key/roving navigation inside the location panel's option list */
 document.getElementById('locList').addEventListener('keydown',function(e){
