@@ -5703,7 +5703,7 @@ function gridRefresh(){
   }
   if(!gridActive())return;
   GRIDFAIL=!data;
-  if(!data){if(MLAYERS.clouds&&GRIDHR>0)tlmSync();return;} /* the ☁ forecast label says so when the grid could not load */
+  if(!data){removeCloudOv();if(MLAYERS.clouds&&GRIDHR>0)tlmSync();return;} /* the ☁ forecast label says so when the grid could not load; no stale field from the previous view */
   gridDraw(Array.isArray(data)?data:[data]);
   updateGridCtl();
  });
@@ -5735,13 +5735,18 @@ function gridAt(item,off){
   time:h.time[idx]
  };
 }
+function gridHM(item,ts){ /* a grid point's local time -> the place's clock (mapHM): every point has its own utc_offset_seconds (sea points get Etc/GMT zones) */
+ if(!ts)return '';
+ var off=item&&item.utc_offset_seconds,ms=Date.parse(ts.length===16?ts+':00Z':ts+'Z');
+ return (typeof off==='number'&&isFinite(ms))?mapHM(ms-off*1000):ts.slice(11,16);
+}
 function updateGridTimeLabel(){
  var el=document.getElementById('gridTime');if(!el)return;
  var hrv=lang==='hr';
  if(!GRIDHR){el.textContent=hrv?'sad':'now';return;}
  var item=(gridLastList&&gridLastList[0])||null;
  var at=item?gridAt(item,GRIDHR):null;
- var hh=(at&&at.time)?at.time.slice(11,16):'';
+ var hh=(at&&at.time)?gridHM(item,at.time):'';
  el.textContent='+'+GRIDHR+' h'+(hh?(' · '+hh):'');
 }
 /* FEAT-5: shows/hides the ⏱ scrub slider with the grid layers, refreshes its bilingual label, and resets
@@ -5868,7 +5873,7 @@ function updateHeatLeg(){
  if(GRIDHR>0){
   var item=(gridLastList&&gridLastList[0])||null;
   var at=item?gridAt(item,GRIDHR):null;
-  var hh=(at&&at.time)?at.time.slice(11,16):'';
+  var hh=(at&&at.time)?gridHM(item,at.time):'';
   hourTxt=' · +'+GRIDHR+'h'+(hh?(' '+hh):'');
  }
  el.innerHTML='<span class="lab" style="font-size:9.5px;">'+Math.round(heatRange.min)+'°C</span>'+

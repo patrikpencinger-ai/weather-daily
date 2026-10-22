@@ -741,7 +741,7 @@ grid** (`gridRefresh`/`gridDraw`: a temperature IDW heatmap with a legend, wind 
 24 h of hourly temperature/wind/gusts/**cloud cover**/precip per point (`cloud_cover` in both `current` and `hourly`; `gridAt` returns it for both branches), and a **⏱ time-scrub slider** in the bottom
 panel (0 = now … +23 h, `tt_gridSlider` "Grid data hour slider (temperature/wind/rain/cloud forecast)" / "Klizač sata mrežnih podataka (temperatura/vjetar/kiša/prognoza oblaka)", the same text in `updateGridCtl`; shown with any grid layer **or ☁️**, `mlyToggle('clouds')` also calls `gridRefresh`) redraws the heatmap, labels and rain blobs for the chosen hour straight
 from that cached response — no refetch while scrubbing; the legend and the next-2h rain strip's pill
-re-label to match; opening the map puts the slider on the hour chosen on the NOW timeline, and coming back moves the timeline cursor to the hour the map was left at (see "Map ⏱ sync" above). `gridSeek` also calls `tlmSync()`. Wind labels show gusts in parentheses when they clear speed+5. Also the next-2h rain
+re-label to match; opening the map puts the slider on the hour chosen on the NOW timeline, and coming back moves the timeline cursor to the hour the map was left at (see "Map ⏱ sync" above). `gridSeek` also calls `tlmSync()`. The ⏱ label (`updateGridTimeLabel`) and the heat legend show the chosen hour on the place's clock (`gridHM(item,ts)`: the grid point's local time minus its own `utc_offset_seconds`, through `mapHM` — a sea point can carry an `Etc/GMT` zone an hour off the place's). A failed grid load also drops the forecast cloud field (no stale field from the previous view). Wind labels show gusts in parentheses when they clear speed+5. Also the next-2h rain
 strip, click-to-forecast (`onMapClick`/`pickPoint`: reverse-geocodes the tapped point with Nominatim and
 loads its forecast) and a **📍 my-location** Leaflet control (`locateOnMap`) that geolocates and
 recentres/pins the map. Layout: on `mobile` only, `#mlyPills` (the layer buttons) is a fixed swipeable
@@ -786,7 +786,7 @@ lives in the bottom panel. The ✕ (desktop only) returns to `#now`.
   (above the base tiles, below the radar) and is rebuilt by `gridDraw` on every hour, view and theme change (`mapThemeToggle` → `gridRefresh`); `removeCloudOv()`
   drops it at ⏱ 0, when ☁️ goes off and when `gridRefresh` finds no active grid layer. **(2) Labels** — `gridDraw` adds "☁NN%" (cover ≥ 15) to the label stack, in the
   theme-aware tone `#cfd6de` (dark map) / `#5b6573` (light map) inside the existing text halo. **(3) Satellite gating** — `satVis()` (called by `satShow` and so by
-  every `tlmSync`) sets `display:none` on the current satellite overlay and any kept previous one while `GRIDHR>0`; `satShow` paints nothing then; at ⏱ 0 the overlays are
+  every `tlmSync` while ☁️ is on and satellite frames exist) sets `display:none` on the current satellite overlay and any kept previous one while `GRIDHR>0`; `satShow` paints nothing then; at ⏱ 0 the overlays are
   shown again and the current frame is painted. The satellite loading / queue logic is untouched. **(4) Observation controls** — `tlmSync()` computes
   `lock = ☁️ on && GRIDHR>0 && master is not the radar`: it stops the play timer (`stopRadarAnim`), disables `#radarPrev`/`#radarPlay`/`#radarNext`/`#radarSlider`
   (`disabled` + `aria-disabled="true"`; `TLMLOCK` also makes `radarPlay()` a no-op) and writes `#radarTime` "☁ forecast +N h" / "☁ prognoza +N h" ("☁ forecast unavailable" /
