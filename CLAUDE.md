@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~6,400 lines). Current version: **v3.27** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~6,800 lines). Current version: **v3.27** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
@@ -776,15 +776,18 @@ lives in the bottom panel. The ✕ (desktop only) returns to `#now`.
   (`SAT.paused`, set in `showView`), returning resumes it (`satEnsure`); switching the layer off removes the overlay and drops the data. **Failure is visible:**
   `feedMark('sat',…)` (first frame result, caps fallback, total failure; Info row "Satellite clouds (EUMETSAT)"), the pill gets `dimmed` with the title
   "Satellite unavailable — click to retry" (a click retries instead of switching off) and the timeline label says "satellite unavailable" (`SAT.fail`:
-  nothing loaded after 4 failed requests, or every frame dead).
+  nothing loaded after 4 failed requests, or every frame dead). While `SAT.fail` holds, `satPump` sends **no** more requests; a retry click or a
+  new view box (`satNewBox` clears `SAT.fail`) re-probes the service with a few requests.
 - **One shared timeline.** `#radarCtl` (⏮ ▶️ ⏭ slider time) is the one observation timeline, shown when radar **or** clouds is on, with **one** 600 ms
-  play timer (`radarPlay`/`tlmStep`). The master list (`tlmMaster()`) is the radar frames when radar is on and loaded, else the satellite frames; with radar as
+  play timer (`radarPlay`/`tlmStep`; switching radar off mid-play keeps playing the clouds, `tlmRealign` stops the timer only when no layer is left; the
+  control tooltips `tt_radarPrev`/`tt_radarPlay`/`tt_radarNext`/`tt_radarSlider` say "radar / satellite"). The master list (`tlmMaster()`) is the radar frames when radar is on and loaded, else the satellite frames; with radar as
   master the satellite shows the frame with the latest time ≤ the radar frame's (else the oldest; a failed frame falls back to the nearest good one,
   `satIdxFor`). Toggling radar or clouds keeps the time position (`TLPOS`, `tlmRealign`) and resets the slider max. `tlmSync()` writes slider, label and the
   satellite frame: radar only "HH:MM" (+ " · forecast"), clouds only "HH:MM ☁", both "HH:MM · ☁ HH:MM" (the second is the satellite frame's time), "☁ …" while
   loading. **All map times are in the place's time** (`mapHM()`: the UTC fields of t + `LOCTZ.off`, browser time only when there is no offset), the radar's too.
-  `#radarNote` (`updateMapNote()`) carries the legend of the cloud layer and the EUMETSAT credit "Contains modified EUMETSAT Meteosat data <UTC year of the shown frame>" /
-  "Sadrži izmijenjene EUMETSAT Meteosat podatke <godina>"; the base-layer attribution ends with " · EUMETSAT".
+  `#radarNote` (`updateMapNote()`, re-run by `tlmSync`) carries, **only while the ☁️ layer is on** (keeps the phone panel short), the cloud legend and the
+  EUMETSAT credit: "☁️ Meteosat satellite, last 2 h: faint = low cloud/fog, solid = high cloud · Contains modified EUMETSAT Meteosat data <UTC year of the shown
+  frame>" / "… Sadrži izmijenjene EUMETSAT Meteosat podatke <godina>"; the base-layer attribution always ends with " · EUMETSAT".
 
 ## Running it
 
@@ -888,7 +891,8 @@ failure. Run it after touching `worker.js`; run `node --check worker.js` too.
   single-channel visualisations are "Advanced Image Products" and the cloud mask a "Derived Product", both Core data, CC-BY-4.0, free for any use at any latency; required credit
   "Contains modified EUMETSAT Meteosat data <year>" (HR "Sadrži izmijenjene EUMETSAT Meteosat podatke <godina>", year = UTC year of the shown frame), shown in `#radarNote`.
 
-All data requests go through `tfetch(url, ms)`, a `fetch` wrapper with a timeout (the AI-search calls in
+All data requests go through `tfetch(url, ms)`, a `fetch` wrapper with a timeout, or its sibling `tfetchP(url, opts, ms)` (same timeout plus fetch
+options and an abort on timeout; the satellite clouds use it with `mode:'cors'`) (the AI-search calls in
 `askClaude()` and the `askRefreshState()` state call are the exceptions: they carry their own `AbortController` and
 timeout, 30 s for a whole streamed answer and 8 s for the state).
 

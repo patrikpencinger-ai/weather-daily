@@ -1171,7 +1171,7 @@ const T={
   tt_lang:"Language: English — tap for Croatian",tt_theme:"Toggle theme",tt_mp:"Monty Python mode",tt_vegan:"Vegan Inbound mode (BBQ)",
   retry:"Try again",cmpNote:"Comparing {A} and {B}: the top card, the temperature line on the timeline, the sea chart and the outlook text. Other sections show {A} only.",onlyA:"only {A}",secFail:"Second location failed: {B}",
   unavail:"unavailable",srcSea:"sea",srcAir:"air",srcClimo:"normals",srcBest:"Open-Meteo \u00B7 best match model",uvMax:"max",
-  tt_mapClose:"Close the map",tt_mapTheme:"Map light/dark basemap",tt_radarPrev:"Previous radar frame",tt_radarPlay:"Play/pause radar animation",tt_radarNext:"Next radar frame",tt_radarSlider:"Radar time slider",tt_gridSlider:"Grid data hour slider (temperature/wind/rain)",
+  tt_mapClose:"Close the map",tt_mapTheme:"Map light/dark basemap",tt_radarPrev:"Previous frame (radar / satellite)",tt_radarPlay:"Play/pause the radar and satellite animation",tt_radarNext:"Next frame (radar / satellite)",tt_radarSlider:"Time slider (radar / satellite)",tt_gridSlider:"Grid data hour slider (temperature/wind/rain)",
   ar_sea:"Daily sea surface temperature forecast",
   ar_bio:"Biometeorological load forecast as colored bars: green favorable, amber moderately unfavorable, red unfavorable",ar_pres:"Sea-level pressure over the past day and next two days",ar_aqi:"European air-quality index for the next 48 hours as colored bars",
   ar_mt:"Moon illumination with phase icons",ar_tide:"Daily tide high and low levels",ar_bbqtl:"BBQ prep timeline back-timed from the best grill hour",ar_bbqgr:"Hourly grilling score 9am to 10pm with tier icons",
@@ -1235,7 +1235,7 @@ const T={
   tt_lang:"Jezik: hrvatski — dodirni za engleski",tt_theme:"Promijeni temu",tt_mp:"Monty Python način",tt_vegan:"Način 'Stiže vegan' (roštilj)",
   retry:"Pokušaj ponovno",cmpNote:"Usporedba {A} i {B}: gornja kartica, temperatura na vremenskoj osi, graf mora i tekst izgleda. Ostali odjeljci prikazuju samo {A}.",onlyA:"samo {A}",secFail:"Druga lokacija nije učitana: {B}",
   unavail:"nedostupno",srcSea:"more",srcAir:"zrak",srcClimo:"klima",srcBest:"Open-Meteo \u00B7 najbolji model",uvMax:"maks",
-  tt_mapClose:"Zatvori kartu",tt_mapTheme:"Svijetla/tamna podloga karte",tt_radarPrev:"Prethodni radarski kadar",tt_radarPlay:"Pokreni/pauziraj radarsku animaciju",tt_radarNext:"Sljedeći radarski kadar",tt_radarSlider:"Klizač vremena radara",tt_gridSlider:"Klizač sata mrežnih podataka (temperatura/vjetar/kiša)",
+  tt_mapClose:"Zatvori kartu",tt_mapTheme:"Svijetla/tamna podloga karte",tt_radarPrev:"Prethodni kadar (radar / satelit)",tt_radarPlay:"Pokreni/pauziraj animaciju radara i satelita",tt_radarNext:"Sljedeći kadar (radar / satelit)",tt_radarSlider:"Klizač vremena (radar / satelit)",tt_gridSlider:"Klizač sata mrežnih podataka (temperatura/vjetar/kiša)",
   ar_sea:"Dnevna prognoza temperature površine mora",
   ar_bio:"Prognoza biometeorološkog opterećenja u obojenim stupcima: zeleno povoljno, jantarno umjereno nepovoljno, crveno nepovoljno",ar_pres:"Tlak zraka na razini mora tijekom prošlog dana i sljedeća dva dana",ar_aqi:"Europski indeks kvalitete zraka za sljedeća 48 sati u obojenim stupcima",
   ar_mt:"Osvijetljenost Mjeseca s ikonama mijena",ar_tide:"Dnevne razine plime i oseke",ar_bbqtl:"Vremenska crta priprema za roštilj, računata unatrag od najboljeg sata za roštilj",ar_bbqgr:"Satna ocjena roštilja od 9 do 22 sata s ikonama razina",
@@ -5204,7 +5204,7 @@ function mlyToggle(k){
  if(k==='bolt'){lightningToggle();MLAYERS.bolt=boOn;}
  else if(k==='clouds'&&MLAYERS.clouds&&SAT.fail){retry=true;satRetry();} /* failed satellite: the click retries instead of switching off */
  else MLAYERS[k]=!MLAYERS[k];
- if(k==='radar'&&!MLAYERS.radar){stopRadarAnim();radarDetachExcept([]);} /* FIX-2: fully detach so hidden frames stop fetching tiles */
+ if(k==='radar'&&!MLAYERS.radar)radarDetachExcept([]); /* FIX-2: fully detach so hidden frames stop fetching tiles; playback goes on with the clouds (tlmRealign stops it when no layer is left) */
  if(k==='clouds'&&!retry){if(MLAYERS.clouds)satOn();else satOff();}
  if(k==='radar'||k==='clouds'){tlmVis();tlmRealign(t0);}
  if(k==='temp'||k==='wind'||k==='rain')gridRefresh();
@@ -5434,8 +5434,9 @@ function tlmSync(){ /* slider + label + the satellite frame that goes with the c
 function updateMapNote(){
  const note=document.getElementById('radarNote');if(!note)return;
  const hrv=lang==='hr',yr=new Date(SAT.shownT!=null?SAT.shownT:(SAT.frames.length?SAT.frames[SAT.frames.length-1].t:Date.now())).getUTCFullYear();
- const txt=hrv?'Klik na kartu = prognoza te točke · radar: plavo slaba, žuto/crveno jaka kiša · ⚡ munje uživo (blijede sa starošću) · 🌡️💨💧 mreža Open-Meteo točaka · ☁️ satelitski oblaci (Meteosat infracrveno + maska oblaka, zadnja 2 h): blijedo = niski oblaci/magla, puno = visoki hladni vrhovi · Sadrži izmijenjene EUMETSAT Meteosat podatke '+yr+' · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org'
-  :'Click the map = forecast for that point · radar: blue light, yellow/red heavy rain · ⚡ live lightning (fades with age) · 🌡️💨💧 Open-Meteo point grid · ☁️ satellite clouds (Meteosat infrared + cloud mask, last 2 h): faint = low cloud/fog, solid = high cold cloud tops · Contains modified EUMETSAT Meteosat data '+yr+' · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org';
+ const ck=MLAYERS.clouds?(hrv?' · ☁️ Meteosat satelit, zadnja 2 h: blijedo = niski oblaci/magla, puno = visoki oblaci · Sadrži izmijenjene EUMETSAT Meteosat podatke '+yr:' · ☁️ Meteosat satellite, last 2 h: faint = low cloud/fog, solid = high cloud · Contains modified EUMETSAT Meteosat data '+yr):''; /* cloud legend + EUMETSAT credit only while the layer is on (keeps the phone panel short) */
+ const txt=hrv?'Klik na kartu = prognoza te točke · radar: plavo slaba, žuto/crveno jaka kiša · ⚡ munje uživo (blijede sa starošću) · 🌡️💨💧 mreža Open-Meteo točaka'+ck+' · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org'
+  :'Click the map = forecast for that point · radar: blue light, yellow/red heavy rain · ⚡ live lightning (fades with age) · 🌡️💨💧 Open-Meteo point grid'+ck+' · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org';
  if(note.textContent!==txt)note.textContent=txt;
 }
 
@@ -5503,6 +5504,7 @@ function satNewBox(v){
  const old=SAT.box;
  if(old&&old.ov){if(SAT.prev)satRm(SAT.prev);SAT.prev=old.ov;old.ov=null;} /* the old picture stays until the new box paints its first frame */
  SAT.gen++;
+ if(SAT.fail){SAT.fail=false;renderMapPills();} /* a new view re-probes a failed service with a few requests */
  SAT.box={b:b,z:v.z,W:Math.max(1,Math.round(l1*bw/lm)),H:Math.max(1,Math.round(l1*bh/lm)),cw:Math.max(1,Math.round(l2*bw/lm)),ch:Math.max(1,Math.round(l2*bh/lm)),
   bounds:L.latLngBounds(P.unproject(L.point(b[0],b[1])),P.unproject(L.point(b[2],b[3]))),ir:{},cm:{},nok:0,nerr:0,ov:null,cv:null,img:null,pk:null};
 }
@@ -5585,7 +5587,7 @@ function satNextJob(bx){ /* the frame to show now first, then the following ones
 }
 function satPump(){
  const bx=SAT.box;
- if(SAT.paused||!MLAYERS.clouds||!bx||!SAT.frames.length)return;
+ if(SAT.paused||!MLAYERS.clouds||!bx||!SAT.frames.length||SAT.fail)return; /* failed: no more requests until a retry click or a new view box */
  while(SAT.busy<2){const j=satNextJob(bx);if(!j)break;satRun(bx,j);}
 }
 function satRun(bx,j){
