@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~6,800 lines). Current version: **v3.27** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~6,800 lines). Current version: **v3.28** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
@@ -105,7 +105,7 @@ the fetch handler returns early, before the navigation rule, for every same-orig
 intercepted or cached. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.27`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.28`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -737,12 +737,11 @@ RainViewer's free tiles END at z7; requesting deeper native tiles returns "Zoom 
 error tiles), toggleable layers in `MLAYERS`/`mlyToggle`: RainViewer radar frames (at most
 **two frames stay attached** at a time, current + preloaded next, so panning doesn't refetch every
 frame), **satellite clouds** (below), Blitzortung live lightning (reconnects with exponential backoff), and an Open-Meteo **point
-grid** (`gridRefresh`/`gridDraw`: a temperature IDW heatmap with a legend, wind arrows and 48 h rainfall — **no
-clouds**: `gridActive()` is temp/wind/rain only and the grid fetch carries no `cloud_cover`; cache keyed to a zoom-scaled cell so high-zoom pans stay accurate). The grid fetch carries
-24 h of hourly temperature/wind/gusts/precip per point, and a **⏱ time-scrub slider** in the bottom
-panel (0 = now … +24 h, `tt_gridSlider` "Grid data hour slider (temperature/wind/rain)") redraws the heatmap, labels and rain blobs for the chosen hour straight
+grid** (`gridRefresh`/`gridDraw`: a temperature IDW heatmap with a legend, wind arrows and 48 h rainfall, and — since v3.28 — the forecast clouds for the ⏱ hours ahead, see "Forecast clouds" below; `gridActive()` is true when temp, wind, rain **or clouds** is on; cache keyed to a zoom-scaled cell so high-zoom pans stay accurate). The grid fetch carries
+24 h of hourly temperature/wind/gusts/**cloud cover**/precip per point (`cloud_cover` in both `current` and `hourly`; `gridAt` returns it for both branches), and a **⏱ time-scrub slider** in the bottom
+panel (0 = now … +23 h, `tt_gridSlider` "Grid data hour slider (temperature/wind/rain/cloud forecast)" / "Klizač sata mrežnih podataka (temperatura/vjetar/kiša/prognoza oblaka)", the same text in `updateGridCtl`; shown with any grid layer **or ☁️**, `mlyToggle('clouds')` also calls `gridRefresh`) redraws the heatmap, labels and rain blobs for the chosen hour straight
 from that cached response — no refetch while scrubbing; the legend and the next-2h rain strip's pill
-re-label to match; opening the map puts the slider on the hour chosen on the NOW timeline, and coming back moves the timeline cursor to the hour the map was left at (see "Map ⏱ sync" above). Wind labels show gusts in parentheses when they clear speed+5. Also the next-2h rain
+re-label to match; opening the map puts the slider on the hour chosen on the NOW timeline, and coming back moves the timeline cursor to the hour the map was left at (see "Map ⏱ sync" above). `gridSeek` also calls `tlmSync()`. Wind labels show gusts in parentheses when they clear speed+5. Also the next-2h rain
 strip, click-to-forecast (`onMapClick`/`pickPoint`: reverse-geocodes the tapped point with Nominatim and
 loads its forecast) and a **📍 my-location** Leaflet control (`locateOnMap`) that geolocates and
 recentres/pins the map. Layout: on `mobile` only, `#mlyPills` (the layer buttons) is a fixed swipeable
@@ -778,13 +777,29 @@ lives in the bottom panel. The ✕ (desktop only) returns to `#now`.
   "Satellite unavailable — click to retry" (a click retries instead of switching off) and the timeline label says "satellite unavailable" (`SAT.fail`:
   nothing loaded after 4 failed requests, or every frame dead). While `SAT.fail` holds, `satPump` sends **no** more requests; a retry click or a
   new view box (`satNewBox` clears `SAT.fail`) re-probes the service with a few requests.
+- **Forecast clouds (⏱ ahead, v3.28).** At ⏱ 0 the ☁️ layer is the satellite, exactly as above. At ⏱ > 0 (`MLAYERS.clouds && GRIDHR>0`) it is the Open-Meteo
+  model cloud cover of that hour, read from the same cached grid response (**scrubbing makes no request**, neither Open-Meteo nor EUMETView):
+  **(1) Field** — `buildCloudOverlay(list)` mirrors `buildHeatOverlay` (a 140-px-wide canvas over the viewport bounds, inverse-distance² weights with a
+  cos(lat) correction, ×4 smoothed upscale, `L.imageOverlay` with `className:'cloudfc'`) of `cloud_cover` (%); per pixel alpha = 0.65·aMax·smoothstep(10,95,cover) with
+  the satellite's map-theme tint and aMax from `satTint()` (shared with `satPaint`: dark map white 0.85, light map slate rgb(92,104,122) 0.75; the 0.65 keeps a
+  textureless 100 % field from washing the map out). It lives in `satPane`
+  (above the base tiles, below the radar) and is rebuilt by `gridDraw` on every hour, view and theme change (`mapThemeToggle` → `gridRefresh`); `removeCloudOv()`
+  drops it at ⏱ 0, when ☁️ goes off and when `gridRefresh` finds no active grid layer. **(2) Labels** — `gridDraw` adds "☁NN%" (cover ≥ 15) to the label stack, in the
+  theme-aware tone `#cfd6de` (dark map) / `#5b6573` (light map) inside the existing text halo. **(3) Satellite gating** — `satVis()` (called by `satShow` and so by
+  every `tlmSync`) sets `display:none` on the current satellite overlay and any kept previous one while `GRIDHR>0`; `satShow` paints nothing then; at ⏱ 0 the overlays are
+  shown again and the current frame is painted. The satellite loading / queue logic is untouched. **(4) Observation controls** — `tlmSync()` computes
+  `lock = ☁️ on && GRIDHR>0 && master is not the radar`: it stops the play timer (`stopRadarAnim`), disables `#radarPrev`/`#radarPlay`/`#radarNext`/`#radarSlider`
+  (`disabled` + `aria-disabled="true"`; `TLMLOCK` also makes `radarPlay()` a no-op) and writes `#radarTime` "☁ forecast +N h" / "☁ prognoza +N h" ("☁ forecast unavailable" /
+  "☁ prognoza nedostupna" when the grid response failed, `GRIDFAIL`). With the radar on and loaded (radar is the master) the radar timeline is unchanged and the label is
+  "HH:MM · ☁ +N h". ⏱ back to 0 (or ☁️ off) re-enables everything. **(5) Strings** — the clouds pill title ends "; ⏱ ahead = forecast (Open-Meteo)" / "; ⏱ unaprijed = prognoza (Open-Meteo)"; the
+  `#radarNote` cloud part (only while ☁️ is on) ends " · ⏱ ahead = model forecast (Open-Meteo)" / " · ⏱ unaprijed = prognoza modela (Open-Meteo)".
 - **One shared timeline.** `#radarCtl` (⏮ ▶️ ⏭ slider time) is the one observation timeline, shown when radar **or** clouds is on, with **one** 600 ms
   play timer (`radarPlay`/`tlmStep`; switching radar off mid-play keeps playing the clouds, `tlmRealign` stops the timer only when no layer is left; the
   control tooltips `tt_radarPrev`/`tt_radarPlay`/`tt_radarNext`/`tt_radarSlider` say "radar / satellite"). The master list (`tlmMaster()`) is the radar frames when radar is on and loaded, else the satellite frames; with radar as
   master the satellite shows the frame with the latest time ≤ the radar frame's (else the oldest; a failed frame falls back to the nearest good one,
   `satIdxFor`). Toggling radar or clouds keeps the time position (`TLPOS`, `tlmRealign`) and resets the slider max. `tlmSync()` writes slider, label and the
   satellite frame: radar only "HH:MM" (+ " · forecast"), clouds only "HH:MM ☁", both "HH:MM · ☁ HH:MM" (the second is the satellite frame's time), "☁ …" while
-  loading. **All map times are in the place's time** (`mapHM()`: the UTC fields of t + `LOCTZ.off`, browser time only when there is no offset), the radar's too.
+  loading; at ⏱ > 0 with ☁️ on see "Forecast clouds" above. **All map times are in the place's time** (`mapHM()`: the UTC fields of t + `LOCTZ.off`, browser time only when there is no offset), the radar's too.
   `#radarNote` (`updateMapNote()`, re-run by `tlmSync`) carries, **only while the ☁️ layer is on** (keeps the phone panel short), the cloud legend and the
   EUMETSAT credit: "☁️ Meteosat satellite, last 2 h: faint = low cloud/fog, solid = high cloud · Contains modified EUMETSAT Meteosat data <UTC year of the shown
   frame>" / "… Sadrži izmijenjene EUMETSAT Meteosat podatke <godina>"; the base-layer attribution always ends with " · EUMETSAT".
@@ -1003,7 +1018,7 @@ Roughly top-to-bottom:
   `drawBbqGrill`) · **timeline** (`tlInit`, `tlRender`, `tlDraw`, `tlSchedule`, `tlSetZoom`, `tlFitX`, `tlApplyScale`, `tlRep`, `tlSetLayer`, `tlSetFit`, `tlSetStyle`,
   `tlLegend`, `tlPanelOpen`/`tlPanelClose`, `tlGoto`, `tlCursorTs`, `tlInvalidate`, `tlHome`, `tlMoveCursor`, `tlTap`, `tlReadoutLines`,
   `renderGraph`, `tlMountGraph`/`tlUnmountGraph`, `tlUiApply`/`tlSetCollapsed`/`tlImm`, `tlRotateToast`, `tlFullOpen`/`tlFullClose`, `setNavH`; state `TL`, `TLP`, cache `TLC`) · maps
-  (`loadLeaflet`, the weather map incl. `locateOnMap`, the shared timeline `tlmMaster`/`tlmSync`/`tlmRealign`/`tlmStep`/`mapHM`, and the satellite clouds `satList`/`satBoxCheck`/`satNewBox`/`satPump`/`satRun`/`satPaint`/`satShow`/`satRefresh`/`satEnsure`/`satOverlayCls`; state `SAT`, `TLPOS`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/
+  (`loadLeaflet`, the weather map incl. `locateOnMap`, the shared timeline `tlmMaster`/`tlmSync`/`tlmRealign`/`tlmStep`/`mapHM`, and the satellite clouds `satList`/`satBoxCheck`/`satNewBox`/`satPump`/`satRun`/`satPaint`/`satShow`/`satRefresh`/`satEnsure`/`satOverlayCls`/`satTint`/`satVis`, the grid and its forecast cloud field `gridRefresh`/`gridAt`/`gridDraw`/`gridSeek`/`updateGridCtl`/`buildHeatOverlay`/`buildCloudOverlay`/`removeCloudOv`; state `SAT`, `TLPOS`, `GRIDHR`, `GRIDFAIL`, `TLMLOCK`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/
   `showView`/`renderActive`/`updateAlertBox`) · Info panel (`renderInfo`, `renderFeeds`, `CHANGELOG`) · **Ask the
   weather** (`askKeyGet`/`askKeySave`/`askKeyDel`, `askMode`, `askRefreshState`, `askContext`, `askSystem`, `askClaude`, `askReadStream`, `askUi`; state `ASK`,
   declared earlier next to the prefs) — the banner `/* ---------- Ask the weather (A1) ... ---------- */` sits

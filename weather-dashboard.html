@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Patrik's weather daily — v3.27</title>
+<title>Patrik's weather daily — v3.28</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#16243a">
@@ -739,7 +739,7 @@ html.tlfs #askBar{display:none}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.27 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.28 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
 <section id="view-graph" class="hidden" role="tabpanel" aria-labelledby="tlGraphH">
 <h2 class="tlsr" id="tlGraphH" data-i="tlTitle">TIMELINE</h2>
@@ -782,7 +782,7 @@ const ICON_NIGHT={sun:'🌙',partcloud:ICON.cloud}; /* I2: night variants of the
 function iconFor(r){if(!r)return'';return (r.night&&ICON_NIGHT[r.cond])||ICON[r.cond]||'';}
 const ICON_SUN='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 const ICON_MOON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-const APPV='3.27';
+const APPV='3.28';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -1171,7 +1171,7 @@ const T={
   tt_lang:"Language: English — tap for Croatian",tt_theme:"Toggle theme",tt_mp:"Monty Python mode",tt_vegan:"Vegan Inbound mode (BBQ)",
   retry:"Try again",cmpNote:"Comparing {A} and {B}: the top card, the temperature line on the timeline, the sea chart and the outlook text. Other sections show {A} only.",onlyA:"only {A}",secFail:"Second location failed: {B}",
   unavail:"unavailable",srcSea:"sea",srcAir:"air",srcClimo:"normals",srcBest:"Open-Meteo \u00B7 best match model",uvMax:"max",
-  tt_mapClose:"Close the map",tt_mapTheme:"Map light/dark basemap",tt_radarPrev:"Previous frame (radar / satellite)",tt_radarPlay:"Play/pause the radar and satellite animation",tt_radarNext:"Next frame (radar / satellite)",tt_radarSlider:"Time slider (radar / satellite)",tt_gridSlider:"Grid data hour slider (temperature/wind/rain)",
+  tt_mapClose:"Close the map",tt_mapTheme:"Map light/dark basemap",tt_radarPrev:"Previous frame (radar / satellite)",tt_radarPlay:"Play/pause the radar and satellite animation",tt_radarNext:"Next frame (radar / satellite)",tt_radarSlider:"Time slider (radar / satellite)",tt_gridSlider:"Grid data hour slider (temperature/wind/rain/cloud forecast)",
   ar_sea:"Daily sea surface temperature forecast",
   ar_bio:"Biometeorological load forecast as colored bars: green favorable, amber moderately unfavorable, red unfavorable",ar_pres:"Sea-level pressure over the past day and next two days",ar_aqi:"European air-quality index for the next 48 hours as colored bars",
   ar_mt:"Moon illumination with phase icons",ar_tide:"Daily tide high and low levels",ar_bbqtl:"BBQ prep timeline back-timed from the best grill hour",ar_bbqgr:"Hourly grilling score 9am to 10pm with tier icons",
@@ -1235,7 +1235,7 @@ const T={
   tt_lang:"Jezik: hrvatski — dodirni za engleski",tt_theme:"Promijeni temu",tt_mp:"Monty Python način",tt_vegan:"Način 'Stiže vegan' (roštilj)",
   retry:"Pokušaj ponovno",cmpNote:"Usporedba {A} i {B}: gornja kartica, temperatura na vremenskoj osi, graf mora i tekst izgleda. Ostali odjeljci prikazuju samo {A}.",onlyA:"samo {A}",secFail:"Druga lokacija nije učitana: {B}",
   unavail:"nedostupno",srcSea:"more",srcAir:"zrak",srcClimo:"klima",srcBest:"Open-Meteo \u00B7 najbolji model",uvMax:"maks",
-  tt_mapClose:"Zatvori kartu",tt_mapTheme:"Svijetla/tamna podloga karte",tt_radarPrev:"Prethodni kadar (radar / satelit)",tt_radarPlay:"Pokreni/pauziraj animaciju radara i satelita",tt_radarNext:"Sljedeći kadar (radar / satelit)",tt_radarSlider:"Klizač vremena (radar / satelit)",tt_gridSlider:"Klizač sata mrežnih podataka (temperatura/vjetar/kiša)",
+  tt_mapClose:"Zatvori kartu",tt_mapTheme:"Svijetla/tamna podloga karte",tt_radarPrev:"Prethodni kadar (radar / satelit)",tt_radarPlay:"Pokreni/pauziraj animaciju radara i satelita",tt_radarNext:"Sljedeći kadar (radar / satelit)",tt_radarSlider:"Klizač vremena (radar / satelit)",tt_gridSlider:"Klizač sata mrežnih podataka (temperatura/vjetar/kiša/prognoza oblaka)",
   ar_sea:"Dnevna prognoza temperature površine mora",
   ar_bio:"Prognoza biometeorološkog opterećenja u obojenim stupcima: zeleno povoljno, jantarno umjereno nepovoljno, crveno nepovoljno",ar_pres:"Tlak zraka na razini mora tijekom prošlog dana i sljedeća dva dana",ar_aqi:"Europski indeks kvalitete zraka za sljedeća 48 sati u obojenim stupcima",
   ar_mt:"Osvijetljenost Mjeseca s ikonama mijena",ar_tide:"Dnevne razine plime i oseke",ar_bbqtl:"Vremenska crta priprema za roštilj, računata unatrag od najboljeg sata za roštilj",ar_bbqgr:"Satna ocjena roštilja od 9 do 22 sata s ikonama razina",
@@ -5195,7 +5195,7 @@ function renderMapPills(){
  el.innerHTML=defs.map(d=>{
   const satBad=d[0]==='clouds'&&MLAYERS.clouds&&SAT.fail;
   const dim=((d[0]==='bolt'&&boFailed)||satBad)?' dimmed':'';
-  const title=(d[0]==='bolt'&&boFailed)?(hrv?'Munje nedostupne — klikni za ponovni pokušaj':'Lightning unavailable — click to retry'):(d[0]==='clouds'?(satBad?(hrv?'Satelit nedostupan — klikni za ponovni pokušaj':'Satellite unavailable — click to retry'):(hrv?'Satelitski oblaci — Meteosat infracrveno + maska oblaka, zadnja 2 sata (EUMETSAT)':'Satellite clouds — Meteosat infrared + cloud mask, last 2 hours (EUMETSAT)')):'');
+  const title=(d[0]==='bolt'&&boFailed)?(hrv?'Munje nedostupne — klikni za ponovni pokušaj':'Lightning unavailable — click to retry'):(d[0]==='clouds'?(satBad?(hrv?'Satelit nedostupan — klikni za ponovni pokušaj':'Satellite unavailable — click to retry'):(hrv?'Satelitski oblaci — Meteosat infracrveno + maska oblaka, zadnja 2 sata (EUMETSAT); ⏱ unaprijed = prognoza (Open-Meteo)':'Satellite clouds — Meteosat infrared + cloud mask, last 2 hours (EUMETSAT); ⏱ ahead = forecast (Open-Meteo)')):'');
   return '<button class="mly'+(MLAYERS[d[0]]?' on':'')+dim+'" onclick="mlyToggle(\''+d[0]+'\')" aria-pressed="'+(MLAYERS[d[0]]?'true':'false')+'"'+(title?' title="'+title+'"':'')+'>'+d[1]+' '+d[2]+'</button>';
  }).join('');
 }
@@ -5207,10 +5207,10 @@ function mlyToggle(k){
  if(k==='radar'&&!MLAYERS.radar)radarDetachExcept([]); /* FIX-2: fully detach so hidden frames stop fetching tiles; playback goes on with the clouds (tlmRealign stops it when no layer is left) */
  if(k==='clouds'&&!retry){if(MLAYERS.clouds)satOn();else satOff();}
  if(k==='radar'||k==='clouds'){tlmVis();tlmRealign(t0);}
- if(k==='temp'||k==='wind'||k==='rain')gridRefresh();
+ if(k==='temp'||k==='wind'||k==='rain'||k==='clouds')gridRefresh(); /* ☁️ also loads the grid: its ⏱ hours carry the cloud forecast */
+ updateGridCtl(); /* before the pills, so the rain pill label follows a reset hour */
  renderMapPills();
  updateHeatLeg();
- updateGridCtl();
 }
 function renderMapFull(){
  const hrv=lang==='hr';
@@ -5381,7 +5381,7 @@ function radarSeek(v){stopRadarAnim();tlmGo(parseInt(v,10)||0);}
 function radarStep(d){stopRadarAnim();tlmStep(d);}
 function radarPlay(){ /* one 600 ms timer drives radar and satellite */
  if(radarTimer){stopRadarAnim();return;}
- if(!tlmLen())return;
+ if(TLMLOCK||!tlmLen())return; /* locked while only the ☁ forecast (⏱ ahead) is shown */
  radarTimer=setInterval(()=>{if(active!=='map'||!tlmLen()){stopRadarAnim();return;}tlmStep(1);},600);
  updateRadarPlayBtn();
 }
@@ -5410,21 +5410,27 @@ function tlmRealign(t0){ /* a layer toggled: keep the time position on the (new)
  if(m&&t0!=null){if(m==='r')radarIdx=tlmNear(radarFrames.map(f=>f.t*1000),t0);else SAT.idx=tlmNear(SAT.frames.map(f=>f.t),t0);}
  if(m==='r')showRadarFrame(radarIdx);else{if(!m)stopRadarAnim();tlmSync();}
 }
+let TLMLOCK=false; /* observation controls locked: clouds only and ⏱ > 0 (the model forecast, nothing to play) */
 function tlmSync(){ /* slider + label + the satellite frame that goes with the current time */
- const hrv=lang==='hr',m=tlmMaster(),ck=MLAYERS.clouds;
+ const hrv=lang==='hr',m=tlmMaster(),ck=MLAYERS.clouds,fc=ck&&GRIDHR>0,lock=fc&&m!=='r';
  const rf=(MLAYERS.radar&&radarFrames.length)?radarFrames[radarIdx]:null;
  let ti=-1;
  if(ck&&SAT.frames.length){ti=rf?satIdxFor(rf.t*1000):SAT.idx;SAT.tgt=ti;satShow(ti);}
  if(rf)TLPOS=rf.t*1000;else if(ti>=0)TLPOS=SAT.frames[ti].t;
  const sl=document.getElementById('radarSlider');
- if(sl){sl.max=Math.max(0,tlmLen()-1);sl.value=m==='r'?radarIdx:(m==='s'?SAT.idx:0);sl.disabled=!m;}
+ if(sl){sl.max=Math.max(0,tlmLen()-1);sl.value=m==='r'?radarIdx:(m==='s'?SAT.idx:0);sl.disabled=!m||lock;if(sl.disabled)sl.setAttribute('aria-disabled','true');else sl.removeAttribute('aria-disabled');}
+ TLMLOCK=lock;
+ if(lock)stopRadarAnim();
+ ['radarPrev','radarPlay','radarNext'].forEach(function(id){const b=document.getElementById(id);if(b){b.disabled=lock;if(lock)b.setAttribute('aria-disabled','true');else b.removeAttribute('aria-disabled');}});
  const el=document.getElementById('radarTime');
  if(el){
   const rp=rf?(mapHM(rf.t*1000)+(rf.fc?(hrv?' · prognoza':' · forecast'):'')):((MLAYERS.radar&&radarFailed)?(hrv?'radar nedostupan':'radar unavailable'):'');
   const hm=(SAT.shownT!=null&&!SAT.fail)?mapHM(SAT.shownT):'';
   let txt=rp;
-  if(ck){
-   if(rp)txt=rp+' · ☁ '+(hm||(SAT.fail?'—':'…'));
+  if(lock)txt=GRIDFAIL?(hrv?'☁ prognoza nedostupna':'☁ forecast unavailable'):((hrv?'☁ prognoza +':'☁ forecast +')+GRIDHR+' h'); /* clouds only, ⏱ ahead: the model forecast */
+  else if(ck){
+   if(fc)txt=rp+' · ☁ +'+GRIDHR+' h'; /* radar is the master: the timeline stays the radar's */
+   else if(rp)txt=rp+' · ☁ '+(hm||(SAT.fail?'—':'…'));
    else txt=hm?(hm+' ☁'):(SAT.fail?(hrv?'satelit nedostupan':'satellite unavailable'):'☁ …');
   }
   el.textContent=txt;el.style.color=(rf&&rf.fc)?C.warn:'';
@@ -5434,7 +5440,7 @@ function tlmSync(){ /* slider + label + the satellite frame that goes with the c
 function updateMapNote(){
  const note=document.getElementById('radarNote');if(!note)return;
  const hrv=lang==='hr',yr=new Date(SAT.shownT!=null?SAT.shownT:(SAT.frames.length?SAT.frames[SAT.frames.length-1].t:Date.now())).getUTCFullYear();
- const ck=MLAYERS.clouds?(hrv?' · ☁️ Meteosat satelit, zadnja 2 h: blijedo = niski oblaci/magla, puno = visoki oblaci · Sadrži izmijenjene EUMETSAT Meteosat podatke '+yr:' · ☁️ Meteosat satellite, last 2 h: faint = low cloud/fog, solid = high cloud · Contains modified EUMETSAT Meteosat data '+yr):''; /* cloud legend + EUMETSAT credit only while the layer is on (keeps the phone panel short) */
+ const ck=MLAYERS.clouds?(hrv?' · ☁️ Meteosat satelit, zadnja 2 h: blijedo = niski oblaci/magla, puno = visoki oblaci · Sadrži izmijenjene EUMETSAT Meteosat podatke '+yr+' · ⏱ unaprijed = prognoza modela (Open-Meteo)':' · ☁️ Meteosat satellite, last 2 h: faint = low cloud/fog, solid = high cloud · Contains modified EUMETSAT Meteosat data '+yr+' · ⏱ ahead = model forecast (Open-Meteo)'):''; /* cloud legend + EUMETSAT credit only while the layer is on (keeps the phone panel short) */
  const txt=hrv?'Klik na kartu = prognoza te točke · radar: plavo slaba, žuto/crveno jaka kiša · ⚡ munje uživo (blijede sa starošću) · 🌡️💨💧 mreža Open-Meteo točaka'+ck+' · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org'
   :'Click the map = forecast for that point · radar: blue light, yellow/red heavy rain · ⚡ live lightning (fades with age) · 🌡️💨💧 Open-Meteo point grid'+ck+' · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org';
  if(note.textContent!==txt)note.textContent=txt;
@@ -5547,6 +5553,7 @@ function satIdxFor(tms){ /* latest satellite frame at or before tms, else the ol
  }
  return i;
 }
+function satTint(){const dk=MAPTHEME==='dark';return {T:dk?[255,255,255]:[92,104,122],am:dk?0.85:0.75,lo:dk?0.40:0.38};} /* the map theme's cloud tint, shared with the forecast field */
 function satPaint(bx,r,m){ /* write the frame's alpha mask with the map theme's tint into the canvas */
  if(!bx.ov){
   const cv=document.createElement('canvas');cv.width=bx.W;cv.height=bx.H;cv.setAttribute('aria-hidden','true');cv.style.pointerEvents='none';
@@ -5555,7 +5562,7 @@ function satPaint(bx,r,m){ /* write the frame's alpha mask with the map theme's 
   bx.ov.addTo(radarMapL);
   if(SAT.prev){satRm(SAT.prev);SAT.prev=null;}
  }
- const dk=MAPTHEME==='dark',T=dk?[255,255,255]:[92,104,122],am=dk?0.85:0.75,lo=dk?0.40:0.38;
+ const tn=satTint(),T=tn.T,am=tn.am,lo=tn.lo;
  const A=new Uint8Array(256),LO=new Uint8Array(256),C5=new Uint8Array(256);
  for(let i=0;i<256;i++){A[i]=Math.round(i*am);LO[i]=Math.round(i*lo);C5[i]=Math.round(i*0.55*am);}
  const d=bx.img.data,n=bx.W*bx.H,both=!!(r&&m);
@@ -5566,9 +5573,14 @@ function satPaint(bx,r,m){ /* write the frame's alpha mask with the map theme's 
  }
  bx.cv.getContext('2d').putImageData(bx.img,0,0);
 }
+function satVis(){ /* ⏱ ahead: the model forecast field replaces the satellite picture (current overlay and a kept previous one) */
+ const h=GRIDHR>0;
+ [SAT.box&&SAT.box.ov,SAT.prev].forEach(function(o){const e=o&&o.getElement&&o.getElement();if(e)e.style.display=h?'none':'';});
+}
 function satShow(i){
  const bx=SAT.box,f=SAT.frames[i];
- if(!bx||!f||!radarMapL||!MLAYERS.clouds)return;
+ satVis();
+ if(!bx||!f||!radarMapL||!MLAYERS.clouds||GRIDHR>0)return; /* ⏱ ahead: nothing is painted */
  const a=bx.ir[f.t],b=bx.cm[f.c],r=(a&&a.s==='ok')?a.r:null,m=(b&&b.s==='ok')?b.m:null;
  if(!r&&!m)return; /* not loaded yet (or failed): the previous picture stays */
  const pk=f.t+':'+(r?1:0)+(m?1:0)+':'+MAPTHEME;
@@ -5645,9 +5657,9 @@ function satRetry(){satOff();SAT.frames=[];SAT.fetched=0;satOn();}
 
 /* ---------- Grid overlay (Open-Meteo point grid: temp / wind / rain) ---------- */
 let gridLG=null,gridCache={},gridKeys=[],gridMoveT=null,gridHooked=false;
-let GRIDHR=0,gridLastList=null; /* FEAT-5: selected hour offset (0=now) for the ⏱ scrub slider, + the last drawn list for refetch-free redraws */
+let GRIDHR=0,gridLastList=null,GRIDFAIL=false; /* FEAT-5: selected hour offset (0=now) for the ⏱ scrub slider, + the last drawn list for refetch-free redraws */
 function gridActive(){
- return !!(MLAYERS.temp||MLAYERS.wind||MLAYERS.rain);
+ return !!(MLAYERS.temp||MLAYERS.wind||MLAYERS.rain||MLAYERS.clouds);
 }
 /* FIX-3: zoom-scaled cache cell so pans at high zoom (a narrow viewport) don't all collapse onto one coarse key */
 function gridCellKey(zoom,center){
@@ -5656,7 +5668,7 @@ function gridCellKey(zoom,center){
 }
 function gridRefresh(){
  if(!radarMapL)return;
- if(!gridActive()){if(gridLG){gridLG.clearLayers();}removeHeatOv();updateHeatLeg();updateGridCtl();return;}
+ if(!gridActive()){if(gridLG){gridLG.clearLayers();}removeHeatOv();removeCloudOv();updateHeatLeg();updateGridCtl();return;}
  var b=radarMapL.getBounds();
  var south=b.getSouth(),north=b.getNorth(),west=b.getWest(),east=b.getEast();
  var insetLat=(north-south)*0.08,insetLon=(east-west)*0.08;
@@ -5675,7 +5687,7 @@ function gridRefresh(){
  }
  var key=gridCellKey(radarMapL.getZoom(),radarMapL.getCenter());
  if(!gridCache[key]){
-  gridCache[key]=tfetch('https://api.open-meteo.com/v1/forecast?latitude='+lats.join(',')+'&longitude='+lons.join(',')+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m&daily=precipitation_sum&forecast_days=2&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation&forecast_hours=24&timezone=auto',12000)
+  gridCache[key]=tfetch('https://api.open-meteo.com/v1/forecast?latitude='+lats.join(',')+'&longitude='+lons.join(',')+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover&daily=precipitation_sum&forecast_days=2&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover,precipitation&forecast_hours=24&timezone=auto',12000)
    .then(function(r){return r.json();})
    .catch(function(){return null;});
   gridKeys.push(key);
@@ -5690,7 +5702,8 @@ function gridRefresh(){
    return;
   }
   if(!gridActive())return;
-  if(!data)return;
+  GRIDFAIL=!data;
+  if(!data){if(MLAYERS.clouds&&GRIDHR>0)tlmSync();return;} /* the ☁ forecast label says so when the grid could not load */
   gridDraw(Array.isArray(data)?data:[data]);
   updateGridCtl();
  });
@@ -5705,7 +5718,7 @@ function gridAt(item,off){
   var cur=item.current;if(!cur)return null;
   var sum=0;
   if(item.daily&&item.daily.precipitation_sum)sum=(item.daily.precipitation_sum[0]||0)+(item.daily.precipitation_sum[1]||0);
-  return{temperature_2m:cur.temperature_2m,wind_speed_10m:cur.wind_speed_10m,wind_direction_10m:cur.wind_direction_10m,wind_gusts_10m:cur.wind_gusts_10m,rainSum:sum,time:cur.time};
+  return{temperature_2m:cur.temperature_2m,wind_speed_10m:cur.wind_speed_10m,wind_direction_10m:cur.wind_direction_10m,wind_gusts_10m:cur.wind_gusts_10m,cloud_cover:cur.cloud_cover,rainSum:sum,time:cur.time};
  }
  var h=item.hourly;
  if(!h||!h.time||!h.time.length)return null;
@@ -5717,6 +5730,7 @@ function gridAt(item,off){
   wind_speed_10m:(h.wind_speed_10m&&h.wind_speed_10m[idx]!=null)?h.wind_speed_10m[idx]:null,
   wind_direction_10m:(h.wind_direction_10m&&h.wind_direction_10m[idx]!=null)?h.wind_direction_10m[idx]:null,
   wind_gusts_10m:(h.wind_gusts_10m&&h.wind_gusts_10m[idx]!=null)?h.wind_gusts_10m[idx]:null,
+  cloud_cover:(h.cloud_cover&&h.cloud_cover[idx]!=null)?h.cloud_cover[idx]:null,
   rainSum:rainSum,
   time:h.time[idx]
  };
@@ -5739,7 +5753,7 @@ function updateGridCtl(){
  if(!active){GRIDHR=0;var sl0=document.getElementById('gridSlider');if(sl0)sl0.value=0;}
  var hrv=lang==='hr';
  var sl=document.getElementById('gridSlider');
- if(sl){var lbl=hrv?'Klizač sata mrežnih podataka (temperatura/vjetar/kiša)':'Grid data hour slider (temperature/wind/rain)';sl.setAttribute('aria-label',lbl);sl.title=lbl;}
+ if(sl){var lbl=hrv?'Klizač sata mrežnih podataka (temperatura/vjetar/kiša/prognoza oblaka)':'Grid data hour slider (temperature/wind/rain/cloud forecast)';sl.setAttribute('aria-label',lbl);sl.title=lbl;}
  updateGridTimeLabel();
 }
 /* FEAT-5: scrub — redraws straight from the cached last list, no network call */
@@ -5748,6 +5762,7 @@ function gridSeek(v){
  updateGridTimeLabel();
  renderMapPills(); /* the rain pill re-labels while scrubbing (remaining to +24 h vs 48 h total) */
  if(gridLastList)gridDraw(gridLastList);
+ tlmSync(); /* ☁ forecast label, observation controls and the satellite gate follow the hour */
 }
 function tColScale(t){return t<0?'#4f7bd9':(t<8?'#2caaf0':(t<16?'#3DA35D':(t<24?'#E0A53C':(t<30?'#D85A30':(t<35?'#A32D2D':'#7a1fa2')))));}
 /* normalized ramp (0..1 across the SAME colours) — used with data-range stretch so small local deltas get big colour differences */
@@ -5809,6 +5824,41 @@ function buildHeatOverlay(list){
   return L.imageOverlay(cv2.toDataURL('image/png'),[[s,w],[n,e]],{opacity:0.5,interactive:false});
  }catch(e){heatRange=null;return null;}
 }
+let cloudOv=null;
+function removeCloudOv(){if(cloudOv){try{radarMapL.removeLayer(cloudOv);}catch(e){}cloudOv=null;}}
+/* forecast cloud cover (%) for the chosen ⏱ hour: same IDW canvas as the heat overlay, alpha = aMax·smoothstep(10,95,cover) in the satellite's map-theme tint */
+function buildCloudOverlay(list){
+ try{
+  var pts=[];
+  list.forEach(function(it){var g=it&&gridAt(it,GRIDHR);if(it&&it.latitude!=null&&it.longitude!=null&&g&&g.cloud_cover!=null)pts.push([it.latitude,it.longitude,g.cloud_cover]);});
+  if(pts.length<3)return null;
+  var b=radarMapL.getBounds(),n=b.getNorth(),s=b.getSouth(),w=b.getWest(),e=b.getEast();
+  var sz=radarMapL.getSize();
+  var W=140,H=Math.max(50,Math.round(W*(sz.y/Math.max(1,sz.x))));
+  var cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  var ctx=cv.getContext('2d');var img=ctx.createImageData(W,H);
+  var cosc=Math.cos(((n+s)/2)*Math.PI/180),tn=satTint(),T=tn.T,aMax=tn.am*0.65*255; /* 0.65 of the satellite's aMax: a textureless field at 100 % would otherwise wash the map out */
+  for(var y=0;y<H;y++){
+   var la=n-(n-s)*(y+0.5)/H;
+   for(var x=0;x<W;x++){
+    var lo=w+(e-w)*(x+0.5)/W;
+    var sw=0,sv=0;
+    for(var k=0;k<pts.length;k++){
+     var dla=la-pts[k][0],dlo=(lo-pts[k][1])*cosc;
+     var wt=1/(dla*dla+dlo*dlo+1e-6);
+     sw+=wt;sv+=wt*pts[k][2];
+    }
+    var t=Math.max(0,Math.min(1,(sv/sw-10)/85)),i2=(y*W+x)*4;
+    img.data[i2]=T[0];img.data[i2+1]=T[1];img.data[i2+2]=T[2];img.data[i2+3]=Math.round(aMax*t*t*(3-2*t));
+   }
+  }
+  ctx.putImageData(img,0,0);
+  var cv2=document.createElement('canvas');cv2.width=W*4;cv2.height=H*4;
+  var c2=cv2.getContext('2d');c2.imageSmoothingEnabled=true;c2.imageSmoothingQuality='high';
+  c2.drawImage(cv,0,0,cv2.width,cv2.height);
+  return L.imageOverlay(cv2.toDataURL('image/png'),[[s,w],[n,e]],{pane:'satPane',opacity:1,interactive:false,className:'cloudfc'});
+ }catch(e){return null;}
+}
 function updateHeatLeg(){
  var el=document.getElementById('heatLeg');if(!el)return;
  if(!MLAYERS.temp||!heatOv||!heatRange){el.style.display='none';return;}
@@ -5852,6 +5902,9 @@ function gridDraw(list){
   removeHeatOv();
  }
  updateHeatLeg();
+ var nco=(MLAYERS.clouds&&GRIDHR>0)?buildCloudOverlay(list):null; /* ⏱ ahead: the forecast cloud field; at ⏱ 0 the layer is the satellite */
+ removeCloudOv();
+ if(nco){nco.addTo(radarMapL);cloudOv=nco;}
  /* blob radius ≈ 0.62 × horizontal point spacing, so neighbouring blobs blend into a soft field */
  var blobR=22;
  try{blobR=Math.max(22,Math.round(radarMapL.getSize().x/9*0.62));}catch(e){}
@@ -5885,6 +5938,9 @@ function gridDraw(list){
   if(MLAYERS.rain&&sum>=0.2){
    html+='<div style="font-size:10.5px;color:#0E7490;font-weight:600;">💧'+(Math.round(sum*10)/10)+'</div>';
   }
+  if(MLAYERS.clouds&&GRIDHR>0&&g.cloud_cover!=null&&g.cloud_cover>=15){
+   html+='<div style="font-size:10px;font-weight:600;color:'+(dk?'#cfd6de':'#5b6573')+';">☁'+Math.round(g.cloud_cover)+'%</div>';
+  }
   if(html){
    gridLG.addLayer(L.marker([lat,lon],{icon:L.divIcon({className:'gridlbl',html:'<div style="text-align:center;line-height:1.25;'+halo+'">'+html+'</div>',iconSize:null,iconAnchor:[18,10]}),interactive:false,keyboard:false}));
   }
@@ -5902,6 +5958,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.28',d:'2026-10-22',en:'<b>Forecast clouds are back on the map’s ⏱ slider.</b> Move it ahead for the model cloud cover of the next 24 hours (Open-Meteo): a smooth cloud field with the percentages on the map. At “now” the ☁️ layer is still the satellite picture.',hr:'<b>Prognoza oblaka vraćena je na klizač ⏱ karte.</b> Pomakni ga unaprijed za modelsku naoblaku sljedećih 24 sata (Open-Meteo): glatko polje oblaka s postocima na karti. Na „sada” sloj ☁️ i dalje prikazuje satelitsku sliku.'},
  {v:'3.27',d:'2026-10-22',en:'<b>Satellite clouds replace the model cloud blobs.</b> The ☁️ layer on the map now shows real Meteosat satellite imagery (EUMETSAT): the last 2 hours in 10-minute steps, animated on the same timeline as the radar. The infrared picture shows high, cold cloud tops and the cloud mask adds low cloud and fog. The map’s times now follow the place’s own clock. Contains modified EUMETSAT Meteosat data.',hr:'<b>Satelitski oblaci zamjenjuju modelske mrlje oblaka.</b> Sloj ☁️ na karti sada prikazuje stvarne Meteosat satelitske snimke (EUMETSAT): zadnja 2 sata u koracima od 10 minuta, animirano na istoj vremenskoj crti kao radar. Infracrvena slika prikazuje visoke, hladne vrhove oblaka, a maska oblaka dodaje niske oblake i maglu. Vremena na karti sada prate sat samog mjesta. Sadrži izmijenjene EUMETSAT Meteosat podatke.'},
  {v:'3.26',d:'2026-10-21',en:'<b>New GRAPH tab:</b> the timeline full screen, with the bottom menu kept on phones. <b>Compact controls:</b> one bar with the zoom and a Layers &amp; display panel, and a one-row legend below the chart. In the graph, one tap hides every control so the chart fills the whole screen; a light/dark switch is in the graph bar.',hr:'<b>Nova kartica GRAF:</b> vremenska os preko cijelog zaslona, a na telefonu donji izbornik ostaje. <b>Kompaktne kontrole:</b> jedna traka sa zoomom i pločom Slojevi i prikaz te legenda u jednom retku ispod grafa. U grafu jedan dodir sakriva sve kontrole pa graf ispunjava cijeli zaslon; prekidač svijetle/tamne teme nalazi se u traci grafa.'},
  {v:'3.25',d:'2026-10-18',en:'<b>Ask about any place.</b> The assistant can now answer about any place you name — it fetches that place\'s forecast itself; an “Open &lt;place&gt;” button switches the app to it.',hr:'<b>Pitaj o bilo kojem mjestu.</b> Pomoćnik sada odgovara o bilo kojem mjestu koje navedeš — sam dohvaća prognozu tog mjesta; gumb „Otvori &lt;mjesto&gt;“ prebacuje aplikaciju na njega.'},
