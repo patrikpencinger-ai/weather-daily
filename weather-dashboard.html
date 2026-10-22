@@ -5615,7 +5615,7 @@ function satCheckFail(){ /* nothing loaded and 4 failed requests (or every frame
  if(bx.nok===0){let dead=SAT.frames.length>0;for(let k=0;k<SAT.frames.length&&dead;k++)if(satFrameState(k)!=='err')dead=false;f=bx.nerr>=4||dead;}
  if(f!==SAT.fail){
   SAT.fail=f;
-  if(f){feedMark('sat',false,SAT.lastErr||'failed');if(SAT.prev){satRm(SAT.prev);SAT.prev=null;}SAT.shownT=null;}
+  if(f){SAT.feedOk=false;feedMark('sat',false,SAT.lastErr||'failed');if(SAT.prev){satRm(SAT.prev);SAT.prev=null;}SAT.shownT=null;}
   renderMapPills();
  }
 }
