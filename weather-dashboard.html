@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Patrik's weather daily — v3.26</title>
+<title>Patrik's weather daily — v3.27</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#16243a">
@@ -109,7 +109,7 @@ body{padding:20px;transition:background .2s}
 #gridCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 4px;}
 #gridSlider{flex:1;min-width:120px;accent-color:#E0A53C;}
 .gridlbl{background:none;border:none;}
-.blobT,.blobR,.blobC{filter:blur(16px);}
+.blobT,.blobR{filter:blur(16px);}
 @keyframes boPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
 .mly{border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:12.5px;cursor:pointer;background:var(--bg);color:var(--ts);}
 .mly.on{background:var(--tp);color:var(--bg);border-color:var(--tp);}
@@ -686,7 +686,7 @@ html.tlfs #askBar{display:none}
       <button class="lbtn" id="radarPlay" onclick="radarPlay()" data-tt="tt_radarPlay">▶️</button>
       <button class="lbtn" id="radarNext" onclick="radarStep(1)" data-tt="tt_radarNext">⏭</button>
       <input type="range" id="radarSlider" min="0" max="0" value="0" oninput="radarSeek(this.value)" data-tt="tt_radarSlider">
-      <span id="radarTime" style="font-size:13px;font-weight:600;min-width:86px;"></span>
+      <span id="radarTime" style="font-size:13px;font-weight:600;min-width:86px;white-space:nowrap;"></span>
     </div>
     <div id="gridCtl" style="display:none;">
       <span aria-hidden="true">⏱</span>
@@ -739,7 +739,7 @@ html.tlfs #askBar{display:none}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.26 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.27 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
 <section id="view-graph" class="hidden" role="tabpanel" aria-labelledby="tlGraphH">
 <h2 class="tlsr" id="tlGraphH" data-i="tlTitle">TIMELINE</h2>
@@ -782,7 +782,7 @@ const ICON_NIGHT={sun:'🌙',partcloud:ICON.cloud}; /* I2: night variants of the
 function iconFor(r){if(!r)return'';return (r.night&&ICON_NIGHT[r.cond])||ICON[r.cond]||'';}
 const ICON_SUN='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 const ICON_MOON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-const APPV='3.26';
+const APPV='3.27';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -1171,7 +1171,7 @@ const T={
   tt_lang:"Language: English — tap for Croatian",tt_theme:"Toggle theme",tt_mp:"Monty Python mode",tt_vegan:"Vegan Inbound mode (BBQ)",
   retry:"Try again",cmpNote:"Comparing {A} and {B}: the top card, the temperature line on the timeline, the sea chart and the outlook text. Other sections show {A} only.",onlyA:"only {A}",secFail:"Second location failed: {B}",
   unavail:"unavailable",srcSea:"sea",srcAir:"air",srcClimo:"normals",srcBest:"Open-Meteo \u00B7 best match model",uvMax:"max",
-  tt_mapClose:"Close the map",tt_mapTheme:"Map light/dark basemap",tt_radarPrev:"Previous radar frame",tt_radarPlay:"Play/pause radar animation",tt_radarNext:"Next radar frame",tt_radarSlider:"Radar time slider",tt_gridSlider:"Grid data hour slider (temperature/wind/rain/clouds)",
+  tt_mapClose:"Close the map",tt_mapTheme:"Map light/dark basemap",tt_radarPrev:"Previous radar frame",tt_radarPlay:"Play/pause radar animation",tt_radarNext:"Next radar frame",tt_radarSlider:"Radar time slider",tt_gridSlider:"Grid data hour slider (temperature/wind/rain)",
   ar_sea:"Daily sea surface temperature forecast",
   ar_bio:"Biometeorological load forecast as colored bars: green favorable, amber moderately unfavorable, red unfavorable",ar_pres:"Sea-level pressure over the past day and next two days",ar_aqi:"European air-quality index for the next 48 hours as colored bars",
   ar_mt:"Moon illumination with phase icons",ar_tide:"Daily tide high and low levels",ar_bbqtl:"BBQ prep timeline back-timed from the best grill hour",ar_bbqgr:"Hourly grilling score 9am to 10pm with tier icons",
@@ -1235,7 +1235,7 @@ const T={
   tt_lang:"Jezik: hrvatski — dodirni za engleski",tt_theme:"Promijeni temu",tt_mp:"Monty Python način",tt_vegan:"Način 'Stiže vegan' (roštilj)",
   retry:"Pokušaj ponovno",cmpNote:"Usporedba {A} i {B}: gornja kartica, temperatura na vremenskoj osi, graf mora i tekst izgleda. Ostali odjeljci prikazuju samo {A}.",onlyA:"samo {A}",secFail:"Druga lokacija nije učitana: {B}",
   unavail:"nedostupno",srcSea:"more",srcAir:"zrak",srcClimo:"klima",srcBest:"Open-Meteo \u00B7 najbolji model",uvMax:"maks",
-  tt_mapClose:"Zatvori kartu",tt_mapTheme:"Svijetla/tamna podloga karte",tt_radarPrev:"Prethodni radarski kadar",tt_radarPlay:"Pokreni/pauziraj radarsku animaciju",tt_radarNext:"Sljedeći radarski kadar",tt_radarSlider:"Klizač vremena radara",tt_gridSlider:"Klizač sata mrežnih podataka (temperatura/vjetar/kiša/oblaci)",
+  tt_mapClose:"Zatvori kartu",tt_mapTheme:"Svijetla/tamna podloga karte",tt_radarPrev:"Prethodni radarski kadar",tt_radarPlay:"Pokreni/pauziraj radarsku animaciju",tt_radarNext:"Sljedeći radarski kadar",tt_radarSlider:"Klizač vremena radara",tt_gridSlider:"Klizač sata mrežnih podataka (temperatura/vjetar/kiša)",
   ar_sea:"Dnevna prognoza temperature površine mora",
   ar_bio:"Prognoza biometeorološkog opterećenja u obojenim stupcima: zeleno povoljno, jantarno umjereno nepovoljno, crveno nepovoljno",ar_pres:"Tlak zraka na razini mora tijekom prošlog dana i sljedeća dva dana",ar_aqi:"Europski indeks kvalitete zraka za sljedeća 48 sati u obojenim stupcima",
   ar_mt:"Osvijetljenost Mjeseca s ikonama mijena",ar_tide:"Dnevne razine plime i oseke",ar_bbqtl:"Vremenska crta priprema za roštilj, računata unatrag od najboljeg sata za roštilj",ar_bbqgr:"Satna ocjena roštilja od 9 do 22 sata s ikonama razina",
@@ -5171,7 +5171,8 @@ function boPause(onRadar){
 /* ---------- Fullscreen weather map (radar + toggleable layers) ---------- */
 let radarMapL=null,radarFrames=[],radarIdx=0,radarLayers={},radarTimer=null,radarFetched=0,radarView=null,radarHost='https://tilecache.rainviewer.com',radarLocMark=null,radarBase=null,radarRetryT=null,radarGeoPin=null,radarLocateCtl=null;
 let MLAYERS={radar:true,clouds:false,temp:false,wind:false,rain:false,bolt:false};
-let MAPTHEME=null;
+let MAPTHEME=null,TLPOS=null,radarFailed=false;
+let SAT={frames:[],fetched:0,listP:null,box:null,prev:null,gen:0,busy:0,idx:0,tgt:0,fail:false,feedOk:false,paused:false,hooked:false,moveT:null,shownT:null,lastErr:''},SATRAMP=null,SATSC=null; /* satellite clouds, see the Satellite clouds banner */
 function stopRadarAnim(){if(radarTimer){clearInterval(radarTimer);radarTimer=null;}updateRadarPlayBtn();}
 function updateRadarPlayBtn(){const b=document.getElementById('radarPlay');if(b)b.textContent=radarTimer?'⏸':'▶️';}
 const CARTOKEY='';/* CARTO basemaps went key-only (Aug 2026, watermarked tiles) — a free non-commercial key from carto.com/basemaps/apikey restores Positron; empty = keyless OSM tiles */
@@ -5185,26 +5186,28 @@ function mapThemeToggle(){
  applyMapDark();
  if(radarBase){try{radarBase.setUrl(mapBaseUrl());}catch(e){}}
  try{gridRefresh();}catch(e){} /* labels re-halo for the new basemap */
+ try{satRefresh();}catch(e){} /* clouds recolour from the kept data, no refetch */
 }
 function renderMapPills(){
  const el=document.getElementById('mlyPills');if(!el)return;
  const hrv=lang==='hr';
  const defs=[['radar','🌧️','Radar'],['clouds','☁️',hrv?'Oblaci':'Clouds'],['temp','🌡️',hrv?'Temp.':'Temp'],['wind','💨',hrv?'Vjetar':'Wind'],['rain','💧',(typeof GRIDHR!=='undefined'&&GRIDHR>0)?(hrv?'Kiša do +24h':'Rain to +24h'):(hrv?'Kiša 48h':'Rain 48h')],['bolt','⚡',hrv?'Munje':'Lightning']];
  el.innerHTML=defs.map(d=>{
-  const dim=(d[0]==='bolt'&&boFailed)?' dimmed':'';
-  const title=(d[0]==='bolt'&&boFailed)?(hrv?'Munje nedostupne — klikni za ponovni pokušaj':'Lightning unavailable — click to retry'):'';
+  const satBad=d[0]==='clouds'&&MLAYERS.clouds&&SAT.fail;
+  const dim=((d[0]==='bolt'&&boFailed)||satBad)?' dimmed':'';
+  const title=(d[0]==='bolt'&&boFailed)?(hrv?'Munje nedostupne — klikni za ponovni pokušaj':'Lightning unavailable — click to retry'):(d[0]==='clouds'?(satBad?(hrv?'Satelit nedostupan — klikni za ponovni pokušaj':'Satellite unavailable — click to retry'):(hrv?'Satelitski oblaci — Meteosat infracrveno + maska oblaka, zadnja 2 sata (EUMETSAT)':'Satellite clouds — Meteosat infrared + cloud mask, last 2 hours (EUMETSAT)')):'');
   return '<button class="mly'+(MLAYERS[d[0]]?' on':'')+dim+'" onclick="mlyToggle(\''+d[0]+'\')" aria-pressed="'+(MLAYERS[d[0]]?'true':'false')+'"'+(title?' title="'+title+'"':'')+'>'+d[1]+' '+d[2]+'</button>';
  }).join('');
 }
 function mlyToggle(k){
+ const t0=TLPOS;let retry=false;
  if(k==='bolt'){lightningToggle();MLAYERS.bolt=boOn;}
+ else if(k==='clouds'&&MLAYERS.clouds&&SAT.fail){retry=true;satRetry();} /* failed satellite: the click retries instead of switching off */
  else MLAYERS[k]=!MLAYERS[k];
- if(k==='radar'){
-  const ctl=document.getElementById('radarCtl');if(ctl)ctl.style.display=MLAYERS.radar?'':'none';
-  if(!MLAYERS.radar){stopRadarAnim();radarDetachExcept([]);} /* FIX-2: fully detach so hidden frames stop fetching tiles */
-  else showRadarFrame(radarIdx);
- }
- if(k==='clouds'||k==='temp'||k==='wind'||k==='rain')gridRefresh();
+ if(k==='radar'&&!MLAYERS.radar){stopRadarAnim();radarDetachExcept([]);} /* FIX-2: fully detach so hidden frames stop fetching tiles */
+ if(k==='clouds'&&!retry){if(MLAYERS.clouds)satOn();else satOff();}
+ if(k==='radar'||k==='clouds'){tlmVis();tlmRealign(t0);}
+ if(k==='temp'||k==='wind'||k==='rain')gridRefresh();
  renderMapPills();
  updateHeatLeg();
  updateGridCtl();
@@ -5215,9 +5218,8 @@ function renderMapFull(){
  applyMapDark();
  MLAYERS.bolt=boOn;
  renderMapPills();
- const ctl=document.getElementById('radarCtl');if(ctl)ctl.style.display=MLAYERS.radar?'':'none';
- const note=document.getElementById('radarNote');
- if(note)note.textContent=hrv?'Klik na kartu = prognoza te točke · radar: plavo slaba, žuto/crveno jaka kiša · ⚡ munje uživo (blijede sa starošću) · 🌡️💨💧☁️ mreža Open-Meteo točaka · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org':'Click the map = forecast for that point · radar: blue light, yellow/red heavy rain · ⚡ live lightning (fades with age) · 🌡️💨💧☁️ Open-Meteo point grid · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org';
+ tlmVis();
+ updateMapNote();
  const rs=document.getElementById('rainStrip'),rh=document.getElementById('rainStripH');
  const R=(D&&D.rain15)||[];
  if(rs&&rh){
@@ -5283,7 +5285,7 @@ function locateOnMap(btn){
   if(!g){
    const el=document.getElementById('radarTime');
    if(el)el.textContent=hrv?'lokacija nedostupna':'location unavailable';
-   setTimeout(function(){if(radarFrames.length)showRadarFrame(radarIdx);},2000);
+   setTimeout(tlmSync,2000);
    return;
   }
   if(!radarMapL)return;
@@ -5305,13 +5307,14 @@ function drawRadarMap(att){
   if(!radarMapL){
    const box0=document.getElementById('radarBox');if(box0)box0.innerHTML=''; /* FIX-5: clear any failed-load message before Leaflet mounts */
    radarMapL=L.map('radarBox',{scrollWheelZoom:true,zoomControl:false});
+   radarMapL.createPane('satPane').style.zIndex=250;radarMapL.createPane('radarPane').style.zIndex=260; /* base 200 < satellite clouds 250 < radar 260 < overlays/markers */
    L.control.zoom({position:'bottomright'}).addTo(radarMapL);
    radarLocateCtl=new (getLocateControlCls())();radarLocateCtl.addTo(radarMapL); /* UX-3: added AFTER zoom — Leaflet prepends bottom-corner controls, so the later one sits on top */
-   radarBase=L.tileLayer(mapBaseUrl(),{subdomains:'abcd',maxZoom:19,className:'basetiles',attribution:'© OpenStreetMap'+(CARTOKEY?' © CARTO':'')+' · © RainViewer · ⚡ Blitzortung.org · Open-Meteo'});
+   radarBase=L.tileLayer(mapBaseUrl(),{subdomains:'abcd',maxZoom:19,className:'basetiles',attribution:'© OpenStreetMap'+(CARTOKEY?' © CARTO':'')+' · © RainViewer · ⚡ Blitzortung.org · Open-Meteo · EUMETSAT'});
    radarBase.addTo(radarMapL);
    radarMapL.on('click',onMapClick);
   }
-  gridHook();
+  gridHook();satHook();
   try{radarMapL.invalidateSize();}catch(e0){}
   setTimeout(()=>{try{radarMapL.invalidateSize();}catch(e){}},120);
   const c=CUR_LOC||DEFAULT_LOC;
@@ -5320,6 +5323,7 @@ function drawRadarMap(att){
   if(radarLocMark){try{radarMapL.removeLayer(radarLocMark);}catch(e){}}
   radarLocMark=L.circleMarker([c.lat,c.lon],{radius:6,color:'#D85A30',fillColor:'#D85A30',fillOpacity:0.9}).addTo(radarMapL);
   loadRadarFrames();
+  satEnsure();
   setTimeout(gridRefresh,250);
  }catch(e){console.log('map failed',e);}
 }
@@ -5331,28 +5335,23 @@ function loadRadarFrames(){
   if(!past.length&&!cast.length)throw new Error('no frames');
   radarHost=j.host||'https://tilecache.rainviewer.com';
   radarFrames=past.map(f=>({t:f.time,p:f.path,fc:false})).concat(cast.map(f=>({t:f.time,p:f.path,fc:true})));
-  radarFetched=now;
+  radarFetched=now;radarFailed=false;
   for(const t in radarLayers){try{radarMapL.removeLayer(radarLayers[t]);}catch(e){}}
   radarLayers={};
   radarIdx=Math.max(0,past.length-1);
   buildRadarUI();showRadarFrame(radarIdx);
   feedMark('radar',true);
  }).catch(e=>{
-  const el=document.getElementById('radarTime');
-  if(el)el.textContent=lang==='hr'?'radar nedostupan':'radar unavailable';
+  radarFailed=true;tlmSync();
   console.log('rainviewer failed:',e);
   feedMark('radar',false,e);
  });
 }
-function buildRadarUI(){
- const sl=document.getElementById('radarSlider');
- if(sl){sl.max=Math.max(0,radarFrames.length-1);sl.value=radarIdx;}
- updateRadarPlayBtn();
-}
+function buildRadarUI(){updateRadarPlayBtn();}
 function radarLayerFor(i){
  const f=radarFrames[i];if(!f)return null;
  /* FIX-2: build the tile layer lazily but do NOT attach it here — attaching is what starts tile requests */
- if(!radarLayers[f.t])radarLayers[f.t]=L.tileLayer(radarHost+f.p+'/256/{z}/{x}/{y}/4/1_1.png',{opacity:0,maxNativeZoom:7,maxZoom:19,className:'radarlayer',zIndex:5});
+ if(!radarLayers[f.t])radarLayers[f.t]=L.tileLayer(radarHost+f.p+'/256/{z}/{x}/{y}/4/1_1.png',{opacity:0,maxNativeZoom:7,maxZoom:19,className:'radarlayer',pane:'radarPane'});
  return radarLayers[f.t];
 }
 function radarAttach(i){
@@ -5369,32 +5368,284 @@ function radarDetachExcept(keepIdxs){
  }
 }
 function showRadarFrame(i){
- if(!radarFrames.length)return;
+ if(!radarFrames.length){tlmSync();return;}
  radarIdx=((i%radarFrames.length)+radarFrames.length)%radarFrames.length;
- if(!MLAYERS.radar){radarDetachExcept([]);return;}
+ if(!MLAYERS.radar){radarDetachExcept([]);tlmSync();return;}
  const nextIdx=(radarIdx+1)%radarFrames.length;
  const cur=radarAttach(radarIdx);if(cur)cur.setOpacity(0.75); /* already preloaded from the previous step, so this is flicker-free */
  const nxt=radarAttach(nextIdx);if(nxt&&nxt!==cur)nxt.setOpacity(0); /* preload next frame (guard: single-frame data has next===current) */
  radarDetachExcept([radarIdx,nextIdx]); /* drop every other frame — at most 2 layers stay attached */
- const f=radarFrames[radarIdx],d=new Date(f.t*1000),hrv=lang==='hr';
- const el=document.getElementById('radarTime');
- if(el){el.textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+(f.fc?(hrv?' · prognoza':' · forecast'):'');el.style.color=f.fc?C.warn:'';}
- const sl=document.getElementById('radarSlider');if(sl)sl.value=radarIdx;
+ tlmSync(); /* slider, label and the satellite frame that goes with this time */
 }
-function radarSeek(v){stopRadarAnim();showRadarFrame(parseInt(v,10)||0);}
-function radarStep(d){stopRadarAnim();showRadarFrame(radarIdx+d);}
-function radarPlay(){
+function radarSeek(v){stopRadarAnim();tlmGo(parseInt(v,10)||0);}
+function radarStep(d){stopRadarAnim();tlmStep(d);}
+function radarPlay(){ /* one 600 ms timer drives radar and satellite */
  if(radarTimer){stopRadarAnim();return;}
- if(!radarFrames.length)return;
- radarTimer=setInterval(()=>{if(active!=='map'){stopRadarAnim();return;}showRadarFrame(radarIdx+1);},600);
+ if(!tlmLen())return;
+ radarTimer=setInterval(()=>{if(active!=='map'||!tlmLen()){stopRadarAnim();return;}tlmStep(1);},600);
  updateRadarPlayBtn();
 }
+/* ---------- Shared map timeline (radar and satellite clouds on one control) ---------- */
+function mapHM(ms){ /* location time (LOCTZ), browser time only when the place has no offset */
+ const p=n=>String(n).padStart(2,'0');
+ if(typeof LOCTZ.off==='number'&&isFinite(LOCTZ.off)){const d=new Date(ms+LOCTZ.off*1000);return p(d.getUTCHours())+':'+p(d.getUTCMinutes());}
+ const d=new Date(ms);return p(d.getHours())+':'+p(d.getMinutes());
+}
+function tlmMaster(){return (MLAYERS.radar&&radarFrames.length)?'r':((MLAYERS.clouds&&SAT.frames.length)?'s':'');}
+function tlmLen(){const m=tlmMaster();return m==='r'?radarFrames.length:(m==='s'?SAT.frames.length:0);}
+function tlmVis(){const c=document.getElementById('radarCtl');if(c)c.style.display=(MLAYERS.radar||MLAYERS.clouds)?'':'none';}
+function tlmNear(ts,t){let b=0,d=Infinity;for(let i=0;i<ts.length;i++){const x=Math.abs(ts[i]-t);if(x<d){d=x;b=i;}}return b;}
+function tlmGo(i){
+ const m=tlmMaster();
+ if(m==='r')showRadarFrame(i);
+ else if(m==='s'){const n=SAT.frames.length;SAT.idx=((i%n)+n)%n;tlmSync();}
+}
+function tlmStep(d){ /* one step; with the satellite as master, failed frames are skipped */
+ const m=tlmMaster();
+ if(m==='r'){showRadarFrame(radarIdx+d);return;}
+ if(m==='s'){const n=SAT.frames.length;let i=SAT.idx;for(let k=0;k<n;k++){i=(i+d+n)%n;if(satFrameState(i)!=='err')break;}tlmGo(i);}
+}
+function tlmRealign(t0){ /* a layer toggled: keep the time position on the (new) master list */
+ const m=tlmMaster();
+ if(m&&t0!=null){if(m==='r')radarIdx=tlmNear(radarFrames.map(f=>f.t*1000),t0);else SAT.idx=tlmNear(SAT.frames.map(f=>f.t),t0);}
+ if(m==='r')showRadarFrame(radarIdx);else{if(!m)stopRadarAnim();tlmSync();}
+}
+function tlmSync(){ /* slider + label + the satellite frame that goes with the current time */
+ const hrv=lang==='hr',m=tlmMaster(),ck=MLAYERS.clouds;
+ const rf=(MLAYERS.radar&&radarFrames.length)?radarFrames[radarIdx]:null;
+ let ti=-1;
+ if(ck&&SAT.frames.length){ti=rf?satIdxFor(rf.t*1000):SAT.idx;SAT.tgt=ti;satShow(ti);}
+ if(rf)TLPOS=rf.t*1000;else if(ti>=0)TLPOS=SAT.frames[ti].t;
+ const sl=document.getElementById('radarSlider');
+ if(sl){sl.max=Math.max(0,tlmLen()-1);sl.value=m==='r'?radarIdx:(m==='s'?SAT.idx:0);sl.disabled=!m;}
+ const el=document.getElementById('radarTime');
+ if(el){
+  const rp=rf?(mapHM(rf.t*1000)+(rf.fc?(hrv?' · prognoza':' · forecast'):'')):((MLAYERS.radar&&radarFailed)?(hrv?'radar nedostupan':'radar unavailable'):'');
+  const hm=(SAT.shownT!=null&&!SAT.fail)?mapHM(SAT.shownT):'';
+  let txt=rp;
+  if(ck){
+   if(rp)txt=rp+' · ☁ '+(hm||(SAT.fail?'—':'…'));
+   else txt=hm?(hm+' ☁'):(SAT.fail?(hrv?'satelit nedostupan':'satellite unavailable'):'☁ …');
+  }
+  el.textContent=txt;el.style.color=(rf&&rf.fc)?C.warn:'';
+ }
+ updateMapNote();
+}
+function updateMapNote(){
+ const note=document.getElementById('radarNote');if(!note)return;
+ const hrv=lang==='hr',yr=new Date(SAT.shownT!=null?SAT.shownT:(SAT.frames.length?SAT.frames[SAT.frames.length-1].t:Date.now())).getUTCFullYear();
+ const txt=hrv?'Klik na kartu = prognoza te točke · radar: plavo slaba, žuto/crveno jaka kiša · ⚡ munje uživo (blijede sa starošću) · 🌡️💨💧 mreža Open-Meteo točaka · ☁️ satelitski oblaci (Meteosat infracrveno + maska oblaka, zadnja 2 h): blijedo = niski oblaci/magla, puno = visoki hladni vrhovi · Sadrži izmijenjene EUMETSAT Meteosat podatke '+yr+' · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org'
+  :'Click the map = forecast for that point · radar: blue light, yellow/red heavy rain · ⚡ live lightning (fades with age) · 🌡️💨💧 Open-Meteo point grid · ☁️ satellite clouds (Meteosat infrared + cloud mask, last 2 h): faint = low cloud/fog, solid = high cold cloud tops · Contains modified EUMETSAT Meteosat data '+yr+' · © OpenStreetMap · © RainViewer · ⚡ Blitzortung.org';
+ if(note.textContent!==txt)note.textContent=txt;
+}
 
-/* ---------- Grid overlay (Open-Meteo point grid: temp / wind / rain / clouds) ---------- */
+/* ---------- Satellite clouds (EUMETSAT EUMETView WMS: Meteosat infrared + cloud mask, one GetMap per frame per layer) ---------- */
+const SAT_WMS='https://view.eumetsat.int/geoserver/';
+function satIso(ms){return new Date(ms).toISOString().slice(0,19)+'Z';}
+function satRamp(){ /* IR grey -> alpha 0..255: smoothstep(70,160) */
+ if(!SATRAMP){SATRAMP=new Uint8Array(256);for(let g=0;g<256;g++){const t=Math.max(0,Math.min(1,(g-70)/90));SATRAMP[g]=Math.round(t*t*(3-2*t)*255);}}
+ return SATRAMP;
+}
+function satRm(ly){try{if(radarMapL&&ly)radarMapL.removeLayer(ly);}catch(e){}}
+let SatOverlayCls=null;
+function satOverlayCls(){ /* an ImageOverlay whose element is a <canvas> (as VideoOverlay supplies a <video>): Leaflet positions and zoom-animates it */
+ if(!SatOverlayCls)SatOverlayCls=L.ImageOverlay.extend({
+  _initImage:function(){
+   const cv=this._image=this._url;
+   L.DomUtil.addClass(cv,'leaflet-image-layer');
+   if(this._zoomAnimated)L.DomUtil.addClass(cv,'leaflet-zoom-animated');
+   cv.onselectstart=L.Util.falseFn;cv.onmousemove=L.Util.falseFn;
+  }
+ });
+ return SatOverlayCls;
+}
+function satCaps(path){ /* newest frame time = the time dimension's default attribute */
+ return tfetchP(SAT_WMS+path+'/ows?service=WMS&version=1.3.0&request=GetCapabilities',{mode:'cors'},10000).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(x=>{
+  const tag=/<Dimension\b[^>]*\bname="time"[^>]*>/.exec(x),d=tag&&/\bdefault="([^"]+)"/.exec(tag[0]),t=d?Date.parse(d[1]):NaN;
+  if(!isFinite(t))throw new Error('no time');return t;
+ });
+}
+function satList(){ /* 13 IR frames (newest + 12 x 10 min), each paired with the latest CLM time <= it; cached 5 min */
+ const now=Date.now();
+ if(SAT.frames.length&&now-SAT.fetched<300000)return Promise.resolve();
+ if(SAT.listP)return SAT.listP;
+ SAT.listP=Promise.all([satCaps('mtg_fd/ir105_hrfi').catch(e=>({e:e})),satCaps('msg_fes/clm').catch(e=>({e:e}))]).then(function(r){
+  let err=null,irN=r[0],cmN=r[1];
+  if(typeof irN!=='number'){err=irN.e;irN=Math.floor(now/600000)*600000-1800000;} /* caps failed: data-availability fallback, not forecast logic */
+  if(typeof cmN!=='number'){err=err||cmN.e;cmN=Math.floor(now/900000)*900000-2700000;}
+  const fr=[];for(let k=12;k>=0;k--){const t=irN-k*600000;fr.push({t:t,c:Math.floor(Math.min(t,cmN)/900000)*900000});}
+  if(err){SAT.feedOk=false;feedMark('sat',false,'caps: '+(err.message||err));}
+  const bx=SAT.box;
+  if(bx){const ks={},kc={};fr.forEach(f=>{ks[f.t]=1;kc[f.c]=1;});for(const t in bx.ir)if(!ks[t])delete bx.ir[t];for(const c in bx.cm)if(!kc[c])delete bx.cm[c];}
+  SAT.idx=tlmNear(fr.map(f=>f.t),TLPOS!=null?TLPOS:irN);
+  SAT.frames=fr;SAT.fetched=now;
+ }).catch(function(e){console.log('sat list',e);}).then(function(){SAT.listP=null;});
+ return SAT.listP;
+}
+function satVp(){ /* viewport in EPSG:3857 metres */
+ const b=radarMapL.getBounds(),P=L.Projection.SphericalMercator,a=P.project(b.getSouthWest()),c=P.project(b.getNorthEast()),M=20037508.34;
+ const v={w:c.x-a.x,h:c.y-a.y,z:radarMapL.getZoom(),x0:Math.max(-M,a.x),y0:Math.max(-M,a.y),x1:Math.min(M,c.x),y1:Math.min(M,c.y)};
+ return (v.w>0&&v.h>0&&v.x1>v.x0&&v.y1>v.y0)?v:null;
+}
+function satBoxCheck(){
+ if(!radarMapL||!MLAYERS.clouds||!SAT.frames.length)return;
+ const sz=radarMapL.getSize();if(sz.x<8||sz.y<8)return;
+ const v=satVp();if(!v)return;
+ const bx=SAT.box,sl=2*156543.03392804097/Math.pow(2,v.z);
+ if(bx&&bx.z===v.z&&v.x0>=bx.b[0]-sl&&v.x1<=bx.b[2]+sl&&v.y0>=bx.b[1]-sl&&v.y1<=bx.b[3]+sl)return; /* still inside the padded box at the same zoom: no new GetMap */
+ satNewBox(v);
+}
+function satNewBox(v){
+ const M=20037508.34,px=v.w*0.25,py=v.h*0.25,P=L.Projection.SphericalMercator;
+ const b=[Math.max(-M,v.x0-px),Math.max(-M,v.y0-py),Math.min(M,v.x1+px),Math.min(M,v.y1+py)];
+ const bw=b[2]-b[0],bh=b[3]-b[1],res=156543.03392804097/Math.pow(2,v.z),lm=Math.max(bw,bh);
+ const l1=Math.max(16,Math.round(Math.min(lm/res,lm/600,1600))),l2=Math.max(32,Math.min(512,Math.round(lm/5000)));
+ const old=SAT.box;
+ if(old&&old.ov){if(SAT.prev)satRm(SAT.prev);SAT.prev=old.ov;old.ov=null;} /* the old picture stays until the new box paints its first frame */
+ SAT.gen++;
+ SAT.box={b:b,z:v.z,W:Math.max(1,Math.round(l1*bw/lm)),H:Math.max(1,Math.round(l1*bh/lm)),cw:Math.max(1,Math.round(l2*bw/lm)),ch:Math.max(1,Math.round(l2*bh/lm)),
+  bounds:L.latLngBounds(P.unproject(L.point(b[0],b[1])),P.unproject(L.point(b[2],b[3]))),ir:{},cm:{},nok:0,nerr:0,ov:null,cv:null,img:null,pk:null};
+}
+function satUrl(ir,t,bx){
+ return SAT_WMS+'wms?service=WMS&version=1.3.0&request=GetMap&layers='+(ir?'mtg_fd:ir105_hrfi&styles=mtg_fd:mtg_fd_ir105_hrfi_grayscale&format=image/jpeg':'msg_fes:clm&styles=&format=image/png')+
+  '&crs=EPSG:3857&bbox='+bx.b.map(v=>v.toFixed(1)).join(',')+'&width='+(ir?bx.W:bx.cw)+'&height='+(ir?bx.H:bx.ch)+'&time='+satIso(t);
+}
+function satBmp(url){
+ return tfetchP(url,{mode:'cors'},15000).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.blob();}).then(b=>{
+  if(!/^image\//.test(b.type))throw new Error('no image'); /* a time past the newest frame answers 200 with an XML ServiceException */
+  if(typeof createImageBitmap==='function')return createImageBitmap(b);
+  return new Promise((ok,no)=>{const u=URL.createObjectURL(b),im=new Image();im.crossOrigin='anonymous';im.onload=()=>{URL.revokeObjectURL(u);ok(im);};im.onerror=()=>{URL.revokeObjectURL(u);no(new Error('decode'));};im.src=u;});
+ });
+}
+function satScratch(w,h){const c=SATSC||(SATSC=document.createElement('canvas'));c.width=w;c.height=h;return c.getContext('2d',{willReadFrequently:true});}
+function satDecIr(bm,bx){ /* IR grey -> ramp alpha (0..255), one byte per pixel at the IR size */
+ const w=bx.W,h=bx.H,x=satScratch(w,h);x.drawImage(bm,0,0,w,h);
+ const d=x.getImageData(0,0,w,h).data,r=new Uint8Array(w*h),R=satRamp();
+ for(let k=0,n=w*h;k<n;k++)r[k]=R[d[k<<2]];
+ return r;
+}
+function satDecCm(bm,bx){ /* cloud mask upscaled (smoothed) to the IR size; m = red (white = cloud, clear classes ~0) */
+ const w=bx.W,h=bx.H,x=satScratch(w,h);x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(bm,0,0,w,h);
+ const d=x.getImageData(0,0,w,h).data,m=new Uint8Array(w*h);
+ for(let k=0,n=w*h;k<n;k++)m[k]=d[k<<2];
+ return m;
+}
+function satFrameState(k){ /* 'ok' = something to draw, 'err' = every layer failed twice, else 'wait' */
+ const bx=SAT.box,f=SAT.frames[k];if(!bx||!f)return 'wait';
+ const a=bx.ir[f.t],b=bx.cm[f.c];
+ if((a&&a.s==='ok')||(b&&b.s==='ok'))return 'ok';
+ const dead=e=>e&&e.s==='err'&&e.n>=2;
+ return (dead(a)&&dead(b))?'err':'wait';
+}
+function satIdxFor(tms){ /* latest satellite frame at or before tms, else the oldest; a failed frame falls back to the nearest good one */
+ const F=SAT.frames;let i=0;for(let k=0;k<F.length;k++)if(F[k].t<=tms)i=k;
+ if(satFrameState(i)==='err'){
+  for(let k=i-1;k>=0;k--)if(satFrameState(k)!=='err')return k;
+  for(let k=i+1;k<F.length;k++)if(satFrameState(k)!=='err')return k;
+ }
+ return i;
+}
+function satPaint(bx,r,m){ /* write the frame's alpha mask with the map theme's tint into the canvas */
+ if(!bx.ov){
+  const cv=document.createElement('canvas');cv.width=bx.W;cv.height=bx.H;cv.setAttribute('aria-hidden','true');cv.style.pointerEvents='none';
+  bx.cv=cv;bx.img=cv.getContext('2d').createImageData(bx.W,bx.H);
+  bx.ov=new (satOverlayCls())(cv,bx.bounds,{pane:'satPane',interactive:false,opacity:1});
+  bx.ov.addTo(radarMapL);
+  if(SAT.prev){satRm(SAT.prev);SAT.prev=null;}
+ }
+ const dk=MAPTHEME==='dark',T=dk?[255,255,255]:[92,104,122],am=dk?0.85:0.75,lo=dk?0.40:0.38;
+ const A=new Uint8Array(256),LO=new Uint8Array(256),C5=new Uint8Array(256);
+ for(let i=0;i<256;i++){A[i]=Math.round(i*am);LO[i]=Math.round(i*lo);C5[i]=Math.round(i*0.55*am);}
+ const d=bx.img.data,n=bx.W*bx.H,both=!!(r&&m);
+ for(let k=0,j=0;k<n;k++,j+=4){
+  let a;
+  if(both){a=LO[m[k]];if(r[k]>a)a=r[k];a=A[a];}else if(r)a=A[r[k]];else a=C5[m[k]];
+  d[j]=T[0];d[j+1]=T[1];d[j+2]=T[2];d[j+3]=a;
+ }
+ bx.cv.getContext('2d').putImageData(bx.img,0,0);
+}
+function satShow(i){
+ const bx=SAT.box,f=SAT.frames[i];
+ if(!bx||!f||!radarMapL||!MLAYERS.clouds)return;
+ const a=bx.ir[f.t],b=bx.cm[f.c],r=(a&&a.s==='ok')?a.r:null,m=(b&&b.s==='ok')?b.m:null;
+ if(!r&&!m)return; /* not loaded yet (or failed): the previous picture stays */
+ const pk=f.t+':'+(r?1:0)+(m?1:0)+':'+MAPTHEME;
+ if(bx.ov&&bx.pk===pk)return;
+ satPaint(bx,r,m);bx.pk=pk;SAT.shownT=f.t;
+}
+function satRefresh(){if(SAT.box)SAT.box.pk=null;tlmSync();} /* map theme changed: recolour from the kept data */
+function satNextJob(bx){ /* the frame to show now first, then the following ones in playback order; failed ones get one retry in the second pass */
+ const F=SAT.frames,n=F.length,s=Math.max(0,SAT.tgt||0),now=Date.now();
+ for(let pass=0;pass<2;pass++)for(let k=0;k<n;k++){
+  const f=F[(s+k)%n],a=bx.ir[f.t],b=bx.cm[f.c];
+  if(pass?(a&&a.s==='err'&&a.n<2&&a.at<=now):!a)return {k:'ir',f:f};
+  if(pass?(b&&b.s==='err'&&b.n<2&&b.at<=now):!b)return {k:'cm',f:f};
+ }
+ return null;
+}
+function satPump(){
+ const bx=SAT.box;
+ if(SAT.paused||!MLAYERS.clouds||!bx||!SAT.frames.length)return;
+ while(SAT.busy<2){const j=satNextJob(bx);if(!j)break;satRun(bx,j);}
+}
+function satRun(bx,j){
+ const g=SAT.gen,ir=j.k==='ir',key=ir?j.f.t:j.f.c,tab=ir?bx.ir:bx.cm;
+ const e=tab[key]||(tab[key]={s:'busy',n:0,at:0});
+ e.s='busy';e.n++;SAT.busy++;
+ let er='';
+ satBmp(satUrl(ir,key,bx)).then(function(bm){
+  const live=(g===SAT.gen&&tab[key]===e);
+  let a=null;
+  try{if(live)a=ir?satDecIr(bm,bx):satDecCm(bm,bx);}finally{try{if(bm.close)bm.close();}catch(x){}}
+  if(!live)return false;
+  e[ir?'r':'m']=a;e.s='ok';return true;
+ }).catch(function(x){e.s='err';e.at=Date.now()+6500;er=String(x&&x.message||x).slice(0,80);return false;}).then(function(ok){
+  SAT.busy--;
+  if(g!==SAT.gen||bx!==SAT.box||tab[key]!==e){satPump();return;} /* a stale result (old box, old list, layer off) is dropped */
+  if(ok){bx.nok++;if(!SAT.feedOk){SAT.feedOk=true;feedMark('sat',true);}}
+  else{bx.nerr++;SAT.lastErr=er;if(!SAT.feedOk)feedMark('sat',false,er);if(e.n<2)setTimeout(satPump,6600);}
+  satCheckFail();tlmSync();satPump();
+ });
+}
+function satCheckFail(){ /* nothing loaded and 4 failed requests (or every frame dead): the layer is unavailable */
+ const bx=SAT.box;if(!bx)return;
+ let f=false;
+ if(bx.nok===0){let dead=SAT.frames.length>0;for(let k=0;k<SAT.frames.length&&dead;k++)if(satFrameState(k)!=='err')dead=false;f=bx.nerr>=4||dead;}
+ if(f!==SAT.fail){
+  SAT.fail=f;
+  if(f){feedMark('sat',false,SAT.lastErr||'failed');if(SAT.prev){satRm(SAT.prev);SAT.prev=null;}SAT.shownT=null;}
+  renderMapPills();
+ }
+}
+function satEnsure(){ /* frame list (cached) -> box (reused while the view stays inside it) -> queue */
+ if(!MLAYERS.clouds||!radarMapL||active!=='map')return;
+ SAT.paused=false;
+ satList().then(function(){
+  if(!MLAYERS.clouds||active!=='map')return;
+  satBoxCheck();tlmVis();tlmSync();satPump();
+ });
+}
+function satHook(){
+ if(SAT.hooked||!radarMapL)return;
+ SAT.hooked=true;
+ radarMapL.on('moveend zoomend resize',function(){if(SAT.moveT)clearTimeout(SAT.moveT);SAT.moveT=setTimeout(satEnsure,300);});
+}
+function satOn(){SAT.fail=false;SAT.feedOk=false;satEnsure();}
+function satOff(){
+ SAT.gen++;SAT.fail=false;
+ if(SAT.box&&SAT.box.ov)satRm(SAT.box.ov);
+ if(SAT.prev){satRm(SAT.prev);SAT.prev=null;}
+ SAT.box=null;SAT.shownT=null;
+ if(SAT.moveT){clearTimeout(SAT.moveT);SAT.moveT=null;}
+}
+function satRetry(){satOff();SAT.frames=[];SAT.fetched=0;satOn();}
+
+
+/* ---------- Grid overlay (Open-Meteo point grid: temp / wind / rain) ---------- */
 let gridLG=null,gridCache={},gridKeys=[],gridMoveT=null,gridHooked=false;
 let GRIDHR=0,gridLastList=null; /* FEAT-5: selected hour offset (0=now) for the ⏱ scrub slider, + the last drawn list for refetch-free redraws */
 function gridActive(){
- return !!(MLAYERS.temp||MLAYERS.wind||MLAYERS.rain||MLAYERS.clouds);
+ return !!(MLAYERS.temp||MLAYERS.wind||MLAYERS.rain);
 }
 /* FIX-3: zoom-scaled cache cell so pans at high zoom (a narrow viewport) don't all collapse onto one coarse key */
 function gridCellKey(zoom,center){
@@ -5422,7 +5673,7 @@ function gridRefresh(){
  }
  var key=gridCellKey(radarMapL.getZoom(),radarMapL.getCenter());
  if(!gridCache[key]){
-  gridCache[key]=tfetch('https://api.open-meteo.com/v1/forecast?latitude='+lats.join(',')+'&longitude='+lons.join(',')+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover&daily=precipitation_sum&forecast_days=2&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover,precipitation&forecast_hours=24&timezone=auto',12000)
+  gridCache[key]=tfetch('https://api.open-meteo.com/v1/forecast?latitude='+lats.join(',')+'&longitude='+lons.join(',')+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m&daily=precipitation_sum&forecast_days=2&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation&forecast_hours=24&timezone=auto',12000)
    .then(function(r){return r.json();})
    .catch(function(){return null;});
   gridKeys.push(key);
@@ -5452,7 +5703,7 @@ function gridAt(item,off){
   var cur=item.current;if(!cur)return null;
   var sum=0;
   if(item.daily&&item.daily.precipitation_sum)sum=(item.daily.precipitation_sum[0]||0)+(item.daily.precipitation_sum[1]||0);
-  return{temperature_2m:cur.temperature_2m,wind_speed_10m:cur.wind_speed_10m,wind_direction_10m:cur.wind_direction_10m,wind_gusts_10m:cur.wind_gusts_10m,cloud_cover:cur.cloud_cover,rainSum:sum,time:cur.time};
+  return{temperature_2m:cur.temperature_2m,wind_speed_10m:cur.wind_speed_10m,wind_direction_10m:cur.wind_direction_10m,wind_gusts_10m:cur.wind_gusts_10m,rainSum:sum,time:cur.time};
  }
  var h=item.hourly;
  if(!h||!h.time||!h.time.length)return null;
@@ -5464,7 +5715,6 @@ function gridAt(item,off){
   wind_speed_10m:(h.wind_speed_10m&&h.wind_speed_10m[idx]!=null)?h.wind_speed_10m[idx]:null,
   wind_direction_10m:(h.wind_direction_10m&&h.wind_direction_10m[idx]!=null)?h.wind_direction_10m[idx]:null,
   wind_gusts_10m:(h.wind_gusts_10m&&h.wind_gusts_10m[idx]!=null)?h.wind_gusts_10m[idx]:null,
-  cloud_cover:(h.cloud_cover&&h.cloud_cover[idx]!=null)?h.cloud_cover[idx]:null,
   rainSum:rainSum,
   time:h.time[idx]
  };
@@ -5487,7 +5737,7 @@ function updateGridCtl(){
  if(!active){GRIDHR=0;var sl0=document.getElementById('gridSlider');if(sl0)sl0.value=0;}
  var hrv=lang==='hr';
  var sl=document.getElementById('gridSlider');
- if(sl){var lbl=hrv?'Klizač sata mrežnih podataka (temperatura/vjetar/kiša/oblaci)':'Grid data hour slider (temperature/wind/rain/clouds)';sl.setAttribute('aria-label',lbl);sl.title=lbl;}
+ if(sl){var lbl=hrv?'Klizač sata mrežnih podataka (temperatura/vjetar/kiša)':'Grid data hour slider (temperature/wind/rain)';sl.setAttribute('aria-label',lbl);sl.title=lbl;}
  updateGridTimeLabel();
 }
 /* FEAT-5: scrub — redraws straight from the cached last list, no network call */
@@ -5618,9 +5868,6 @@ function gridDraw(list){
   if(MLAYERS.rain&&sum>=0.2){
    L.circleMarker([lat,lon],{radius:Math.round(blobR*0.9),stroke:false,fillColor:(sum>=10?'#0E7490':'#2caaf0'),fillOpacity:Math.min(0.55,0.2+sum/30),interactive:false,className:'blobR'}).addTo(gridLG);
   }
-  if(MLAYERS.clouds&&g.cloud_cover!=null){
-   L.circleMarker([lat,lon],{radius:Math.round(blobR*0.85),stroke:false,fillColor:'#9aa0a6',fillOpacity:Math.min(0.6,g.cloud_cover/100*0.6),interactive:false,className:'blobC'}).addTo(gridLG);
-  }
   var html='';
   if(MLAYERS.temp&&g.temperature_2m!=null){
    var t=g.temperature_2m;
@@ -5635,9 +5882,6 @@ function gridDraw(list){
   }
   if(MLAYERS.rain&&sum>=0.2){
    html+='<div style="font-size:10.5px;color:#0E7490;font-weight:600;">💧'+(Math.round(sum*10)/10)+'</div>';
-  }
-  if(MLAYERS.clouds&&g.cloud_cover!=null&&g.cloud_cover>=15){
-   html+='<div style="font-size:9.5px;color:#7a7f87;">☁'+Math.round(g.cloud_cover)+'%</div>';
   }
   if(html){
    gridLG.addLayer(L.marker([lat,lon],{icon:L.divIcon({className:'gridlbl',html:'<div style="text-align:center;line-height:1.25;'+halo+'">'+html+'</div>',iconSize:null,iconAnchor:[18,10]}),interactive:false,keyboard:false}));
@@ -5656,6 +5900,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.27',d:'2026-10-22',en:'<b>Satellite clouds replace the model cloud blobs.</b> The ☁️ layer on the map now shows real Meteosat satellite imagery (EUMETSAT): the last 2 hours in 10-minute steps, animated on the same timeline as the radar. The infrared picture shows high, cold cloud tops and the cloud mask adds low cloud and fog. The map’s times now follow the place’s own clock. Contains modified EUMETSAT Meteosat data.',hr:'<b>Satelitski oblaci zamjenjuju modelske mrlje oblaka.</b> Sloj ☁️ na karti sada prikazuje stvarne Meteosat satelitske snimke (EUMETSAT): zadnja 2 sata u koracima od 10 minuta, animirano na istoj vremenskoj crti kao radar. Infracrvena slika prikazuje visoke, hladne vrhove oblaka, a maska oblaka dodaje niske oblake i maglu. Vremena na karti sada prate sat samog mjesta. Sadrži izmijenjene EUMETSAT Meteosat podatke.'},
  {v:'3.26',d:'2026-10-21',en:'<b>New GRAPH tab:</b> the timeline full screen, with the bottom menu kept on phones. <b>Compact controls:</b> one bar with the zoom and a Layers &amp; display panel, and a one-row legend below the chart. In the graph, one tap hides every control so the chart fills the whole screen; a light/dark switch is in the graph bar.',hr:'<b>Nova kartica GRAF:</b> vremenska os preko cijelog zaslona, a na telefonu donji izbornik ostaje. <b>Kompaktne kontrole:</b> jedna traka sa zoomom i pločom Slojevi i prikaz te legenda u jednom retku ispod grafa. U grafu jedan dodir sakriva sve kontrole pa graf ispunjava cijeli zaslon; prekidač svijetle/tamne teme nalazi se u traci grafa.'},
  {v:'3.25',d:'2026-10-18',en:'<b>Ask about any place.</b> The assistant can now answer about any place you name — it fetches that place\'s forecast itself; an “Open &lt;place&gt;” button switches the app to it.',hr:'<b>Pitaj o bilo kojem mjestu.</b> Pomoćnik sada odgovara o bilo kojem mjestu koje navedeš — sam dohvaća prognozu tog mjesta; gumb „Otvori &lt;mjesto&gt;“ prebacuje aplikaciju na njega.'},
  {v:'3.24',d:'2026-10-18',en:'<b>Ask about the weather works without a key.</b> Every visitor can ask 10 questions a day per device (Claude Sonnet) and the answers stream in as they are written; the bar shows how many questions are left today. Your own key on the Info page still gives unlimited use, goes straight to Anthropic and streams too. <b>Timeline:</b> Days fill the whole width in full screen; double-click fits all days; the mouse wheel zooms in full screen (ctrl + wheel in the normal view), pinch zooms on touch.',hr:'<b>Pitaj o vremenu radi i bez ključa.</b> Svaki posjetitelj može postaviti 10 pitanja dnevno po uređaju (Claude Sonnet), a odgovori pristižu dok se pišu; traka pokazuje koliko je pitanja ostalo danas. Tvoj vlastiti ključ na stranici Info i dalje daje neograničenu upotrebu, ide izravno Anthropicu i također prikazuje odgovor tijekom pisanja. <b>Vremenska os:</b> U cijelom zaslonu dani ispunjavaju cijelu širinu; dvoklik prilagodi sve dane; kotačić miša zumira u cijelom zaslonu (ctrl + kotačić u običnom prikazu), štipanje zumira na dodir.'},
@@ -5706,6 +5951,7 @@ const FEED_ROWS=[
  ['air','Air quality & pollen','Kvaliteta zraka i pelud'],
  ['climo','Climatology (archive)','Klimatologija (arhiv)'],
  ['radar','Rain radar (RainViewer)','Radar kiše (RainViewer)'],
+ ['sat','Satellite clouds (EUMETSAT)','Satelitski oblaci (EUMETSAT)'],
  ['lightning','Lightning (Blitzortung)','Munje (Blitzortung)'],
  ['ai','AI feed','AI izvor'],
  ['pwa','App shell (offline)','Ljuska aplikacije (offline)']
@@ -6411,7 +6657,7 @@ function showView(name){
  document.documentElement.classList.toggle('tlfs',name==='graph'&&!!D); /* scroll lock while the graph view is up */
  try{tlUiApply();}catch(e){console.log('tlUiApply',e);} /* G2: collapsed graph = no controls and no bottom bar */
  try{askUi();}catch(e){} /* A1: the ask bar is hidden on the map */
- destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');updateTabs();
+ destroyAllCharts();stopRadarAnim();if(radarRetryT){clearTimeout(radarRetryT);radarRetryT=null;}boPause(name==='map');SAT.paused=(name!=='map');updateTabs();
  try{updateNowBar();}catch(e){}
  if(!D){if(name==='graph'){try{renderGraph();}catch(e){console.log('renderGraph',e);}}if(gLeft)graphLeaveFocus(name,gBtn);return;}
  if(name==='map'){try{mapSyncFromTl();}catch(e){console.log('mapSyncFromTl',e);}}

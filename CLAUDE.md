@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~6,400 lines). Current version: **v3.26** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~6,400 lines). Current version: **v3.27** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
@@ -105,7 +105,7 @@ the fetch handler returns early, before the navigation rule, for every same-orig
 intercepted or cached. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.26`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.27`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -704,7 +704,7 @@ its chart in both modes (the tide legend follows the tide chart).
 ### Failure visibility
 
 Every data source reports its own health via `FEEDS[name]={t,ok,err,na}`, written by
-`feedMark(name,ok,err,na)` for forecast/ai/marine/air/climo/radar/lightning/pwa; `na:true` means "this
+`feedMark(name,ok,err,na)` for forecast/ai/marine/air/climo/radar/sat/lightning/pwa; `na:true` means "this
 source has nothing for this place" (inland marine) and is **not a failure**. When a side source (sea,
 air, normals) fails for the shown place, `noteSrcFail(d,feed,field)` records it in `SRCFAIL` (a `WeakMap`
 keyed by the forecast object, so it never reaches `wd_last`), and `srcFailNote()` turns it into a
@@ -734,13 +734,13 @@ A **full-screen weather map** (`renderMapFull`/`drawRadarMap`, Leaflet map `rada
 light/dark switch (`MAPTHEME`/`mapThemeToggle`, independent of the app theme) — dark mode is a CSS invert
 on the base tiles (`.mapdark .basetiles`) — zoom to 19 (radar tiles stretched via `maxNativeZoom:7` —
 RainViewer's free tiles END at z7; requesting deeper native tiles returns "Zoom Level Not Supported"
-error tiles), toggleable layers in `MLAYERS`/`mlyToggle`: RainViewer radar frames with timeline (at most
+error tiles), toggleable layers in `MLAYERS`/`mlyToggle`: RainViewer radar frames (at most
 **two frames stay attached** at a time, current + preloaded next, so panning doesn't refetch every
-frame), Blitzortung live lightning (reconnects with exponential backoff), and an Open-Meteo **point
-grid** (`gridRefresh`/`gridDraw`: a temperature IDW heatmap with a legend, wind arrows, 48 h rainfall,
-cloud cover; cache keyed to a zoom-scaled cell so high-zoom pans stay accurate). The grid fetch carries
-24 h of hourly temperature/wind/gusts/cloud/precip per point, and a **⏱ time-scrub slider** in the bottom
-panel (0 = now … +24 h) redraws the heatmap, labels and rain/cloud blobs for the chosen hour straight
+frame), **satellite clouds** (below), Blitzortung live lightning (reconnects with exponential backoff), and an Open-Meteo **point
+grid** (`gridRefresh`/`gridDraw`: a temperature IDW heatmap with a legend, wind arrows and 48 h rainfall — **no
+clouds**: `gridActive()` is temp/wind/rain only and the grid fetch carries no `cloud_cover`; cache keyed to a zoom-scaled cell so high-zoom pans stay accurate). The grid fetch carries
+24 h of hourly temperature/wind/gusts/precip per point, and a **⏱ time-scrub slider** in the bottom
+panel (0 = now … +24 h, `tt_gridSlider` "Grid data hour slider (temperature/wind/rain)") redraws the heatmap, labels and rain blobs for the chosen hour straight
 from that cached response — no refetch while scrubbing; the legend and the next-2h rain strip's pill
 re-label to match; opening the map puts the slider on the hour chosen on the NOW timeline, and coming back moves the timeline cursor to the hour the map was left at (see "Map ⏱ sync" above). Wind labels show gusts in parentheses when they clear speed+5. Also the next-2h rain
 strip, click-to-forecast (`onMapClick`/`pickPoint`: reverse-geocodes the tapped point with Nominatim and
@@ -749,6 +749,42 @@ recentres/pins the map. Layout: on `mobile` only, `#mlyPills` (the layer buttons
 row right above the bottom bar and `#mapBottom` sits above that row; on `mobile` and `mid` the zoom and
 locate controls are top-right (below the top row), clear of the bottom panel, and the attribution text
 lives in the bottom panel. The ✕ (desktop only) returns to `#now`.
+
+- **Satellite clouds** (the ☁️ pill, default off; code banner `/* ---------- Satellite clouds ... ---------- */`, state `SAT`, `sat*` functions after the radar code).
+  Observed Meteosat imagery from the EUMETSAT EUMETView WMS (see Data sources), **not** tiles: for the last 2 hours,
+  13 frames = the newest infrared time and the 12 previous 10-min steps (`satList()`: the newest times come from the two per-layer
+  GetCapabilities `<Dimension name="time" default=…>`; list cached 5 min, refreshed when the map opens after that; if a caps request
+  fails the documented fallback is IR newest = UTC now floored to 10 min − 30 min, CLM newest = floored to 15 min − 45 min, and the feed
+  row says "caps: …" until the first frame loads). Each IR frame pairs with the cloud-mask (CLM) frame at the latest 15-min time ≤ it and ≤ the
+  newest CLM time; each unique CLM time is fetched once and shared (about 13 IR + 9 CLM GetMaps per box). **View box:** one GetMap per frame per
+  layer for the viewport padded by 25 % on every side, in EPSG:3857 metres (`satNewBox`, clamped to ±20037508.34; IR image = min(box CSS px,
+  box metres / 600, 1600) on the longer side, CLM = box metres / 5000 clamped 32…512). `satBoxCheck()` (run after a 300 ms debounce on
+  `moveend`/`zoomend`/`resize`) keeps the box while the viewport stays inside it at the same integer zoom — small pans cause **no** new GetMaps —
+  and otherwise makes a new box, dropping the old frames but keeping the old picture on screen until the new box paints its first frame.
+  **Pixels** (`satDecIr`/`satDecCm`/`satPaint`): per frame one ramp byte per pixel from the IR grey (smoothstep over grey 70…160) plus the CLM red
+  channel upscaled smoothly onto the IR size (m = red/255; white = cloud, clear land/water ≈ 0). Alpha = aMax·max(LOW·m, ramp) with both, aMax·ramp
+  with IR only, aMax·0.55·m with the mask only; dark map tint white (aMax 0.85, LOW 0.40), light map tint slate rgb(92,104,122) (0.75, 0.38) — low
+  cloud / fog shows faint, high cold tops solid. The per-frame data is theme-independent, so `mapThemeToggle` → `satRefresh()` only repaints
+  (no refetch). **Rendering:** one overlay whose element is a single `<canvas>` at the IR image size (`satOverlayCls()`, an `L.ImageOverlay` subclass
+  supplying a canvas the way `VideoOverlay` supplies a `<video>`, so Leaflet positions and zoom-animates it); showing a frame writes its alpha into an
+  `ImageData` and `putImageData`. **Panes / z-order:** base tiles (tilePane 200) < `satPane` (250, clouds) < `radarPane` (260, the radar tile layers,
+  still `className:'radarlayer'` with the FIX-2 at-most-2-attached rule) < the temperature heat overlay < markers/labels. The canvas is not a tile, so
+  the dark-theme tile filters never touch it. **Loading** (`satPump`/`satRun`): `tfetchP(url,{mode:'cors'},15000)` → blob → `createImageBitmap` (fallback
+  `Image` with `crossOrigin='anonymous'`); at most 2 requests in flight, the frame to show now first, then the following frames in playback order; a
+  generation counter (`SAT.gen`, plus the identity of the frame's entry) discards results from an old box, an old frame list or a layer switched off; a failed request is
+  retried once later, a failed frame is skipped (the previous picture stays) and never stalls the animation; leaving the map pauses the queue
+  (`SAT.paused`, set in `showView`), returning resumes it (`satEnsure`); switching the layer off removes the overlay and drops the data. **Failure is visible:**
+  `feedMark('sat',…)` (first frame result, caps fallback, total failure; Info row "Satellite clouds (EUMETSAT)"), the pill gets `dimmed` with the title
+  "Satellite unavailable — click to retry" (a click retries instead of switching off) and the timeline label says "satellite unavailable" (`SAT.fail`:
+  nothing loaded after 4 failed requests, or every frame dead).
+- **One shared timeline.** `#radarCtl` (⏮ ▶️ ⏭ slider time) is the one observation timeline, shown when radar **or** clouds is on, with **one** 600 ms
+  play timer (`radarPlay`/`tlmStep`). The master list (`tlmMaster()`) is the radar frames when radar is on and loaded, else the satellite frames; with radar as
+  master the satellite shows the frame with the latest time ≤ the radar frame's (else the oldest; a failed frame falls back to the nearest good one,
+  `satIdxFor`). Toggling radar or clouds keeps the time position (`TLPOS`, `tlmRealign`) and resets the slider max. `tlmSync()` writes slider, label and the
+  satellite frame: radar only "HH:MM" (+ " · forecast"), clouds only "HH:MM ☁", both "HH:MM · ☁ HH:MM" (the second is the satellite frame's time), "☁ …" while
+  loading. **All map times are in the place's time** (`mapHM()`: the UTC fields of t + `LOCTZ.off`, browser time only when there is no offset), the radar's too.
+  `#radarNote` (`updateMapNote()`) carries the legend of the cloud layer and the EUMETSAT credit "Contains modified EUMETSAT Meteosat data <UTC year of the shown frame>" /
+  "Sadrži izmijenjene EUMETSAT Meteosat podatke <godina>"; the base-layer attribution ends with " · EUMETSAT".
 
 ## Running it
 
@@ -841,6 +877,16 @@ failure. Run it after touching `worker.js`; run `node --check worker.js` too.
 - **RainViewer** (`api.rainviewer.com` + `tilecache.rainviewer.com`) — rain-radar tile frames for the Map
   view: past ~2 h plus nowcast frames when the public API provides them (lazy; frame list cached ~5 min;
   requires "© RainViewer" attribution).
+- **EUMETSAT EUMETView** (`view.eumetsat.int/geoserver`) — Meteosat satellite clouds on the Map (the ☁️ layer): keyless WMS, `Access-Control-Allow-Origin: *` (so the
+  pixels are readable after a CORS fetch); time-pinned GetMap responses are cacheable for 7 days. Two layers, **one GetMap per frame per layer, never tiles**
+  (the service delays — does not refuse — more than about 20 requests per window per IP): IR `layers=mtg_fd:ir105_hrfi`, `styles=mtg_fd:mtg_fd_ir105_hrfi_grayscale`,
+  `image/jpeg` (every 10 min, the newest frame ~20–25 min behind real time, bright = cold cloud tops) and the cloud mask `layers=msg_fes:clm`, `styles=` (empty), `image/png`
+  (**never JPEG**: the class colours must survive; every 15 min, ~30–35 min behind; white = cloud, green = clear land, blue = clear water; cloudiness = red/255).
+  Params: `service=WMS&version=1.3.0&request=GetMap&crs=EPSG:3857&bbox=minx,miny,maxx,maxy&width&height&time=YYYY-MM-DDTHH:MM:00Z` (UTC). The newest time comes from
+  the per-layer capabilities (`/geoserver/mtg_fd/ir105_hrfi/ows?…request=GetCapabilities`, `/geoserver/msg_fes/clm/ows?…`, ~8 KB, max-age 120): the time dimension's `default`
+  attribute. **Never request a time newer than that**: it answers HTTP 200 with an XML ServiceException (the image decode fails). Licence: EUMETSAT Data Policy (2026) — the WMS
+  single-channel visualisations are "Advanced Image Products" and the cloud mask a "Derived Product", both Core data, CC-BY-4.0, free for any use at any latency; required credit
+  "Contains modified EUMETSAT Meteosat data <year>" (HR "Sadrži izmijenjene EUMETSAT Meteosat podatke <godina>", year = UTC year of the shown frame), shown in `#radarNote`.
 
 All data requests go through `tfetch(url, ms)`, a `fetch` wrapper with a timeout (the AI-search calls in
 `askClaude()` and the `askRefreshState()` state call are the exceptions: they carry their own `AbortController` and
@@ -953,7 +999,7 @@ Roughly top-to-bottom:
   `drawBbqGrill`) · **timeline** (`tlInit`, `tlRender`, `tlDraw`, `tlSchedule`, `tlSetZoom`, `tlFitX`, `tlApplyScale`, `tlRep`, `tlSetLayer`, `tlSetFit`, `tlSetStyle`,
   `tlLegend`, `tlPanelOpen`/`tlPanelClose`, `tlGoto`, `tlCursorTs`, `tlInvalidate`, `tlHome`, `tlMoveCursor`, `tlTap`, `tlReadoutLines`,
   `renderGraph`, `tlMountGraph`/`tlUnmountGraph`, `tlUiApply`/`tlSetCollapsed`/`tlImm`, `tlRotateToast`, `tlFullOpen`/`tlFullClose`, `setNavH`; state `TL`, `TLP`, cache `TLC`) · maps
-  (`loadLeaflet`, the weather map incl. `locateOnMap`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/
+  (`loadLeaflet`, the weather map incl. `locateOnMap`, the shared timeline `tlmMaster`/`tlmSync`/`tlmRealign`/`tlmStep`/`mapHM`, and the satellite clouds `satList`/`satBoxCheck`/`satNewBox`/`satPump`/`satRun`/`satPaint`/`satShow`/`satRefresh`/`satEnsure`/`satOverlayCls`; state `SAT`, `TLPOS`) · view router (`ROUTES`/`ROUTEACT`/`VIEWS`/
   `showView`/`renderActive`/`updateAlertBox`) · Info panel (`renderInfo`, `renderFeeds`, `CHANGELOG`) · **Ask the
   weather** (`askKeyGet`/`askKeySave`/`askKeyDel`, `askMode`, `askRefreshState`, `askContext`, `askSystem`, `askClaude`, `askReadStream`, `askUi`; state `ASK`,
   declared earlier next to the prefs) — the banner `/* ---------- Ask the weather (A1) ... ---------- */` sits
