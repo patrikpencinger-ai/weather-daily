@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Patrik's weather daily — v3.28</title>
+<title>Patrik's weather daily — v3.29</title>
 <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><rect%20width='32'%20height='32'%20rx='7'%20fill='%2316243a'/><circle%20cx='13'%20cy='13'%20r='6'%20fill='%23E0A53C'/><path%20d='M10%2022h14a4%204%200%200%200%200-8%206%206%200%200%200-11-2%205%205%200%200%200-3%2010z'%20fill='%232caaf0'/></svg>">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#16243a">
@@ -755,7 +755,7 @@ html.tlfs #askBar{display:none}
   <div id="infoLog"></div>
 </section>
 
-<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.28 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
+<p class="lab" style="font-size:11px;margin:10px 2px 0;"><span id="foot"></span><button class="lbtn hidden" id="footRetry" onclick="hardRefresh()" data-i="retry" style="font-size:11px;padding:1px 8px;margin-left:6px;">Try again</button> · <span data-i="title">PATRIK'S WEATHER DAILY</span> · v3.29 · by <a href="mailto:patrik.pencinger@gmail.com" style="color:inherit;">Patrik Pencinger</a> · <a href="#info" data-i="infoLink" style="color:inherit;">Info &amp; changelog</a></p>
 </div>
 <section id="view-graph" class="hidden" role="tabpanel" aria-labelledby="tlGraphH">
 <h2 class="tlsr" id="tlGraphH" data-i="tlTitle">TIMELINE</h2>
@@ -805,7 +805,7 @@ const ICON_NIGHT={sun:'🌙',partcloud:ICON.cloud}; /* I2: night variants of the
 function iconFor(r){if(!r)return'';return (r.night&&ICON_NIGHT[r.cond])||ICON[r.cond]||'';}
 const ICON_SUN='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 const ICON_MOON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-const APPV='3.28';
+const APPV='3.29';
 const DEFAULT_LOC={name:"Zagreb",lat:45.815,lon:15.982,station:"Zagreb-Gri\u010d (DHMZ)"};
 const NORM_START='1991-01-01', NORM_END='2020-12-31', NORM_LBL='1991–2020', WIN=5;
 const IN_CLAUDE=/claude|anthropic|usercontent/i.test((typeof location!=='undefined'&&location.hostname)||'');
@@ -840,7 +840,7 @@ function polLvl(v){return v<10?0:v<50?1:2;}
 let BRANGE='h';
 function setBRange(v){BRANGE=v;markBtns();if(D&&D.bio)drawBio();}
 let GRANGE='h';
-let TL={zoom:'h',layers:{temp:2,feels:0,norm:0,rain:2,snow:0,cloud:0,wind:0,gust:0,pres:0,humid:0,uv:0,air:0,pollen:0,vis:0,frz:0,sea:0,tide:0,sun:0,moon:0,score:2},style:'smooth',names:{c:false,f:true},axis:{temp:{mode:'auto',lo:null,hi:null},pres:{mode:'auto',lo:null,hi:null}},x0:null,cursor:null,full:false,pxh:null,fit:false,ui:{c:0},cx:0,tcol:0}; /* H1: cx = the cloud band is expanded x4 (low / mid / high rows; 0 / 1, wd_prefs.tl.cx); tcol = day-zoom temperature colour mode (0 single, 1 vs the normal, 2 visible range; wd_prefs.tl.tcol). G2: ui.c = the graph view's controls are collapsed (0 / 1, remembered in wd_prefs.tl.ui). T1: pxh = px per hour (continuous scale, session only, never saved; null = the preset of zoom), fit = all days fitted to the width. K1/K2/F1: VREMENSKA OS state. layers: 0 hidden / 1 visible / 2 visible + value labels (default temperature + rain + score at 2); style = line style; axis = value-axis fit mode + manual override; F2: 20 layers in 7 legend groups, names = the series-name overlay switch per view (c compact, f fullscreen); zoom + layers + style + names + axis are remembered (wd_prefs.tl), x0 / cursor / full never are */
+let TL={zoom:'h',layers:{temp:2,feels:0,norm:0,hist:0,rain:2,snow:0,cloud:0,wind:0,gust:0,pres:0,humid:0,uv:0,air:0,pollen:0,vis:0,frz:0,sea:0,tide:0,sun:0,moon:0,score:2},style:'smooth',names:{c:false,f:true},axis:{temp:{mode:'auto',lo:null,hi:null},pres:{mode:'auto',lo:null,hi:null}},x0:null,cursor:null,full:false,pxh:null,fit:false,ui:{c:0},cx:0,tcol:0}; /* H1: cx = the cloud band is expanded x4 (low / mid / high rows; 0 / 1, wd_prefs.tl.cx); tcol = day-zoom temperature colour mode (0 single, 1 vs the normal, 2 visible range; wd_prefs.tl.tcol). G2: ui.c = the graph view's controls are collapsed (0 / 1, remembered in wd_prefs.tl.ui). T1: pxh = px per hour (continuous scale, session only, never saved; null = the preset of zoom), fit = all days fitted to the width. K1/K2/F1: VREMENSKA OS state. layers: 0 hidden / 1 visible / 2 visible + value labels (default temperature + rain + score at 2); style = line style; axis = value-axis fit mode + manual override; F2/H2: 21 layers in 7 legend groups, names = the series-name overlay switch per view (c compact, f fullscreen); zoom + layers + style + names + axis are remembered (wd_prefs.tl), x0 / cursor / full never are */
 let PLAN={act:'bbq',date:null}; /* J2: PLANIRAJ - chosen activity (remembered in wd_prefs.act) and day (never saved) */
 function setGRange(v){GRANGE=v;markBtns();if(D&&D.days)drawGrill();}
 function bioLvl(s){return s<=1?0:s<=3?1:2;}
@@ -1203,7 +1203,7 @@ const T={
   ar_grill:"Grilling score forecast (today\'s grilling hours or upcoming days) as colored bars with tier icons",
   ar_radarBox:"Full-screen weather map with radar, lightning, temperature, wind, rain and cloud layers",ar_rainStrip:"Rain expected in the next two hours in 15-minute steps",ar_heatLeg:"Temperature layer colour legend",
   ar_bioInfo:"Biometeo criteria",
-  tlTitle:"TIMELINE",tlZ_h:"Hour",tlZ_3:"3 h",tlZ_d:"Day",tlL_temp:"Temperature",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV index",tlL_air:"Air quality",tlL_sea:"Sea",tlL_norm:"Normal",
+  tlTitle:"TIMELINE",tlZ_h:"Hour",tlZ_3:"3 h",tlZ_d:"Day",tlL_temp:"Temperature",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV index",tlL_air:"Air quality",tlL_sea:"Sea",tlL_norm:"Normal",tlL_hist:"History",tlHistTip:"how this date has been in "+NORM_LBL+": typical range, records, last year",tlHistB:"typical range of the date ("+NORM_LBL+")",tlHistR:"records (high / low)",tlHistL:"last year",
   tlZoomAria:"Timeline zoom",tlFitAria:"Value-axis scale: fit the visible window or all data",tlFit_auto:"Auto",tlFit_full:"Full",tlStyleAria:"Line style",tlSty_linear:"Linear",tlSty_step:"Step",tlSty_smooth:"Smooth",
   tlSt0:"hidden",tlSt1:"visible, no labels",tlSt2:"visible with labels",tlHint:"drag an axis to pan · wheel zooms the axis · double-click resets",tlCloudX:"Clouds expanded: low · mid · high",tlCloudTip:"tap the cloud band to expand",tlCxRow:["H","M","L"],tlTcolLbl:"Day colour",tlTcolAria:"Day-zoom temperature colour",tt_tltcol:"Temperature colour (day zoom)",tlTc_0:"Colour: single",tlTc_1:"Colour: vs normal",tlTc_2:"Colour: range",tlTcw_0:"Single",tlTcw_1:"Normal",tlTcw_2:"Range",tlTcNA:"no normals for this place",tlTcKeyR:["coolest","warmest"],
   tlL_feels:"Feels like",tlL_humid:"Humidity",tlL_cloud:"Cloud cover",tlL_gust:"Gusts",tlL_vis:"Visibility",tlL_frz:"Freezing level",tlL_snow:"Snow",tlL_sun:"Sunrise / sunset",tlL_moon:"Moon phase",tlL_tide:"Tide",tlL_pollen:"Pollen",
@@ -1267,7 +1267,7 @@ const T={
   ar_grill:"Prognoza ocjene roštilja (današnji sati za roštilj ili nadolazeći dani) u obojenim stupcima s ikonama razina",
   ar_radarBox:"Vremenska karta preko cijelog zaslona s radarom, munjama te slojevima temperature, vjetra, kiše i oblaka",ar_rainStrip:"Očekivana kiša u sljedeća dva sata u koracima od 15 minuta",ar_heatLeg:"Legenda boja sloja temperature",
   ar_bioInfo:"Kriteriji biometeorologije",
-  tlTitle:"VREMENSKA OS",tlZ_h:"Sat",tlZ_3:"3 h",tlZ_d:"Dan",tlL_temp:"Temperatura",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV indeks",tlL_air:"Kvaliteta zraka",tlL_sea:"More",tlL_norm:"Normala",
+  tlTitle:"VREMENSKA OS",tlZ_h:"Sat",tlZ_3:"3 h",tlZ_d:"Dan",tlL_temp:"Temperatura",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV indeks",tlL_air:"Kvaliteta zraka",tlL_sea:"More",tlL_norm:"Normala",tlL_hist:"Povijest",tlHistTip:"kakav je ovaj datum bio u "+NORM_LBL+": uobičajeni raspon, rekordi, prošla godina",tlHistB:"uobičajeni raspon datuma ("+NORM_LBL+")",tlHistR:"rekordi (najviša / najniža)",tlHistL:"lani",
   tlZoomAria:"Zoom vremenske osi",tlFitAria:"Mjerilo osi vrijednosti: vidljivi prozor ili svi podaci",tlFit_auto:"Auto",tlFit_full:"Puni",tlStyleAria:"Stil linije",tlSty_linear:"Ravno",tlSty_step:"Stepenasto",tlSty_smooth:"Glatko",
   tlSt0:"skriveno",tlSt1:"vidljivo bez oznaka",tlSt2:"vidljivo s oznakama",tlHint:"povuci os za pomak · kotačić zumira os · dvoklik vraća",tlCloudX:"Oblaci prošireno: nisko · srednje · visoko",tlCloudTip:"dodirni traku oblaka za proširenje",tlCxRow:["V","S","N"],tlTcolLbl:"Boja dana",tlTcolAria:"Boja temperature u dnevnom prikazu",tt_tltcol:"Boja temperature (dnevni prikaz)",tlTc_0:"Boja: jedna",tlTc_1:"Boja: od normale",tlTc_2:"Boja: raspon",tlTcw_0:"Jedna",tlTcw_1:"Normala",tlTcw_2:"Raspon",tlTcNA:"nema normala za ovo mjesto",tlTcKeyR:["najhladnije","najtoplije"],
   tlL_feels:"Osjet",tlL_humid:"Vlaga",tlL_cloud:"Naoblaka",tlL_gust:"Udari vjetra",tlL_vis:"Vidljivost",tlL_frz:"Granica smrzavanja",tlL_snow:"Snijeg",tlL_sun:"Izlazak / zalazak",tlL_moon:"Mjesečeva mijena",tlL_tide:"Plima i oseka",tlL_pollen:"Pelud",
@@ -1616,22 +1616,72 @@ function buildByDay(rawMax){
  }
  return out;
 }
+const HIST_WIN=3; /* H2: the history band of a date pools the +-3 days around it across all 30 years (about 210 values) */
+function histPct(sorted,p){ /* linear interpolation between ranks (the common "type 7" percentile); sorted ascending */
+ const n=sorted.length;if(!n)return null;
+ const x=p*(n-1),i=Math.floor(x),f=x-i;
+ return i+1<n?sorted[i]+(sorted[i+1]-sorted[i])*f:sorted[i];
+}
+/* H2: the History layer's data, from the 1991-2020 archive's daily series. Pure: reads only its argument (Open-Meteo "daily": time[], temperature_2m_max[], temperature_2m_min[]). For every MM-DD of a leap year:
+   p10min = 10th percentile of the daily minima and p90max = 90th percentile of the daily maxima over the +-HIST_WIN-day window across all years (the window runs over the leap-year calendar, so 02-29 and its neighbours pool the leap and non-leap years);
+   recMax / recMin = the highest maximum / lowest minimum of that exact date with its year (ties: the earliest year; 02-29 uses the leap years only, a date with no value has no record); n = values pooled. Values are rounded to 0.1. */
+function buildHist(daily){
+ const out={};
+ if(!daily||!daily.time)return out;
+ const T=daily.time,MX=daily.temperature_2m_max||[],MN=daily.temperature_2m_min||[];
+ const mx={},mn={}; /* MM-DD -> [[value, year], ...] */
+ for(let i=0;i<T.length;i++){
+  const key=String(T[i]).slice(5,10),y=parseInt(String(T[i]).slice(0,4),10);
+  if(MX[i]!=null&&isFinite(MX[i]))(mx[key]=mx[key]||[]).push([MX[i],y]);
+  if(MN[i]!=null&&isFinite(MN[i]))(mn[key]=mn[key]||[]).push([MN[i],y]);
+ }
+ const keyAt=o=>{const c=new Date(Date.UTC(2000,0,1+o));return String(c.getUTCMonth()+1).padStart(2,'0')+'-'+String(c.getUTCDate()).padStart(2,'0');};
+ const r1=v=>Math.round(v*10)/10;
+ for(let i=0;i<366;i++){
+  const key=keyAt(i),a=[],b=[];
+  for(let o=-HIST_WIN;o<=HIST_WIN;o++){const k=keyAt(i+o);(mn[k]||[]).forEach(q=>a.push(q[0]));(mx[k]||[]).forEach(q=>b.push(q[0]));}
+  if(!a.length&&!b.length)continue;
+  a.sort((p,q)=>p-q);b.sort((p,q)=>p-q);
+  const h={n:Math.max(a.length,b.length)};
+  const p10=histPct(a,0.1),p90=histPct(b,0.9);
+  if(p10!=null)h.p10min=r1(p10);
+  if(p90!=null)h.p90max=r1(p90);
+  let rM=null,rm=null;
+  (mx[key]||[]).forEach(q=>{if(rM==null||q[0]>rM[0])rM=q;});
+  (mn[key]||[]).forEach(q=>{if(rm==null||q[0]<rm[0])rm=q;});
+  if(rM)h.recMax={v:r1(rM[0]),y:rM[1]};
+  if(rm)h.recMin={v:r1(rm[0]),y:rm[1]};
+  out[key]=h;
+ }
+ return out;
+}
+function isoPlus(iso,n){ /* H2: a calendar date plus n days (pure date arithmetic, no browser zone) */
+ const d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);
+ return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+}
 function ensureClimo(loc){
  const k=loc.lat.toFixed(3)+','+loc.lon.toFixed(3);
  if(climoCache[k])return climoCache[k];
  climoCache[k]=(async()=>{
   const normP=tfetch('https://archive-api.open-meteo.com/v1/archive?latitude='+loc.lat+'&longitude='+loc.lon+
    '&start_date='+NORM_START+'&end_date='+NORM_END+
-   '&daily=temperature_2m_max,temperature_2m_mean,precipitation_sum&timezone=auto',20000)
+   '&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum&timezone=auto',20000)
    .then(r=>{if(!r.ok)throw new Error('archive '+r.status);return r.json();});
   const lyDt=sameDayISO(1);
-  const lyD2=(()=>{const d=new Date(lyDt+'T12:00');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  /* H2: last year's same dates for the whole forecast span (today a year ago ... + FCDAYS days): ly.max / mean / precip / tomMax are today's and tomorrow's values as before, ly.byDay[MM-DD]={max,min} feeds the History layer */
   const lyP=tfetch('https://archive-api.open-meteo.com/v1/archive?latitude='+loc.lat+'&longitude='+loc.lon+
-   '&start_date='+lyDt+'&end_date='+lyD2+
-   '&daily=temperature_2m_max,temperature_2m_mean,precipitation_sum&timezone=auto',12000)
+   '&start_date='+lyDt+'&end_date='+isoPlus(lyDt,FCDAYS)+
+   '&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum&timezone=auto',12000)
    .then(r=>{if(!r.ok)throw new Error('archive '+r.status);return r.json();})
-   .then(j=>({max:j.daily.temperature_2m_max[0],mean:j.daily.temperature_2m_mean[0],precip:j.daily.precipitation_sum[0],
-    tomMax:(j.daily.temperature_2m_max.length>1&&j.daily.temperature_2m_max[1]!=null)?j.daily.temperature_2m_max[1]:null}))
+   .then(j=>{
+    const q=j.daily,byDay={};
+    for(let i=0;i<q.time.length;i++){
+     const a=q.temperature_2m_max[i],b=q.temperature_2m_min?q.temperature_2m_min[i]:null;
+     if(a!=null||b!=null)byDay[q.time[i].slice(5)]={max:a!=null?a:null,min:b!=null?b:null};
+    }
+    return{max:q.temperature_2m_max[0],mean:q.temperature_2m_mean[0],precip:q.precipitation_sum[0],
+     tomMax:(q.temperature_2m_max.length>1&&q.temperature_2m_max[1]!=null)?q.temperature_2m_max[1]:null,byDay:byDay};
+   })
    .catch(()=>null);
   const [norm,ly]=await Promise.all([normP,lyP]);
   const want=new Set(windowKeys());
@@ -1648,7 +1698,9 @@ function ensureClimo(loc){
   }
   if(!mx.length)throw new Error('no normals data');
   const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
-  return{ly:ly,avg:{max:mean(mx),mean:mean(mn),precip:mean(pr),n:mx.length},byDay:buildByDay(rawMax)};
+  const out={ly:ly,avg:{max:mean(mx),mean:mean(mn),precip:mean(pr),n:mx.length},byDay:buildByDay(rawMax)};
+  try{const hh=buildHist(dt);if(Object.keys(hh).length)out.hist=hh;}catch(e){console.log('history unavailable:',e);} /* H2: a failing history build costs only the History layer */
+  return out;
  })();
  climoCache[k].then(()=>feedMark('climo',true),e=>feedMark('climo',false,e));
  climoCache[k].catch(()=>{delete climoCache[k];});
@@ -2953,11 +3005,11 @@ function setLang(l){
 const TLZ=['h','3','d'];
 const TLPX={h:[34,26],'3':[12,9],d:[3.2,2.6]}; /* px per hour: [desktop/mid, mobile] */
 /* F2: every series the data offers is a layer; the legend lists them in these groups (a group title is muted text, TLORDER is the readout order) */
-const TLGROUPS=[['temp',['temp','feels','norm']],['rain',['rain','snow','cloud']],['wind',['wind','gust']],['air',['pres','humid','uv','air','pollen','vis','frz']],['sea',['sea','tide']],['sun',['sun','moon']],['score',['score']]];
+const TLGROUPS=[['temp',['temp','feels','norm','hist']],['rain',['rain','snow','cloud']],['wind',['wind','gust']],['air',['pres','humid','uv','air','pollen','vis','frz']],['sea',['sea','tide']],['sun',['sun','moon']],['score',['score']]];
 const TLORDER=[].concat.apply([],TLGROUPS.map(g=>g[1]));
 const TLLAYERS=TLORDER.slice();
 const TLSTYLES=['linear','step','smooth'];
-const TLIC={temp:'🌡️',feels:'🧥',norm:'📏',rain:'🌧️',snow:'❄️',cloud:'☁️',wind:'💨',gust:'🌬️',pres:'📈',humid:'💧',uv:'☀️',air:'🍃',pollen:'🌼',vis:'👁️',frz:'🧊',sea:'🌊',tide:'↕️',sun:'🌅'};
+const TLIC={temp:'🌡️',feels:'🧥',norm:'📏',hist:'📜',rain:'🌧️',snow:'❄️',cloud:'☁️',wind:'💨',gust:'🌬️',pres:'📈',humid:'💧',uv:'☀️',air:'🍃',pollen:'🌼',vis:'👁️',frz:'🧊',sea:'🌊',tide:'↕️',sun:'🌅'};
 const TLC={hr:null,hr2:null,dd:null,tm:null,tm2:null,ag:null,tMin:0,tMax:10,pMin:1000,pMax:1020,preview:null,hov:null,dom:null,lay:null,air:[],airSrc:undefined,airHr:null,scD:null,scK:'',scH:null,rs:null,ds:null,act:'bbq',raf:0,to:0,sum:null,pm:0,xm:0,W:0,H:0,ghost:{},gt:0,ms:0};
 let tlRO=false; /* is the readout box open */
 let tlPtr=null;
@@ -3179,12 +3231,35 @@ function tlReadoutLines(cm){ /* -> {title, lines:[[icon,text]]} for the column a
  const cloudTxt=(cl,cmv,ch)=>(hrv?'nisko ':'low ')+(cl==null?'–':Math.round(cl))+' · '+(hrv?'srednje ':'mid ')+(cmv==null?'–':Math.round(cmv))+' · '+(hrv?'visoko ':'high ')+(ch==null?'–':Math.round(ch))+' %';
  const polTxt=(p,mx)=>(LBL.polNames[p.k]||p.k).toLowerCase()+' '+tlN(p.v,p.v<10?1:0)+' /m³ · '+LBL.polLevels[polLvl(p.v)]+(mx?(hrv?' (najviše)':' (max)'):'');
  const visTxt=km=>tlN(km,km>=10?0:1)+' km'+(km<1?' · '+(hrv?'magla':'fog'):'');
+ const hn=v=>{const r=Math.round(v);return(r<0?'−':'')+Math.abs(r);}; /* H2: whole degrees with a real minus sign */
+ const hRng=(a,b)=>(a<0?hn(a)+' … '+hn(b):hn(a)+'–'+hn(b));
+ const histTxt=(dt,full)=>{ /* H2: the date in 1991-2020: typical range, records (day zoom) and last year (day zoom); a missing part is skipped */
+  const k=dt.slice(5),h=D.climo&&D.climo.hist&&D.climo.hist[k];if(!h)return null;
+  const core=[];
+  if(h.p10min!=null&&h.p90max!=null)core.push((hrv?'uobičajeno ':'typical ')+hRng(h.p10min,h.p90max)+'°');
+  if(full){
+   const rc=[];
+   if(h.recMax&&h.recMax.v!=null)rc.push(hn(h.recMax.v)+'° ('+h.recMax.y+')');
+   if(h.recMin&&h.recMin.v!=null)rc.push(hn(h.recMin.v)+'° ('+h.recMin.y+')');
+   if(rc.length)core.push((hrv?'rekord ':'record ')+rc.join(' / '));
+  }
+  let s2=core.join(', ');
+  if(full){
+   const l=D.climo.ly&&D.climo.ly.byDay&&D.climo.ly.byDay[k];
+   if(l){
+    const t=(l.max!=null&&l.min!=null)?hRng(l.min,l.max)+'°':(l.max!=null?(hrv?'najviše ':'high ')+hn(l.max)+'°':(l.min!=null?(hrv?'najniže ':'low ')+hn(l.min)+'°':''));
+    if(t)s2+=(s2?' · ':'')+(hrv?'lani ':'last year ')+t;
+   }
+  }
+  return s2?(hrv?'Povijest ':'History ')+NORM_LBL+': '+s2:null;
+ };
  if(tlRep()==='d'){
   const dt=tlStr(m).slice(0,10),dd=(D.daysFull||[]).find(x=>x.dt===dt);
   if(!dd)return null;
   const ag=(TLC.ag&&TLC.ag[dt])||{};
   if(on('temp')&&dd.lo!=null&&dd.hi!=null)L.temp=[TLIC.temp,dd.lo+'° … '+dd.hi+'°'];
   if(on('norm')&&D.climo&&D.climo.byDay){const nv=D.climo.byDay[dt.slice(5)];if(nv!=null)L.norm=[TLIC.norm,(hrv?'normala ':'normal ')+tlN(nv,1)+'°'+(dd.hi!=null?' ('+sgn(dd.hi-nv,'°',1)+')':'')];}
+  if(on('hist')){const ht=histTxt(dt,true);if(ht)L.hist=[TLIC.hist,ht];}
   if(on('rain')){const ps=[];if(dd.pp!=null)ps.push(dd.pp+' %');if(dd.mm!=null)ps.push(tlMm(dd.mm));if(ps.length)L.rain=[TLIC.rain,ps.join(' · ')];}
   if(on('snow')&&ag.snow!=null)L.snow=[TLIC.snow,tlN(ag.snow,1)+' cm'];
   if(on('cloud')&&ag.cl!=null)L.cloud=[TLIC.cloud,cloudTxt(ag.cl,ag.cm,ag.ch)];
@@ -3209,6 +3284,7 @@ function tlReadoutLines(cm){ /* -> {title, lines:[[icon,text]]} for the column a
  const win=f=>{const o=[];for(let k=i-1;k<=i+1;k++){const q=D.hr[k];if(q&&q[f]!=null)o.push(q[f]);}return o;};
  if(on('temp')&&r.t!=null)L.temp=[TLIC.temp,tlN(r.t)+'°'+((!on('feels')&&r.fl!=null)?' ('+(hrv?'osjet ':'feels ')+tlN(r.fl)+'°)':'')]; /* R23: the feels suffix stays while the feels layer is off */
  if(on('feels')&&r.fl!=null)L.feels=[TLIC.feels,(hrv?'osjet ':'feels ')+tlN(r.fl)+'°'];
+ if(on('hist')){const ht=histTxt(r.dt,false);if(ht)L.hist=[TLIC.hist,ht];}
  if(on('rain')){
   let pp=r.pp,mm=r.mm;
   if(three){pp=null;mm=null;for(let k=i-1;k<=i+1;k++){const q=D.hr[k];if(!q)continue;if(q.pp!=null&&(pp==null||q.pp>pp))pp=q.pp;if(q.mm!=null)mm=(mm||0)+q.mm;}}
@@ -3335,12 +3411,12 @@ function tlSetTcol(m){
 function tlCycleTcol(){tlSetTcol(((TL.tcol|0)+1)%3);}
 /* F1: the legend IS the series control. One button per layer cycles 2 (visible + value labels, filled swatch) -> 1 (visible, no labels,
    hollow swatch) -> 0 (hidden, grey + struck through) -> 2. A hidden series is previewed faintly while a mouse hovers its chip. */
-const TLUNIT={temp:'°C',feels:'°C',norm:'',rain:'% · mm',snow:'cm',cloud:'%',wind:'km/h',gust:'km/h',pres:'hPa',humid:'%',uv:'',air:'EAQI',pollen:'/m³',vis:'km',frz:'m',sea:'°C',tide:'cm',sun:'',moon:'',score:''};
+const TLUNIT={temp:'°C',feels:'°C',norm:'',hist:'°C',rain:'% · mm',snow:'cm',cloud:'%',wind:'km/h',gust:'km/h',pres:'hPa',humid:'%',uv:'',air:'EAQI',pollen:'/m³',vis:'km',frz:'m',sea:'°C',tide:'cm',sun:'',moon:'',score:''};
 /* F2: palette of the layers (light, dark) - every colour is read at draw / legend time, so a theme switch needs only a redraw */
 const TLPAL={feels:['#B8386F','#F08CB8'],snow:['#7E57C2','#B39DDB'],cloud:['#6c7480','#aab1bc'],gust:['#B5651D','#F2A65A'],humid:['#2A9D8F','#5ED6C8'],pollen:['#B8960C','#F2D341'],vis:['#5B7C99','#9DB9D1'],frz:['#3949AB','#8C9EFF'],tide:['#0B5C73','#7FD3E6'],moon:['#6F7DA3','#C9D2E8']};
 function tlCol(k){
  const p=TLPAL[k];if(p)return p[theme==='dark'?1:0];
- return k==='temp'?C.hi:k==='rain'?C.sky:k==='wind'?strong:k==='pres'?C.pres:k==='uv'?AQICOL[1]:k==='air'?AQICOL[2]:k==='sea'?C.sea:k==='sun'?C.sun:k==='score'?ACTCOL[1]:strong;
+ return (k==='temp'||k==='hist')?C.hi:k==='rain'?C.sky:k==='wind'?strong:k==='pres'?C.pres:k==='uv'?AQICOL[1]:k==='air'?AQICOL[2]:k==='sea'?C.sea:k==='sun'?C.sun:k==='score'?ACTCOL[1]:strong;
 }
 function tlLayerName(k){
  if(k==='score'){const a=D&&D.hr?planAct():PLAN.act;return (LBL.actName&&LBL.actName[a])||'';}
@@ -3363,6 +3439,7 @@ function tlHas(){
  h.pollen=!!(D.air&&D.air.pollenH&&D.air.pollenH.length);
  h.air=!!(D.air&&D.air.aqi&&D.air.aqi.series&&D.air.aqi.series.length);
  h.norm=!!(D.climo&&D.climo.byDay);
+ h.hist=!!(D.climo&&D.climo.hist); /* H2: the History layer is offered when the 1991-2020 archive answered (all zooms) */
  TLC.has=h;TLC.hasK=[hr,D.air,D.sea,D.sunDays,D.climo];
  return h;
 }
@@ -3437,8 +3514,8 @@ function tlLegend(){
  const chip=(k,mini)=>{
   const s=La[k]|0,nmx=tlLayerName(k),unit=TLUNIT[k]||'';
   const label=(k==='score'?((ACTICON[planAct()]||'')+' '):'')+nmx+((!mini&&unit)?' '+unit:'');
-  const tip=nmx+': '+LBL['tlSt'+s]+(k==='tide'?'. '+LBL.tlTideTip:'')+(k==='cloud'?' · '+LBL.tlCloudTip:'');
-  const swc=(k==='rain')?'<svg class="tlsvg" viewBox="0 0 14 10" aria-hidden="true"><rect class="b" x="1.5" y="5" width="3" height="4.5"/><rect class="b" x="5.5" y="2.5" width="3" height="7"/><rect class="b" x="9.5" y="6.5" width="3" height="3"/><polyline class="l" points="1.5,6 7,1.5 12.5,4"/></svg>':'<i class="tlsw" aria-hidden="true"></i>'; /* H1: the rain chip shows what is drawn - mm bars with a probability line */
+  const tip=nmx+': '+LBL['tlSt'+s]+(k==='tide'?'. '+LBL.tlTideTip:'')+(k==='cloud'?' · '+LBL.tlCloudTip:'')+(k==='hist'?' · '+LBL.tlHistTip:'');
+  const swc=(k==='rain')?'<svg class="tlsvg" viewBox="0 0 14 10" aria-hidden="true"><rect class="b" x="1.5" y="5" width="3" height="4.5"/><rect class="b" x="5.5" y="2.5" width="3" height="7"/><rect class="b" x="9.5" y="6.5" width="3" height="3"/><polyline class="l" points="1.5,6 7,1.5 12.5,4"/></svg>':(k==='hist')?'<svg class="tlsvg" viewBox="0 0 14 10" aria-hidden="true"><rect class="b" x="2" y="3.5" width="10" height="3"/><polyline class="l" points="1,1.5 13,1.5"/><polyline class="l" points="1,8.5 13,8.5"/></svg>':'<i class="tlsw" aria-hidden="true"></i>'; /* H2: the history chip: a band between two record ticks. H1: the rain chip shows what is drawn - mm bars with a probability line */
   return '<button type="button" class="tlk s'+s+'" data-k="'+k+'" aria-pressed="'+(s>0?'true':'false')+'" aria-label="'+esc(tip)+'" title="'+esc(tip)+'" style="--c:'+tlCol(k)+'">'+swc+'<span>'+esc(label)+'</span></button>';
  };
  const mh=[];
@@ -3461,6 +3538,14 @@ function tlLegend(){
   });
   const ext=[];
   if(La.temp>0&&tlAvail('temp',has)&&!isC&&tlRep()==='d')ext.push(sw('background:'+C.hi+'33',hrv?'pouzdanost (od 8. dana)':'confidence band (day 8+)'));
+  if(La.hist>0&&tlAvail('hist',has)){ /* H2: what the History layer draws */
+   ext.push(sw('background:'+C.hi+'40;border-top:1px solid '+C.hi+';border-bottom:1px solid '+C.hi,LBL.tlHistB));
+   if(tlRep()==='d'){
+    const di=theme==='dark'?1:0;
+    ext.push('<span class="tlli"><i class="tlsw" style="height:3px;background:'+TLTC.red[di]+'"></i><i class="tlsw" style="height:3px;background:'+TLTC.blue[di]+'"></i>'+esc(LBL.tlHistR)+'</span>');
+    if(!isC)ext.push(sw('width:6px;height:11px;background:none;border:1.5px solid '+strong+';box-sizing:border-box',LBL.tlHistL));
+   }
+  }
   if(La.score>0)ext.push('<span class="tlli">'+ACTCOL.map((c,i)=>'<i class="tlsw" style="background:'+c+'" title="'+esc(LBL.actTier[i])+'"></i>').join('')+'</span>');
   if(ext.length)h.push('<div class="tlg tlx">'+ext.join('')+'</div>');
   pg.innerHTML=h.join('');
@@ -3525,22 +3610,34 @@ function tlTrace(ctx,seg,style){ /* C-03: continue the current path through seg=
 function tlStroke(ctx,segs,style){ctx.beginPath();segs.forEach(sg=>tlTrace(ctx,sg,style));ctx.stroke();}
 function tlNiceStep(raw){if(!(raw>0))return 1;const pw=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/pw;return Math.max(1,(f<=1?1:f<=2?2:f<=5?5:10)*pw);}
 /* C-16/C-18: the raw data range an axis fits. Auto = the visible window, Full = everything; hidden series do not matter, the data always do. */
-function tlRange(which,iA,iB,xm,mR,normOn,feelsOn){
+function tlRange(which,iA,iB,xm,mR,normOn,feelsOn,histM){
  const hr=D.hr,z=tlRep(),full=TL.axis[which].mode==='full';
  let lo=1e9,hi=-1e9;
  const mx=v=>{if(v!=null&&isFinite(v)){if(v<lo)lo=v;if(v>hi)hi=v;}};
  const win=d=>{const m=tsMin(d.dt+'T12:00');return m>=xm-720&&m<=mR+720;};
+ const hx=d=>{ /* H2: the History layer widens the temperature range so nothing is clipped: the day's typical band at every zoom, at day zoom also the records and last year's maximum / minimum (histM 1 band, 2 band + records + last year) */
+  if(!histM||!D.climo||!D.climo.hist)return;
+  const k=d.dt.slice(5),h=D.climo.hist[k];if(!h)return;
+  mx(h.p10min);mx(h.p90max);
+  if(histM===2){
+   if(h.recMax)mx(h.recMax.v);
+   if(h.recMin)mx(h.recMin.v);
+   const l=D.climo.ly&&D.climo.ly.byDay&&D.climo.ly.byDay[k];
+   if(l){mx(l.max);mx(l.min);}
+  }
+ };
  if(full){
-  if(which==='temp'){mx(TLC.tMin);mx(TLC.tMax);if(normOn)(D.daysFull||[]).forEach(d=>mx(D.climo.byDay[d.dt.slice(5)]));}
+  if(which==='temp'){mx(TLC.tMin);mx(TLC.tMax);if(normOn)(D.daysFull||[]).forEach(d=>mx(D.climo.byDay[d.dt.slice(5)]));(D.daysFull||[]).forEach(hx);}
   else{mx(TLC.pMin);mx(TLC.pMax);}
  }else if(which==='temp'){
   const isC=cmp()&&!!TLC.tm2,hr2=isC?TLC.hr2:null;
   if(z==='d'){
-   (D.daysFull||[]).forEach(d=>{if(!win(d))return;mx(d.hi);mx(d.lo);if(normOn)mx(D.climo.byDay[d.dt.slice(5)]);});
+   (D.daysFull||[]).forEach(d=>{if(!win(d))return;mx(d.hi);mx(d.lo);if(normOn)mx(D.climo.byDay[d.dt.slice(5)]);hx(d);});
    if(isC&&D2.daysFull)D2.daysFull.forEach(d=>{if(win(d)){mx(d.hi);mx(d.lo);}});
   }else{
    for(let i=iA;i<=iB;i++){mx(hr[i].t);if(feelsOn)mx(hr[i].fl);}
    if(hr2){const tm2=TLC.tm2,j0=Math.max(0,tlLb(tm2,xm-120)-1),j1=Math.min(hr2.length-1,tlLb(tm2,mR+120));for(let j=j0;j<=j1;j++)mx(hr2[j].t);}
+   (D.daysFull||[]).forEach(d=>{if(win(d))hx(d);});
   }
  }else{
   if(z==='d')(D.daysFull||[]).forEach(d=>{if(win(d))mx(d.p);});
@@ -3719,14 +3816,15 @@ function tlDraw(){
  const isC=cmp()&&!!TLC.tm2;
  const r15=(z==='h'&&vis.rain&&D.rain15&&D.rain15.length)?D.rain15:null;
  const rainBase=my2-(r15?8:2);
- const mainLines=vis.temp||vis.feels||vis.pres||vis.humid||vis.frz||vis.norm;
+ const mainLines=vis.temp||vis.feels||vis.pres||vis.humid||vis.frz||vis.norm||vis.hist;
  const rainH=rainOn?Math.round(mh*(mainLines?0.3:0.45)):0;
  const rainTop=rainBase-rainH;
  const bandH0=12+F,bandH=vis.cloud?(cxOn?4*bandH0:bandH0):0,bandTop=my+2; /* F2: the cloud-cover band sits at the top of the main area; H1: 4x as tall when expanded */
  const zoneTop=my+13+(bandH?bandH+3:0);let zoneBot=rainOn?(rainTop-5):(my2-7);
  if(zoneBot-zoneTop<24)zoneBot=zoneTop+24;
  const normOn=!!(vis.norm&&z==='d'&&D.climo&&D.climo.byDay);
- const dT=tlAxisCalc('temp',tlRange('temp',iA,iB,xm,mR,normOn,!!vis.feels),zoneBot-zoneTop);
+ const histM=(vis.hist&&D.climo&&D.climo.hist)?(z==='d'?2:1):0; /* H2: 1 = the typical band only (hours, 3 h), 2 = band + records + last year (days) */
+ const dT=tlAxisCalc('temp',tlRange('temp',iA,iB,xm,mR,normOn,!!vis.feels,histM),zoneBot-zoneTop);
  const dP=tlAxisCalc('pres',tlRange('pres',iA,iB,xm,mR,false,false),zoneBot-zoneTop);
  const rax=(!vis.pres&&vis.humid&&!humLane)?'humid':'pres'; /* which scale owns the right-hand strip */
  TLC.dom={temp:dT,pres:dP};TLC.lay={my:my,mh:mh,sl:SL,sr:SR,rax:rax,zt:zoneTop,zb:zoneBot,cb:vis.cloud?[my,bandTop+bandH+(cxOn?2:6)]:null};
@@ -3834,6 +3932,23 @@ function tlDraw(){
  /* temperature grid (belongs to the axis, so it is always there) */
  ctx.fillStyle=grid;
  dT.ticks.forEach(v=>{const y=yTemp(v);if(y>=zoneTop-4&&y<=zoneBot+4)ctx.fillRect(SL,Math.round(y),W-SL-SR,1);});
+ /* H2: the History layer, behind everything else of the main area: for every day a faint band from the 10th percentile of the daily minimum to the 90th percentile of the daily maximum of that calendar date in 1991-2020 (+-3 days), in a muted tone of the temperature colour; it spans the whole day at every zoom */
+ if(histM){
+  const hh=D.climo.hist,hcol=isC?CMP.a:C.hi;
+  ctx.save();ctx.globalAlpha=al('hist');
+  const hdays=(z==='d')?(D.daysFull||[]).map(d=>d.dt):Object.keys(D.hrDay||{});
+  hdays.forEach(dt=>{
+   const h=hh[dt.slice(5)];if(!h||h.p10min==null||h.p90max==null)return;
+   const m0=tsMin(dt+'T00:00'),xl=X(m0),xr=X(m0+1440);
+   if(xr<SL||xl>W-SR)return;
+   const ya=Math.max(zoneTop-6,yTemp(h.p90max)),yb=Math.min(zoneBot+4,yTemp(h.p10min));
+   if(!(yb>ya))return;
+   const x1=xl+1,w1=Math.max(1,xr-xl-2);
+   ctx.fillStyle=hcol+(dark?'30':'26');ctx.fillRect(x1,ya,w1,yb-ya);
+   ctx.fillStyle=hcol+(dark?'80':'66');ctx.fillRect(x1,ya,w1,1);ctx.fillRect(x1,yb-1,w1,1);
+  });
+  ctx.restore();
+ }
  /* rain + snow. H1: the mm are the towers (bars of the full column width, scaled 0..max(floor, visible max): floor 2 mm per hour, 4 per 3 h, 10 per day) and the probability is a line over them on its own 0-100 % scale */
  if(rainOn){
   ctx.save();
@@ -4021,6 +4136,39 @@ function tlDraw(){
   }
   ctx.restore();
  }
+ /* H2: the History layer at day zoom, over the day bars: the records of the exact date as short ticks (highest maximum red, lowest minimum blue; state 2 writes the value and the two-digit year) and last year's maximum / minimum as a thin hollow bar beside the day's bar */
+ if(histM===2){
+  const hh=D.climo.hist,lyd=(D.climo.ly&&D.climo.ly.byDay)||null,di=dark?1:0;
+  const cR=TLTC.red[di],cB=TLTC.blue[di],dw=pxH*24,lbw=Math.min(isC?20:34,dw*(isC?0.28:0.5));
+  const tkw=Math.max(8,Math.min(40,dw*0.62)),hf=FNT(9,600);
+  ctx.save();ctx.globalAlpha=al('hist');
+  lastR.hrM=null;lastR.hrm=null;
+  (D.daysFull||[]).forEach(d=>{
+   const xc=X(tsMin(d.dt+'T12:00'));if(xc<-50||xc>W+50)return;
+   const k=d.dt.slice(5),h=hh[k];
+   const rec=(r,col,up,key)=>{
+    if(!r||r.v==null)return;
+    const y=yTemp(r.v);if(y<zoneTop-8||y>zoneBot+8)return;
+    ctx.fillStyle=col;ctx.fillRect(xc-tkw/2,Math.round(y)-1,tkw,2);
+    if(!LB.hist)return;
+    const s2=Math.round(r.v)+'° ’'+String(r.y%100).padStart(2,'0'),w2=tlw(s2,hf),yl=y+(up?-7-F/2:8+F/2),yo=up?d.hi:d.lo;
+    if(xc-w2/2<SL+1||xc+w2/2>W-SR-1)return;
+    if(yo!=null){const yv=yTemp(yo),lim=LB.temp?20+F:6;if(up?(yl>yv-lim):(yl<yv+lim))return;} /* the label must clear the day's bar and its own value label (a record the forecast reaches keeps its tick but not its label) */
+    if(fits(key,xc,w2))tx(s2,xc,yl,ink(col),'center',hf);
+   };
+   if(h){rec(h.recMax,cR,true,'hrM');rec(h.recMin,cB,false,'hrm');}
+   const l=(!isC&&lyd)?lyd[k]:null;
+   if(l&&l.max!=null&&l.min!=null){
+    const wl=Math.min(6,(dw-lbw)/2-2);
+    if(wl>=2.5){
+     const y1=yTemp(l.max),y2=yTemp(l.min);
+     ctx.lineWidth=1.3;ctx.strokeStyle=strong;ctx.setLineDash([]);
+     rr(xc+lbw/2+2,y1,wl,Math.max(4,y2-y1),Math.min(3,wl/2));ctx.stroke();
+    }
+   }
+  });
+  ctx.restore();
+ }
  ctx.restore();
  /* ---- HUMIDITY lane (pressure is on, so the right-hand strip is taken) ---- */
  if(humLane){
@@ -4201,7 +4349,7 @@ function tlDraw(){
   ctx.fillStyle=grid;ctx.fillRect(SL,my,1,mh);ctx.fillRect(W-SR-1,my,1,mh);
   const tf2=FNT(10,500),pf2=FNT(9,600);
   ctx.save();ctx.beginPath();ctx.rect(0,my,SL,mh);ctx.rect(W-SR,my,SR,mh);ctx.clip();
-  ctx.globalAlpha=(vis.temp||vis.feels||vis.norm)?1:0.5;
+  ctx.globalAlpha=(vis.temp||vis.feels||vis.norm||vis.hist)?1:0.5;
   dT.ticks.forEach(v=>{const y=yTemp(v);if(y<zoneTop-5||y>zoneBot+5)return;ctx.fillStyle=grid;ctx.fillRect(SL-3,Math.round(y),3,1);tx(tlN(v,dT.step<1?1:0)+'°',SL-5,y,txt,'right',tf2,false);});
   if(!cxOn)tx('°C',SL-5,my+6+F/2,txt,'right',FNT(9,600),false); /* H1: the expanded cloud rows own the top of the strip (the tick labels carry the degree sign anyway) */
   if(cxOn){const cr=LBL.tlCxRow||[],rhx=(bandH-2)/3; /* H1: the expanded cloud rows are named in the left strip (high / mid / low) */
@@ -6115,6 +6263,7 @@ function gridHook(){
 
 /* ---------- Info / changelog ---------- */
 const CHANGELOG=[
+ {v:'3.29',d:'2026-10-23',en:'<b>The timeline got easier to read, and a History layer.</b> Cloud numbers are readable everywhere, including 100 %; tap the cloud band to expand it four times, with low, mid and high clouds in their own rows. Drag an axis to pan it and use the wheel to zoom it. Rain is now shown as mm towers with the probability line over them, and both values are written. At day zoom the temperature bars have colour modes: one colour, against the normal, or by the visible range. The new <b>History</b> layer shows how each date has been in 1991–2020: the typical range (10th to 90th percentile), the records of that date with their year, and last year’s highs and lows. The assistant can use it to tell whether a day is warm or cool for its date.',hr:'<b>Vremenska os je čitljivija, a dodan je sloj Povijest.</b> Brojevi oblaka čitaju se posvuda, i 100 %; dodirni traku oblaka da je četiri puta povećaš, s niskim, srednjim i visokim oblacima u zasebnim redovima. Povuci os za pomak, a kotačićem je zumiraj. Kiša je sada prikazana kao tornjevi milimetara s linijom vjerojatnosti preko njih, a upisane su obje vrijednosti. U prikazu dana stupci temperature imaju načine boje: jedna boja, prema normali ili prema vidljivom rasponu. Novi sloj <b>Povijest</b> pokazuje kakav je svaki datum bio u razdoblju 1991.–2020.: uobičajeni raspon (od 10. do 90. percentila), rekorde tog datuma s godinom i prošlogodišnje maksimume i minimume. Asistent ga može koristiti da kaže je li dan topao ili hladan za svoj datum.'},
  {v:'3.28',d:'2026-10-22',en:'<b>Forecast clouds are back on the map’s ⏱ slider.</b> Move it ahead for the model cloud cover of the next 24 hours (Open-Meteo): a smooth cloud field with the percentages on the map. At “now” the ☁️ layer is still the satellite picture.',hr:'<b>Prognoza oblaka vraćena je na klizač ⏱ karte.</b> Pomakni ga unaprijed za modelsku naoblaku sljedećih 24 sata (Open-Meteo): glatko polje oblaka s postocima na karti. Na „sada” sloj ☁️ i dalje prikazuje satelitsku sliku.'},
  {v:'3.27',d:'2026-10-22',en:'<b>Satellite clouds replace the model cloud blobs.</b> The ☁️ layer on the map now shows real Meteosat satellite imagery (EUMETSAT): the last 2 hours in 10-minute steps, animated on the same timeline as the radar. The infrared picture shows high, cold cloud tops and the cloud mask adds low cloud and fog. The map’s times now follow the place’s own clock. Contains modified EUMETSAT Meteosat data.',hr:'<b>Satelitski oblaci zamjenjuju modelske mrlje oblaka.</b> Sloj ☁️ na karti sada prikazuje stvarne Meteosat satelitske snimke (EUMETSAT): zadnja 2 sata u koracima od 10 minuta, animirano na istoj vremenskoj crti kao radar. Infracrvena slika prikazuje visoke, hladne vrhove oblaka, a maska oblaka dodaje niske oblake i maglu. Vremena na karti sada prate sat samog mjesta. Sadrži izmijenjene EUMETSAT Meteosat podatke.'},
  {v:'3.26',d:'2026-10-21',en:'<b>New GRAPH tab:</b> the timeline full screen, with the bottom menu kept on phones. <b>Compact controls:</b> one bar with the zoom and a Layers &amp; display panel, and a one-row legend below the chart. In the graph, one tap hides every control so the chart fills the whole screen; a light/dark switch is in the graph bar.',hr:'<b>Nova kartica GRAF:</b> vremenska os preko cijelog zaslona, a na telefonu donji izbornik ostaje. <b>Kompaktne kontrole:</b> jedna traka sa zoomom i pločom Slojevi i prikaz te legenda u jednom retku ispod grafa. U grafu jedan dodir sakriva sve kontrole pa graf ispunjava cijeli zaslon; prekidač svijetle/tamne teme nalazi se u traci grafa.'},
@@ -6278,6 +6427,7 @@ function askDaily(d,n){
  const src=(d.daysFull&&d.daysFull.length)?d.daysFull:(d.days||[]);
  const cols=['date','dow','hi','lo','pp','mm','w','g','uv','cond','rise','set'];
  const rows=[];
+ const hist=d.climo&&d.climo.hist,lyd=d.climo&&d.climo.ly&&d.climo.ly.byDay;let anyH=false;
  for(let i=0;i<src.length&&rows.length<n;i++){
   const x=src[i];if(!x||!x.dt)continue;
   let w=null,g=null,uv=null;const rg=d.hrDay&&d.hrDay[x.dt];
@@ -6285,8 +6435,12 @@ function askDaily(d,n){
   let rise=null,set=null;
   const sd=(d.sunDays||[]).find(s=>s.dt===x.dt);
   if(sd){rise=sd.rise;set=sd.set;}else if(d===D&&x.dt===todayIso()&&d.sun){rise=d.sun.rise||null;set=d.sun.set||null;}
-  rows.push([x.dt,askDow(x.dt),askN(x.hi),askN(x.lo),askN(x.pp),askN(x.mm,1),askN(w),askN(g),askN(uv,1),x.cond,rise,set]);
+  const hk=x.dt.slice(5),h=hist?hist[hk]:null,l=lyd?lyd[hk]:null;
+  let hv=null; /* H2: how unusual the date is: [typical low (P10 of the minimum), typical high (P90 of the maximum), record high, its year, record low, its year, last year's max, min] */
+  if(h||l){hv=[h?askN(h.p10min,1):null,h?askN(h.p90max,1):null,(h&&h.recMax)?askN(h.recMax.v,1):null,(h&&h.recMax)?h.recMax.y:null,(h&&h.recMin)?askN(h.recMin.v,1):null,(h&&h.recMin)?h.recMin.y:null,l?askN(l.max,1):null,l?askN(l.min,1):null];anyH=true;}
+  rows.push([x.dt,askDow(x.dt),askN(x.hi),askN(x.lo),askN(x.pp),askN(x.mm,1),askN(w),askN(g),askN(uv,1),x.cond,rise,set,hv]);
  }
+ if(anyH)cols.push('hist');else rows.forEach(r=>r.pop());
  return{cols:cols,rows:rows};
 }
 function askNow(d,i0){
@@ -6317,7 +6471,7 @@ function askContext(){ /* compact JSON string of what the app has loaded (no key
  const o={place:A.loc};
  if(A.tz)o.tz=(typeof A.tz==='string')?A.tz:A.tz.name;
  o.date=todayIso();o.dow=askDow(o.date);
- o.legend={t:'air temp C',fl:'feels-like C',pp:'rain probability %',mm:'rain mm (hour; daily total; from +48h per 3-hour block)',w:'wind km/h',g:'gust km/h',uv:'UV index',night:'1 = dark',rh:'humidity %',p:'sea-level pressure hPa',hi:'daily max C',lo:'daily min C',scores:'activity score 1-100 [date,score,tier,best window start-end,top reasons,1 if the best window already passed today]; the best window is the best 3 consecutive hours',blocks:'hourly rows are hourly for 48 h, then 3-hour blocks (time = block start) up to +7 days; every time is location-local 24 h'};
+ o.legend={t:'air temp C',fl:'feels-like C',pp:'rain probability %',mm:'rain mm (hour; daily total; from +48h per 3-hour block)',w:'wind km/h',g:'gust km/h',uv:'UV index',night:'1 = dark',rh:'humidity %',p:'sea-level pressure hPa',hi:'daily max C',lo:'daily min C',hist:'daily column hist = [typical low C (10th percentile of the daily minimum, 1991-2020, +-3 days around the date), typical high C (90th percentile of the daily maximum), record high C, its year, record low C, its year, last year same-date max C, min C]: compare the forecast with it to say whether a day is ordinary or unusual for its date',scores:'activity score 1-100 [date,score,tier,best window start-end,top reasons,1 if the best window already passed today]; the best window is the best 3 consecutive hours',blocks:'hourly rows are hourly for 48 h, then 3-hour blocks (time = block start) up to +7 days; every time is location-local 24 h'};
  const i0=askCurIdx(A);
  o.now=askNow(A,i0);
  if(A.hr&&A.hr.length&&i0>=0)o.hourly=askHourly(A,i0,48,120,true);

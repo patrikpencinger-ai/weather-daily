@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~6,800 lines). Current version: **v3.28** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~7,000 lines). Current version: **v3.29** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
@@ -105,7 +105,7 @@ the fetch handler returns early, before the navigation rule, for every same-orig
 intercepted or cached. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.28`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.29`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -203,7 +203,7 @@ full-screen shell (now the graph view).
   `'d'` (days; the order is `TLZ`): the last chosen preset / the current representation, and what is saved. `pxh` is
   the continuous horizontal scale in px per hour (session only, `null` = the preset of `zoom`), `fit` is true while
   all days are fitted to the width (see Scale). `layers` has one flag per entry of `TLLAYERS` (the readout order `TLORDER`,
-  flattened from `TLGROUPS`: `temp, feels, norm, rain, snow, cloud, wind, gust, pres, humid, uv, air, pollen,
+  flattened from `TLGROUPS`: `temp, feels, norm, hist, rain, snow, cloud, wind, gust, pres, humid, uv, air, pollen,
   vis, frz, sea, tide, sun, moon, score`) with **three states**: `0` hidden, `1` visible without value labels,
   `2` visible with value labels. `style` is `'linear'`, `'step'` or `'smooth'` (`TLSTYLES`, default `smooth`:
   monotone cubic, no overshoot). `names={c,f}` switches the series-name overlays on for the compact (`c`,
@@ -244,7 +244,7 @@ full-screen shell (now the graph view).
   a series with no data is never drawn and never listed in the legend, C-13). `temp`, `rain` (H1: mm towers with the
   rain probability as a line over them, see "Rain lane"; the next-2h `D.rain15` strip at hours zoom), `wind`, `pres`, `uv`, `air` (the hourly AQI series
   `D.air.aqi.series`), `sea` (`D.sea.days`), `norm` (day zoom only, `D.climo.byDay`) and `score` are the v3.22
-  layers. New in v3.23: `feels` (`hr[].fl`, hours and 3 h only; dotted, on the temperature scale), `humid`
+  layers; `hist` (v3.29, every zoom, `D.climo.hist`, see "History layer") sits after `norm` in the Temperature group. New in v3.23: `feels` (`hr[].fl`, hours and 3 h only; dotted, on the temperature scale), `humid`
   (`rh`; takes the right-hand axis strip while pressure is off, else a thin lane of its own), `cloud`
   (`cl`/`cm`/`ch` as three stacked grey bands at the top of the main area, or three rows when expanded, see "Cloud band"; day zoom the daily mean), `snow`
   (`hr[].snow`, cm, violet bars inside the rain lane: 1.5 cm is full height at hours zoom, 4 cm at 3 h, 15 cm
@@ -306,6 +306,35 @@ full-screen shell (now the graph view).
   (`ink(colour)`, 4.5:1 on the background; the labels sit outside the bars). Control: `btn-tltcol` cycles 0 → 1 → 2 → 0 (`tlCycleTcol()`), the
   panel's segmented `#tlTcol` (`btn-tltc-0..2`, `tlSetTcol(m)`) sets it; with the mode ≠ 0 (and usable) the mini legend shows a gradient key
   after the temperature chip ("−8° … +8°" for 1, `tlTcKeyR` "coolest … warmest" for 2). Colours are read at draw / legend time.
+- **History layer** (H2, v3.29; `hist`, "Povijest" / "History", icon 📜, unit °C, default 0, group Temperature after `norm`). It shows, for every
+  forecast day, how that calendar date has been in 1991–2020, so a day reads as ordinary or unusual at a glance. **Data** — `D.climo.hist[MM-DD]=
+  {p10min,p90max,recMax:{v,y},recMin:{v,y},n}` for the 366 keys of a leap year, built by the pure `buildHist(daily)` from the one 1991–2020
+  archive request of `ensureClimo()` (which now also asks for `temperature_2m_min`; same 20 s timeout, about 353 kB for Zagreb instead of
+  302 kB): `p10min` = the 10th percentile of the daily minima and `p90max` = the 90th percentile of the daily maxima over the ±`HIST_WIN` = 3-day
+  window across the 30 years (about 210 values; linear-interpolation percentile `histPct`; the window runs over the leap-year calendar, so 02-29 and
+  its neighbours pool leap and non-leap years); `recMax` / `recMin` = the highest maximum / lowest minimum of the exact date with its year (ties: the
+  earliest year; 02-29 uses the leap years only; a date with no values has no record); everything is rounded to 0.1 and a failing build only costs
+  the layer (the normals stay). **Last year**: the second archive request now covers last year's same dates for the whole forecast span
+  (`sameDayISO(1)` … + `FCDAYS` days, `isoPlus()`), still giving `ly.max/mean/precip/tomMax` (today's and tomorrow's values, unchanged for their
+  consumers) plus `ly.byDay[MM-DD]={max,min}`; a failure of it gives `ly=null` (no last-year bars), a failure of the main request is the usual
+  "normals unavailable". The snapshot `wd_last` carries `D.climo.hist` (about 38 kB: the Zagreb snapshot went from about 54 kB to about 92 kB, far under
+  the 400 kB guard). The layer is offered when `D.climo.hist` exists (`tlHas().hist`, all zooms; C-13). **Drawing** (`tlDraw()`, `histM` = 0 off,
+  1 hours / 3 h, 2 days): behind everything else of the main area, after the temperature grid, a faint band per day spanning the whole day (hours /
+  3 h: midnight to midnight from `D.hrDay`; days: the bar column) from `p10min` to `p90max` on the temperature scale, in a muted tone of the
+  temperature colour (`C.hi`, or `CMP.a` when comparing; alpha 0.15 light / 0.19 dark, with a thin edge line); at **day zoom**, over the day bars
+  (inside the clip, after the temperature block): a short tick for `recMax` (red) and `recMin` (blue; `TLTC.red` / `TLTC.blue`, theme-aware) and,
+  for a single place, last year's max / min as a thin hollow bar (`strong` outline, width ≤ 6 px, only when the day column is wide enough) beside the
+  day's bar. State 2 writes the record with a two-digit year ("29° ’11", `ink(colour)`), thinned by the `fits` keys `hrM` / `hrm`; a label is skipped
+  when it would not clear the day's bar and its own value label (a record the forecast reaches keeps its tick). `tlRange()` takes a `histM` argument
+  and widens the temperature range by the band (and, at day zoom, the records and last year's max / min) in Auto and Full, so nothing is clipped.
+  **Readout** (`histTxt()` in `tlReadoutLines()`): day zoom "History 1991–2020: typical 8–22°, record 29° (2011) / −1° (1997) · last year 12–19°" (HR
+  "Povijest 1991–2020: uobičajeno 8–22°, rekord 29° (2011) / −1° (1997) · lani 12–19°"); hours / 3 h only the typical range; missing parts (no records, no
+  last year, only a last-year maximum) are skipped, never a lone "–". **Legend**: the chip `hist` (a band between two ticks as its swatch; tooltip
+  adds `tlHistTip`) in the mini row and the panel's Temperature group; while the layer is on the panel's swatch row explains the band
+  (`tlHistB`), at day zoom the records (`tlHistR`) and, for a single place, last year (`tlHistL`). Strings: `tlL_hist`, `tlHistTip`, `tlHistB`,
+  `tlHistR`, `tlHistL`. **Ask context**: `askDaily()` adds a `hist` column per day (`[typical low, typical high, record high, its year, record low, its
+  year, last year's max, min]`, nulls where unknown; the column exists only when some day has the data) and `askContext()`'s legend explains it (about
+  1 kB more for 16 days; the Worker's cap is 40,000 characters).
 - **Legend as control** (`tlLegend()`; one delegated click / pointer listener set on `#tlMini` and on `#tlPanel` in
   `tlInit()`). Chips are `<button class="tlk s0|s1|s2" data-k="…">`. A click calls `tlSetLayer(k)` and cycles 2 → 1 → 0 → 2
   (filled swatch / hollow swatch / grey and struck through); the chip's `aria-pressed` means "visible" and its
@@ -320,7 +349,7 @@ full-screen shell (now the graph view).
   `var(--navh)` so the tab bar stays visible, rounded top corners, max-height 70 vh, scrolls inside), desktop = a 340 px right side
   sheet over the full viewport height; `#tlPanelBk` is the tap-to-close backdrop. Content: every available layer in its
   `TLGROUPS` group under a muted title (`tlG_*`: Temperature, Precipitation, Wind, Air, Sea, Sun and moon, Scores) with all
-  states and the unit (`#tlPanelGroups`, filled by `tlLegend()` only while open), the confidence-band and score-tier swatches,
+  states and the unit (`#tlPanelGroups`, filled by `tlLegend()` only while open), the confidence-band, History and score-tier swatches,
   then the "Display" block (`tlDisplay`): Auto / Full `#tlFit` (`btn-tlf-auto`/`-full`, `tlSetFit`), line style `#tlStyle`
   (`btn-tls-linear`/`-step`/`-smooth`, `tlSetStyle`), the series-names switch `#tlNames` (`tlToggleNames()`, writes
   `TL.names.c` or `.f`, `aria-pressed` kept by `tlSyncUi()`), the cloud switch `#tlCloudX` (H1, `tlToggleCloudX()`), the day-colour segmented
@@ -379,7 +408,7 @@ full-screen shell (now the graph view).
   (3 h: the window's maximum, the sum for mm and snow, the minimum for visibility); the day readout shows low … high, rain, wind, pressure,
   UV, peak AQI, sea, the normal with its delta, the day's sunrise / sunset (`sunLine`), the tide
   (`tideLine`), the strongest pollen hour (`polTxt`), **the moon phase** (`moonIcon`/`moonName`/`moonIllum`)
-  and the score with its best window.
+  and the score with its best window. With the History layer on, the readout carries its line after the normal (see "History layer").
 - **Graph view** (G1 v3.26 = the old RT-22 full-screen overlay turned into a tab; G2 v3.26 = compact controls). View `graph` / section
   `#view-graph` (`role=tabpanel`, labelled by the visually hidden `#tlGraphH`), route `#graph` (`#graf`), tab `tab-graph`. The ⛶ button
   (`btn-tlfs`) calls `tlFullOpen()` (sets `TL.fromApp`, navigates to `#graph`); `tlFullClose()` (✕, Esc) goes `history.back()` when it was
@@ -594,7 +623,7 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
   (`askDow`, UTC noon, no browser clock), a unit legend, `now` (`askNow`), `hourly` (`askHourly`: 48 hourly rows,
   then 3-hour blocks up to +168 h; the AI fallback feed sends its 24 rows), `daily` (`askDaily`: 16 days with the
   day's wind / gust / UV maxima and sunrise / sunset from `D.sunDays`), alerts, sea, air quality with the
-  strongest pollen, climate normals and the activity scores of the next seven days (`askScores`, straight from
+  strongest pollen, climate normals (and, in the `daily` rows, the `hist` column of the History layer: typical range, records with their years and last year's max / min of each date) and the activity scores of the next seven days (`askScores`, straight from
   `scoreDays`), plus the second place in comparison mode (48 h and 7 days). Key mode sends it through
   `askSystem(ctx)` (the two system blocks). Proxy mode sends `{q, lang, ctx, place}` where `ctx` is the parsed
   `askContext()` object plus `now_local` (`"YYYY-MM-DD HH:MM"` from `locNowStr()`, the place's clock) and
@@ -917,7 +946,7 @@ failure. Run it after touching `worker.js`; run `node --check worker.js` too.
   is a CSS invert. CARTO Positron (`basemaps.cartocdn.com`) was dropped in v3.13 when CARTO made its
   basemaps key-only (tiles come back watermarked "API KEY REQUIRED"); setting the `CARTOKEY` constant to
   a free key from carto.com/basemaps/apikey restores it.
-- **Open-Meteo Archive** — `archive-api.open-meteo.com` (1991–2020 climatology / anomalies).
+- **Open-Meteo Archive** — `archive-api.open-meteo.com` (1991–2020 climatology / anomalies), two requests in `ensureClimo()`: (1) 1991-01-01…2020-12-31, `daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum` (20 s timeout; the normals `avg` / `byDay` and the History layer's `hist`, about 353 kB for Zagreb); (2) last year's same dates, from `sameDayISO(1)` to that date + `FCDAYS` days, the same four daily variables (12 s timeout; `ly.max/mean/precip/tomMax` and `ly.byDay[MM-DD]={max,min}`). The result is cached in memory per rounded coordinates (`climoCache`) and travels in the `wd_last` snapshot.
 - **AI feed (optional secondary)** — a Claude + web-search "interesting fact" / outlook feed. The
   dashboard degrades gracefully when this is unavailable; its reduced forecast object has no `tz`
   (browser time) and none of the hourly extras.
