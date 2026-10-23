@@ -195,7 +195,7 @@ body{padding:20px;transition:background .2s}
 #tlCanvas{display:block;width:100%;height:100%;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
 #tlCanvas.drag{cursor:grabbing}
 #tlCanvas:focus-visible{outline:2px solid var(--tp);outline-offset:-2px}
-#tlZoom .lbtn,#tlFit .lbtn,#tlStyle .lbtn{gap:5px;flex:0 0 auto}
+#tlZoom .lbtn,#tlFit .lbtn,#tlStyle .lbtn,#tlTcol .lbtn{gap:5px;flex:0 0 auto}
 .tlhd{display:flex;align-items:center;justify-content:space-between;gap:8px}
 #btn-tlfs,#btn-tlfsx{padding:4px 9px;flex:0 0 auto}
 #btn-tlfs svg{display:block}
@@ -222,13 +222,28 @@ body{padding:20px;transition:background .2s}
 #btn-tlpanel svg{display:block;flex:0 0 auto}
 #btn-tlpanel .tlcnt{min-width:18px;height:18px;border-radius:9px;background:var(--tp);color:var(--bg);font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 5px;box-sizing:border-box}
 @media (max-width:389px){#btn-tlpanel .tlpl{display:none}}
+#btn-tltcol{gap:6px;padding:4px 10px;white-space:nowrap;color:var(--tp)}
+#btn-tltcol.hidden{display:none}
+#btn-tltcol .tcsw,.tlgk .tcsw{display:inline-block;width:16px;height:10px;border-radius:3px;flex:0 0 auto;border:1px solid var(--bd);box-sizing:border-box}
+#wrap.mobile #btn-tltcol,#wrap.mid #btn-tltcol{min-width:44px}
+#wrap.mobile #view-graph #btn-tltcol .tcw{display:none}
+@media (max-width:389px){#wrap.mobile #view-graph #tlBar{gap:4px}#wrap.mobile #view-graph #tlZoom .lbtn{min-width:40px;padding:4px 6px!important}#wrap.mobile #view-graph #btn-tltcol{min-width:0;padding:4px 9px}#wrap.mobile #view-graph #btn-tltheme,#wrap.mobile #view-graph #btn-tlcollapse{width:40px}} /* a 360 px phone: the graph bar keeps zoom, day colour, Layers, theme and hide on one row (44 px tall, a little narrower) */
+.tlgk{display:inline-flex;align-items:center;gap:5px;margin:0 4px;font-size:11.5px;color:var(--ts);white-space:nowrap}
+.tlgk .tlgrad{display:inline-block;width:46px;height:8px;border-radius:3px;border:1px solid var(--bd);box-sizing:border-box}
+.tlk .tlsvg{width:14px;height:10px;flex:0 0 auto;overflow:visible}
+.tlk .tlsvg .b{fill:var(--c);stroke:var(--c);stroke-width:1}
+.tlk .tlsvg .l{fill:none;stroke:var(--c);stroke-width:1.6;stroke-linejoin:round}
+.tlk.s1 .tlsvg .b{fill:none}
+.tlk.s0 .tlsvg{opacity:.55}
+.tlk.s0 .tlsvg .b,.tlk.s0 .tlsvg .l{stroke:#9a9a96}
+.tlk.s0 .tlsvg .b{fill:#9a9a96}
 #tlBar .gonly,#tlBar #btn-tlfsx,#tlBarStart{display:none}
 #btn-tltheme,#btn-tlcollapse{width:36px;padding:0;color:var(--tp)}
 #wrap.mobile #btn-tltheme,#wrap.mid #btn-tltheme,#wrap.mobile #btn-tlcollapse,#wrap.mid #btn-tlcollapse{width:44px}
 #btn-tltheme svg,#btn-tlcollapse svg{display:block}
 #tlMini{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;margin:6px 0 0;font-size:12px;min-height:36px;padding:0 0 1px}
 #wrap.mobile #tlMini,#wrap.mid #tlMini{min-height:44px}
-#tlMini .tlk,#tlMini .tlmm,#tlMini .tlli{flex:0 0 auto;white-space:nowrap}
+#tlMini .tlk,#tlMini .tlmm,#tlMini .tlli,#tlMini .tlgk{flex:0 0 auto;white-space:nowrap}
 /* F2: panel legend groups with a muted title, the series-names switch */
 .tlg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
 .tlgt{color:var(--ts);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-right:2px}
@@ -489,6 +504,7 @@ html.tlfs #askBar{display:none}
   <button class="lbtn" id="btn-tlz-3" onclick="tlSetZoom('3')" aria-pressed="false" data-i="tlZ_3">3 h</button>
   <button class="lbtn" id="btn-tlz-d" onclick="tlSetZoom('d')" aria-pressed="false" data-i="tlZ_d">Day</button>
 </div>
+<button type="button" class="lbtn hidden" id="btn-tltcol" onclick="tlCycleTcol()"></button>
 <button type="button" class="lbtn" id="btn-tlpanel" onclick="tlPanelOpen(this)" aria-haspopup="dialog" aria-controls="tlPanel" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/></svg><span class="tlpl" data-i="tlPanelBtn">Layers</span><span class="tlcnt" id="tlPanelN" aria-hidden="true">0</span></button>
 <button type="button" class="lbtn gonly" id="btn-tltheme" onclick="toggleTheme()" data-tt="tt_theme"></button>
 <button type="button" class="lbtn gonly" id="btn-tlcollapse" onclick="tlSetCollapsed(1)" data-tt="tt_tlcollapse"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14"/><path d="m6 16 6-6 6 6"/></svg></button>
@@ -766,7 +782,14 @@ html.tlfs #askBar{display:none}
     <button class="lbtn" id="btn-tls-smooth" onclick="tlSetStyle('smooth')" aria-pressed="true" data-i="tlSty_smooth">Smooth</button>
   </div></div>
   <div class="tlprow"><button type="button" class="tlnm" id="tlNames" aria-pressed="false" data-i="tlNames">Series names</button></div>
-  <span class="tlhint" data-i="tlHint">drag an axis to rescale · double-click resets</span>
+  <div class="tlprow"><button type="button" class="tlnm" id="tlCloudX" aria-pressed="false" data-i="tlCloudX">Clouds expanded: low · mid · high</button></div>
+  <div class="tlprow"><span class="tlprl" data-i="tlTcolLbl">Day colour</span>
+  <div class="rng" id="tlTcol" role="group" data-tt="tlTcolAria">
+    <button class="lbtn" id="btn-tltc-0" onclick="tlSetTcol(0)" aria-pressed="true" data-i="tlTcw_0">Single</button>
+    <button class="lbtn" id="btn-tltc-1" onclick="tlSetTcol(1)" aria-pressed="false" data-i="tlTcw_1">Normal</button>
+    <button class="lbtn" id="btn-tltc-2" onclick="tlSetTcol(2)" aria-pressed="false" data-i="tlTcw_2">Range</button>
+  </div></div>
+  <span class="tlhint" data-i="tlHint">drag an axis to pan · wheel zooms the axis · double-click resets</span>
 </div>
 </aside>
 </div>
@@ -817,7 +840,7 @@ function polLvl(v){return v<10?0:v<50?1:2;}
 let BRANGE='h';
 function setBRange(v){BRANGE=v;markBtns();if(D&&D.bio)drawBio();}
 let GRANGE='h';
-let TL={zoom:'h',layers:{temp:2,feels:0,norm:0,rain:2,snow:0,cloud:0,wind:0,gust:0,pres:0,humid:0,uv:0,air:0,pollen:0,vis:0,frz:0,sea:0,tide:0,sun:0,moon:0,score:2},style:'smooth',names:{c:false,f:true},axis:{temp:{mode:'auto',lo:null,hi:null},pres:{mode:'auto',lo:null,hi:null}},x0:null,cursor:null,full:false,pxh:null,fit:false,ui:{c:0}}; /* G2: ui.c = the graph view's controls are collapsed (0 / 1, remembered in wd_prefs.tl.ui). T1: pxh = px per hour (continuous scale, session only, never saved; null = the preset of zoom), fit = all days fitted to the width. K1/K2/F1: VREMENSKA OS state. layers: 0 hidden / 1 visible / 2 visible + value labels (default temperature + rain + score at 2); style = line style; axis = value-axis fit mode + manual override; F2: 20 layers in 7 legend groups, names = the series-name overlay switch per view (c compact, f fullscreen); zoom + layers + style + names + axis are remembered (wd_prefs.tl), x0 / cursor / full never are */
+let TL={zoom:'h',layers:{temp:2,feels:0,norm:0,rain:2,snow:0,cloud:0,wind:0,gust:0,pres:0,humid:0,uv:0,air:0,pollen:0,vis:0,frz:0,sea:0,tide:0,sun:0,moon:0,score:2},style:'smooth',names:{c:false,f:true},axis:{temp:{mode:'auto',lo:null,hi:null},pres:{mode:'auto',lo:null,hi:null}},x0:null,cursor:null,full:false,pxh:null,fit:false,ui:{c:0},cx:0,tcol:0}; /* H1: cx = the cloud band is expanded x4 (low / mid / high rows; 0 / 1, wd_prefs.tl.cx); tcol = day-zoom temperature colour mode (0 single, 1 vs the normal, 2 visible range; wd_prefs.tl.tcol). G2: ui.c = the graph view's controls are collapsed (0 / 1, remembered in wd_prefs.tl.ui). T1: pxh = px per hour (continuous scale, session only, never saved; null = the preset of zoom), fit = all days fitted to the width. K1/K2/F1: VREMENSKA OS state. layers: 0 hidden / 1 visible / 2 visible + value labels (default temperature + rain + score at 2); style = line style; axis = value-axis fit mode + manual override; F2: 20 layers in 7 legend groups, names = the series-name overlay switch per view (c compact, f fullscreen); zoom + layers + style + names + axis are remembered (wd_prefs.tl), x0 / cursor / full never are */
 let PLAN={act:'bbq',date:null}; /* J2: PLANIRAJ - chosen activity (remembered in wd_prefs.act) and day (never saved) */
 function setGRange(v){GRANGE=v;markBtns();if(D&&D.days)drawGrill();}
 function bioLvl(s){return s<=1?0:s<=3?1:2;}
@@ -843,7 +866,7 @@ let GROUPS={air:false,cmp:false,sea:false,bio:false}; /* P1: open state of the f
    migrated once into the timeline's pressure layer (loadPrefs) and disappears with the next save; the other stale keys are simply ignored. */
 function savePrefs(){ /* I2: language, theme and the switches survive a reload (MP is deliberately not saved) */
  if(!PREFS_LIVE)return;
- try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS,aiModel:ASK.model,tl:{v:2,zoom:TL.zoom,layers:TL.layers,style:TL.style,names:TL.names,axis:TL.axis,ui:{c:TL.ui.c?1:0}}}));}catch(e){}
+ try{localStorage.setItem(PREFS_KEY,JSON.stringify({lang:lang,theme:theme,VEGAN:VEGAN,act:PLAN.act,groups:GROUPS,aiModel:ASK.model,tl:{v:2,zoom:TL.zoom,layers:TL.layers,style:TL.style,names:TL.names,axis:TL.axis,ui:{c:TL.ui.c?1:0},cx:TL.cx?1:0,tcol:TL.tcol|0}}));}catch(e){}
 }
 function loadPrefs(){
  let p=null;
@@ -869,6 +892,8 @@ function loadPrefs(){
   }
   if(TLSTYLES.indexOf(p.tl.style)>=0)TL.style=p.tl.style;
   TL.ui.c=(p.tl.ui&&typeof p.tl.ui==='object'&&(p.tl.ui.c===1||p.tl.ui.c===true))?1:0; /* G2: a missing / invalid value is 0 */
+  TL.cx=(p.tl.cx===1||p.tl.cx===true)?1:0; /* H1: a missing / invalid value is 0 */
+  TL.tcol=(p.tl.tcol===1||p.tl.tcol===2)?p.tl.tcol:0;
   if(p.tl.names&&typeof p.tl.names==='object'){['c','f'].forEach(w=>{if(typeof p.tl.names[w]==='boolean')TL.names[w]=p.tl.names[w];});}
   if(p.tl.axis&&typeof p.tl.axis==='object'){['temp','pres'].forEach(w=>{
    const a=p.tl.axis[w],ax=TL.axis[w];if(!a||typeof a!=='object')return;
@@ -1180,7 +1205,7 @@ const T={
   ar_bioInfo:"Biometeo criteria",
   tlTitle:"TIMELINE",tlZ_h:"Hour",tlZ_3:"3 h",tlZ_d:"Day",tlL_temp:"Temperature",tlL_rain:"Rain",tlL_wind:"Wind",tlL_pres:"Pressure",tlL_uv:"UV index",tlL_air:"Air quality",tlL_sea:"Sea",tlL_norm:"Normal",
   tlZoomAria:"Timeline zoom",tlFitAria:"Value-axis scale: fit the visible window or all data",tlFit_auto:"Auto",tlFit_full:"Full",tlStyleAria:"Line style",tlSty_linear:"Linear",tlSty_step:"Step",tlSty_smooth:"Smooth",
-  tlSt0:"hidden",tlSt1:"visible, no labels",tlSt2:"visible with labels",tlHint:"drag an axis to rescale · double-click resets",
+  tlSt0:"hidden",tlSt1:"visible, no labels",tlSt2:"visible with labels",tlHint:"drag an axis to pan · wheel zooms the axis · double-click resets",tlCloudX:"Clouds expanded: low · mid · high",tlCloudTip:"tap the cloud band to expand",tlCxRow:["H","M","L"],tlTcolLbl:"Day colour",tlTcolAria:"Day-zoom temperature colour",tt_tltcol:"Temperature colour (day zoom)",tlTc_0:"Colour: single",tlTc_1:"Colour: vs normal",tlTc_2:"Colour: range",tlTcw_0:"Single",tlTcw_1:"Normal",tlTcw_2:"Range",tlTcNA:"no normals for this place",tlTcKeyR:["coolest","warmest"],
   tlL_feels:"Feels like",tlL_humid:"Humidity",tlL_cloud:"Cloud cover",tlL_gust:"Gusts",tlL_vis:"Visibility",tlL_frz:"Freezing level",tlL_snow:"Snow",tlL_sun:"Sunrise / sunset",tlL_moon:"Moon phase",tlL_tide:"Tide",tlL_pollen:"Pollen",
   tlN_temp:"Temperature",tlN_feels:"Feels like",tlN_pres:"Pressure",tlN_humid:"Humidity",tlN_frz:"Freezing lvl",tlN_gust:"Gusts",tlN_norm:"Normal",
   tlG_temp:"Temperature",tlG_rain:"Precipitation",tlG_wind:"Wind",tlG_air:"Air",tlG_sea:"Sea",tlG_sun:"Sun and moon",tlG_score:"Scores",
@@ -1244,7 +1269,7 @@ const T={
   ar_bioInfo:"Kriteriji biometeorologije",
   tlTitle:"VREMENSKA OS",tlZ_h:"Sat",tlZ_3:"3 h",tlZ_d:"Dan",tlL_temp:"Temperatura",tlL_rain:"Kiša",tlL_wind:"Vjetar",tlL_pres:"Tlak",tlL_uv:"UV indeks",tlL_air:"Kvaliteta zraka",tlL_sea:"More",tlL_norm:"Normala",
   tlZoomAria:"Zoom vremenske osi",tlFitAria:"Mjerilo osi vrijednosti: vidljivi prozor ili svi podaci",tlFit_auto:"Auto",tlFit_full:"Puni",tlStyleAria:"Stil linije",tlSty_linear:"Ravno",tlSty_step:"Stepenasto",tlSty_smooth:"Glatko",
-  tlSt0:"skriveno",tlSt1:"vidljivo bez oznaka",tlSt2:"vidljivo s oznakama",tlHint:"povuci os za mjerilo · dvoklik vraća",
+  tlSt0:"skriveno",tlSt1:"vidljivo bez oznaka",tlSt2:"vidljivo s oznakama",tlHint:"povuci os za pomak · kotačić zumira os · dvoklik vraća",tlCloudX:"Oblaci prošireno: nisko · srednje · visoko",tlCloudTip:"dodirni traku oblaka za proširenje",tlCxRow:["V","S","N"],tlTcolLbl:"Boja dana",tlTcolAria:"Boja temperature u dnevnom prikazu",tt_tltcol:"Boja temperature (dnevni prikaz)",tlTc_0:"Boja: jedna",tlTc_1:"Boja: od normale",tlTc_2:"Boja: raspon",tlTcw_0:"Jedna",tlTcw_1:"Normala",tlTcw_2:"Raspon",tlTcNA:"nema normala za ovo mjesto",tlTcKeyR:["najhladnije","najtoplije"],
   tlL_feels:"Osjet",tlL_humid:"Vlaga",tlL_cloud:"Naoblaka",tlL_gust:"Udari vjetra",tlL_vis:"Vidljivost",tlL_frz:"Granica smrzavanja",tlL_snow:"Snijeg",tlL_sun:"Izlazak / zalazak",tlL_moon:"Mjesečeva mijena",tlL_tide:"Plima i oseka",tlL_pollen:"Pelud",
   tlN_temp:"Temperatura",tlN_feels:"Osjet",tlN_pres:"Tlak",tlN_humid:"Vlaga",tlN_frz:"Smrzavanje",tlN_gust:"Udari",tlN_norm:"Normala",
   tlG_temp:"Temperatura",tlG_rain:"Oborine",tlG_wind:"Vjetar",tlG_air:"Zrak",tlG_sea:"More",tlG_sun:"Sunce i mjesec",tlG_score:"Ocjene",
@@ -3269,6 +3294,21 @@ function tlSyncUi(){
  ['auto','full'].forEach(m=>{const b=document.getElementById('btn-tlf-'+m);if(b)b.setAttribute('aria-pressed',TL.axis.temp.mode===m?'true':'false');});
  TLSTYLES.forEach(s=>{const b=document.getElementById('btn-tls-'+s);if(b)b.setAttribute('aria-pressed',TL.style===s?'true':'false');});
  const nb=document.getElementById('tlNames');if(nb)nb.setAttribute('aria-pressed',(TL.names&&TL.names[TL.full?'f':'c'])?'true':'false');
+ {const cb=document.getElementById('tlCloudX');if(cb)cb.setAttribute('aria-pressed',TL.cx?'true':'false');}
+ [0,1,2].forEach(m=>{const b=document.getElementById('btn-tltc-'+m);if(b)b.setAttribute('aria-pressed',(TL.tcol|0)===m?'true':'false');});
+ { /* H1: the day-colour button sits in the bar only at day zoom with the temperature layer on (one place, not a comparison) */
+  const tb=document.getElementById('btn-tltcol');
+  if(tb){
+   const show=!!(D&&D.hr&&tlOk()&&tlRep()==='d'&&(TL.layers.temp|0)>0&&!cmp());
+   tb.classList.toggle('hidden',!show);
+   if(show){
+    const m=TL.tcol|0,na=tlTcolNA(),nm=LBL['tlTc_'+m]+(na?' ('+LBL.tlTcNA+')':'');
+    const html='<i class="tcsw" aria-hidden="true" style="background:'+tlTcSwatch(m)+'"></i><span class="tcw">'+esc(LBL['tlTcw_'+m])+'</span>';
+    if(tb.getAttribute('data-h')!==html){tb.innerHTML=html;tb.setAttribute('data-h',html);}
+    tb.title=nm;tb.setAttribute('aria-label',nm);
+   }
+  }
+ }
  { /* G2: the Layers button carries the number of visible layers; the bar and the mini legend get their accessible names here (they follow the language) */
   let n=0;
   if(D&&D.hr){const has=tlHas();TLORDER.forEach(k=>{if((TL.layers[k]|0)>0&&tlAvail(k,has))n++;});}
@@ -3278,6 +3318,21 @@ function tlSyncUi(){
   if(bar&&LBL.tlBarAria)bar.setAttribute('aria-label',LBL.tlBarAria);
  }
 }
+/* H1: day-zoom temperature colour modes (TL.tcol): 0 one colour, 1 the day's maximum against the normal of its date (blue below, a neutral grey at the normal, red above, +-8 degC saturates; without normals it behaves as 0), 2 the visible range (the coolest visible day's maximum is the bluest, the warmest the reddest). Colours are theme-aware, read at draw / legend time. */
+const TLTC={blue:['#2f6fd0','#5aa2ff'],red:['#d8452b','#ff7a5c'],neu:['#8d939c','#aab0b9'],amber:['#d9a21f','#f2c14e']};
+function tlTcStops(m){const i=theme==='dark'?1:0;return m===1?[TLTC.blue[i],TLTC.neu[i],TLTC.red[i]]:[TLTC.blue[i],TLTC.amber[i],TLTC.red[i]];}
+function tlRamp(stops,t){ /* t 0..1 across the stops -> '#rrggbb' */
+ t=Math.max(0,Math.min(1,t));const s=t*(stops.length-1),i=Math.min(stops.length-2,Math.floor(s)),u=s-i;
+ const a=tlRgb(stops[i]),b=tlRgb(stops[i+1]);
+ return '#'+[0,1,2].map(k=>Math.round(a[k]+(b[k]-a[k])*u).toString(16).padStart(2,'0')).join('');
+}
+function tlTcolNA(){return (TL.tcol|0)===1&&!(D&&D.climo&&D.climo.byDay);} /* the vs-normal mode without normals: drawn as the single colour, and the control says so */
+function tlTcSwatch(m){if(m===0)return C.hi;const st=tlTcStops(m);return 'linear-gradient(90deg,'+st.join(',')+')';}
+function tlSetTcol(m){
+ m=(m===1||m===2)?m:0;TL.tcol=m;
+ savePrefs();markBtns();tlSyncUi();tlLegend();tlSchedule();
+}
+function tlCycleTcol(){tlSetTcol(((TL.tcol|0)+1)%3);}
 /* F1: the legend IS the series control. One button per layer cycles 2 (visible + value labels, filled swatch) -> 1 (visible, no labels,
    hollow swatch) -> 0 (hidden, grey + struck through) -> 2. A hidden series is previewed faintly while a mouse hovers its chip. */
 const TLUNIT={temp:'°C',feels:'°C',norm:'',rain:'% · mm',snow:'cm',cloud:'%',wind:'km/h',gust:'km/h',pres:'hPa',humid:'%',uv:'',air:'EAQI',pollen:'/m³',vis:'km',frz:'m',sea:'°C',tide:'cm',sun:'',moon:'',score:''};
@@ -3382,11 +3437,16 @@ function tlLegend(){
  const chip=(k,mini)=>{
   const s=La[k]|0,nmx=tlLayerName(k),unit=TLUNIT[k]||'';
   const label=(k==='score'?((ACTICON[planAct()]||'')+' '):'')+nmx+((!mini&&unit)?' '+unit:'');
-  const tip=nmx+': '+LBL['tlSt'+s]+(k==='tide'?'. '+LBL.tlTideTip:'');
-  return '<button type="button" class="tlk s'+s+'" data-k="'+k+'" aria-pressed="'+(s>0?'true':'false')+'" aria-label="'+esc(tip)+'" title="'+esc(tip)+'" style="--c:'+tlCol(k)+'"><i class="tlsw" aria-hidden="true"></i><span>'+esc(label)+'</span></button>';
+  const tip=nmx+': '+LBL['tlSt'+s]+(k==='tide'?'. '+LBL.tlTideTip:'')+(k==='cloud'?' · '+LBL.tlCloudTip:'');
+  const swc=(k==='rain')?'<svg class="tlsvg" viewBox="0 0 14 10" aria-hidden="true"><rect class="b" x="1.5" y="5" width="3" height="4.5"/><rect class="b" x="5.5" y="2.5" width="3" height="7"/><rect class="b" x="9.5" y="6.5" width="3" height="3"/><polyline class="l" points="1.5,6 7,1.5 12.5,4"/></svg>':'<i class="tlsw" aria-hidden="true"></i>'; /* H1: the rain chip shows what is drawn - mm bars with a probability line */
+  return '<button type="button" class="tlk s'+s+'" data-k="'+k+'" aria-pressed="'+(s>0?'true':'false')+'" aria-label="'+esc(tip)+'" title="'+esc(tip)+'" style="--c:'+tlCol(k)+'">'+swc+'<span>'+esc(label)+'</span></button>';
  };
  const mh=[];
- TLORDER.forEach(k=>{if(!tlAvail(k,has))return;if((La[k]|0)>0||TLC.ghost[k])mh.push(chip(k,true));});
+ TLORDER.forEach(k=>{if(!tlAvail(k,has))return;if((La[k]|0)>0||TLC.ghost[k])mh.push(chip(k,true));
+  if(k==='temp'&&(La.temp|0)>0&&tlRep()==='d'&&!isC&&(TL.tcol|0)>0&&!tlTcolNA()){ /* H1: a small gradient key after the temperature chip */
+   const m=TL.tcol|0,st=tlTcStops(m);
+   mh.push('<span class="tlgk" role="img" aria-label="'+esc(LBL['tlTc_'+m])+'"><span>'+(m===1?'−8°':esc(LBL.tlTcKeyR[0]))+'</span><i class="tlgrad" style="background:linear-gradient(90deg,'+st.join(',')+')"></i><span>'+(m===1?'+8°':esc(LBL.tlTcKeyR[1]))+'</span></span>');
+  }});
  if(isC&&La.temp>0&&tlAvail('temp',has)){mh.push(sw('background:'+CMP.a,D.loc||locA()));mh.push(sw('border-top:2px dashed '+CMP.b+';background:none',D2.loc||selB));}
  mh.push('<button type="button" class="tlmm" id="tlMiniMore" aria-haspopup="dialog" aria-controls="tlPanel" aria-expanded="'+(TLP.open?'true':'false')+'" aria-label="'+escAttr(LBL.tt_tlpanel)+'" title="'+escAttr(LBL.tt_tlpanel)+'">\uFF0B '+esc(LBL.tlPanelBtn)+'</button>');
  el.setAttribute('aria-label',LBL.tlMiniAria||'');
@@ -3489,32 +3549,36 @@ function tlRange(which,iA,iB,xm,mR,normOn,feelsOn){
  if(lo>hi){if(which==='temp'){lo=TLC.tMin;hi=TLC.tMax;}else{lo=TLC.pMin;hi=TLC.pMax;}}
  return[lo,hi];
 }
-function tlAxisCalc(which,rng,zoneH){ /* -> {lo,hi,step,ticks,manual,mode}: a manual override (C-17) wins over the refit */
+function tlAxisCalc(which,rng,zoneH){ /* -> {lo,hi,step,ticks,manual,mode,asp}: a manual override (C-17) wins over the refit; asp = the span the automatic fit would use (the zoom limit is 8x that) */
  const ax=TL.axis[which],minSp=which==='temp'?6:8;
  const manual=ax.lo!=null&&ax.hi!=null&&ax.hi>ax.lo;
  let lo=rng[0],hi=rng[1];
- if(manual){lo=ax.lo;hi=ax.hi;}
- else{
-  if(hi-lo<minSp){const c=(hi+lo)/2;lo=c-minSp/2;hi=c+minSp/2;}
-  const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;
- }
- const step=tlNiceStep((hi-lo)/Math.max(2,Math.floor(zoneH/34)));
- if(!manual){lo=Math.floor(lo/step+1e-9)*step;hi=Math.ceil(hi/step-1e-9)*step;}
+ if(hi-lo<minSp){const c=(hi+lo)/2;lo=c-minSp/2;hi=c+minSp/2;}
+ {const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;}
+ let step=tlNiceStep((hi-lo)/Math.max(2,Math.floor(zoneH/34)));
+ lo=Math.floor(lo/step+1e-9)*step;hi=Math.ceil(hi/step-1e-9)*step;
+ const asp=hi-lo;
+ if(manual){lo=ax.lo;hi=ax.hi;step=tlNiceStep((hi-lo)/Math.max(2,Math.floor(zoneH/34)));}
  const ticks=[];
  for(let v=Math.ceil(lo/step-1e-9)*step;v<=hi+1e-9&&ticks.length<40;v+=step)ticks.push(Math.round(v*1000)/1000);
- return{lo:lo,hi:hi,step:step,ticks:ticks,manual:manual,mode:ax.mode};
+ return{lo:lo,hi:hi,step:step,ticks:ticks,manual:manual,mode:ax.mode,asp:asp};
 }
-function tlAxisScale(which,base,f){ /* f>1: larger max (drag/wheel down), f<1: smaller max. Auto keeps lo, Full scales around the middle */
- const ax=TL.axis[which],minSp=which==='temp'?3:4,sp=base.hi-base.lo;
- const nsp=Math.min(sp*8,Math.max(minSp,sp*f));
- if(base.mode==='full'){const c=(base.lo+base.hi)/2;ax.lo=c-nsp/2;ax.hi=c+nsp/2;}
- else{ax.lo=base.lo;ax.hi=base.lo+nsp;}
+function tlAxisPan(which,base,dy,zh){ /* H1: a mouse drag on the strip pans the axis - the scale follows the pointer: dragging down by dy px moves lo and hi up by dy * span / zoneH */
+ const ax=TL.axis[which],sp=base.hi-base.lo,sh=(zh>0?dy*sp/zh:0);
+ ax.lo=base.lo+sh;ax.hi=base.hi+sh;
+}
+function tlAxisZoom(which,base,v0,f){ /* H1: the wheel zooms around the value v0 under the pointer (f<1 = zoom in); the span stays in [3 degC | 4 hPa, 8x the automatic span] */
+ const ax=TL.axis[which],minSp=which==='temp'?3:4,asp=(base.asp>0?base.asp:(base.hi-base.lo));
+ let lo=v0-(v0-base.lo)*f,hi=v0+(base.hi-v0)*f;
+ const sp=hi-lo,cl=Math.min(asp*8,Math.max(minSp,sp));
+ if(sp>0&&cl!==sp){const g=cl/sp;lo=v0-(v0-lo)*g;hi=v0+(hi-v0)*g;}
+ ax.lo=lo;ax.hi=hi;
 }
 function tlAxisBase(which){
- const ax=TL.axis[which];
- if(ax.lo!=null&&ax.hi!=null&&ax.hi>ax.lo)return{lo:ax.lo,hi:ax.hi,mode:ax.mode};
- const d=TLC.dom&&TLC.dom[which];
- return d?{lo:d.lo,hi:d.hi,mode:ax.mode}:null;
+ const ax=TL.axis[which],d=TLC.dom&&TLC.dom[which];
+ if(!d||!TLC.lay)return null;
+ if(ax.lo!=null&&ax.hi!=null&&ax.hi>ax.lo)return{lo:ax.lo,hi:ax.hi,mode:ax.mode,asp:d.asp};
+ return{lo:d.lo,hi:d.hi,mode:ax.mode,asp:d.asp};
 }
 function tlAxisAt(px,py){
  const L=TLC.lay;if(!L||!TLC.W)return null;
@@ -3522,6 +3586,14 @@ function tlAxisAt(px,py){
  if(px<=L.sl)return'temp';
  if(px>=TLC.W-L.sr)return L.rax==='humid'?null:'pres'; /* F2: the strip shows the humidity scale while pressure is off - not draggable */
  return null;
+}
+function tlCloudAt(px,py){ /* H1: a tap inside the cloud band (a few px of slack) expands / collapses it */
+ const L=TLC.lay;if(!L||!TLC.W||!L.cb)return false;
+ return px>L.sl&&px<TLC.W-L.sr&&py>=L.cb[0]&&py<=L.cb[1];
+}
+function tlToggleCloudX(){
+ TL.cx=TL.cx?0:1;
+ savePrefs();tlSyncUi();tlSchedule();
 }
 
 /* --- main draw --- */
@@ -3550,9 +3622,10 @@ function tlDraw(){
  const humLane=vis.humid&&vis.pres; /* F2: humidity shares the right-hand strip when pressure is off, else it gets a thin lane of its own */
  const defs=[['humid',16,humLane],['wind',vis.gust?38:24,windOn],['uv',14,vis.uv],['air',14,vis.air],['pollen',14,vis.pollen],['vis',14,vis.vis],['sea',24,seaOn],['score',12,vis.score]].filter(a=>a[2]);
  const laneSum=defs.reduce((s,a)=>s+a[1],0),baseSum=laneSum+defs.length*GAP;
- const MAINMIN=64+(vis.cloud?13+F:0);
+ const cxOn=!!(vis.cloud&&TL.cx),cxd=(vis.cloud&&cxOn)?Math.round(3*(12+F)*1.45):0,cloudX=vis.cloud?13+F+cxd:0; /* H1: the expanded cloud band is 4x the compact one (3 rows), and the main area keeps its minimum height below it */
+ const MAINMIN=64+cloudX;
  if(!TL.full){ /* compact view: the canvas grows so that every lane that is on fits (a phone with many layers gets taller, never clipped) */
-  const bh=Math.max(M?250:(layout==='mid'?300:340),HEAD+AX+GAP+Math.max(MAINMIN,(M?150:(layout==='mid'?170:200))+(vis.cloud?13+F:0))+baseSum); /* the main area keeps a readable height of its own */
+  const bh=Math.max((M?250:(layout==='mid'?300:340))+Math.round(cxd*0.8),HEAD+AX+GAP+Math.max(MAINMIN,(M?150:(layout==='mid'?170:200))+cloudX)+baseSum); /* the main area keeps a readable height of its own */
   if(wrap.style.height!==bh+'px')wrap.style.height=bh+'px';
  }
  const H=wrap.clientHeight;
@@ -3649,14 +3722,14 @@ function tlDraw(){
  const mainLines=vis.temp||vis.feels||vis.pres||vis.humid||vis.frz||vis.norm;
  const rainH=rainOn?Math.round(mh*(mainLines?0.3:0.45)):0;
  const rainTop=rainBase-rainH;
- const bandH=vis.cloud?(12+F):0,bandTop=my+2; /* F2: the cloud-cover band sits at the top of the main area */
+ const bandH0=12+F,bandH=vis.cloud?(cxOn?4*bandH0:bandH0):0,bandTop=my+2; /* F2: the cloud-cover band sits at the top of the main area; H1: 4x as tall when expanded */
  const zoneTop=my+13+(bandH?bandH+3:0);let zoneBot=rainOn?(rainTop-5):(my2-7);
  if(zoneBot-zoneTop<24)zoneBot=zoneTop+24;
  const normOn=!!(vis.norm&&z==='d'&&D.climo&&D.climo.byDay);
  const dT=tlAxisCalc('temp',tlRange('temp',iA,iB,xm,mR,normOn,!!vis.feels),zoneBot-zoneTop);
  const dP=tlAxisCalc('pres',tlRange('pres',iA,iB,xm,mR,false,false),zoneBot-zoneTop);
  const rax=(!vis.pres&&vis.humid&&!humLane)?'humid':'pres'; /* which scale owns the right-hand strip */
- TLC.dom={temp:dT,pres:dP};TLC.lay={my:my,mh:mh,sl:SL,sr:SR,rax:rax};
+ TLC.dom={temp:dT,pres:dP};TLC.lay={my:my,mh:mh,sl:SL,sr:SR,rax:rax,zt:zoneTop,zb:zoneBot,cb:vis.cloud?[my,bandTop+bandH+(cxOn?2:6)]:null};
  const yTemp=t=>zoneBot-(t-dT.lo)/(dT.hi-dT.lo)*(zoneBot-zoneTop);
  const yP=p=>zoneBot-(p-dP.lo)/(dP.hi-dP.lo)*(zoneBot-zoneTop);
  const yHm=v=>zoneBot-(Math.max(0,Math.min(100,v))/100)*(zoneBot-zoneTop);
@@ -3700,27 +3773,60 @@ function tlDraw(){
   if(namesOn&&(La[o.k]|0)>0){const smp=(z==='d')?(o.getD?smpD(o.getD):null):smpH(hr,tm,o.getH);if(smp)reg(o.k,o.name,o.col,m=>{const v=smp(m);return v==null?null:o.yf(v);},o.lo,o.hi);}
  };
  ctx.save();ctx.beginPath();ctx.rect(0,my,W,mh);ctx.clip();
- /* cloud cover: low / mid / high stacked (each 0-100 %) from the bottom of a thin band, clipped to the band height */
+ /* cloud cover. Compact: low / mid / high stacked (each 0-100 %) from the bottom of a thin band, clipped to the band height. H1, expanded (TL.cx): 4x the height as three rows - high on top, mid, low at the bottom, as in the sky - each row's opacity is that layer's cover / 100 */
  if(vis.cloud){
   ctx.save();ctx.globalAlpha=al('cloud');
   const cc=dark?['#9aa1ad','#767d89','#575e6a']:['#59616d','#8e95a1','#c9ced6'],yb=bandTop+bandH;
-  ctx.fillStyle=grid;ctx.fillRect(SL,bandTop,W-SL-SR,bandH);
-  const col1=(x,w,cl,cmv,ch)=>{
-   if(cl==null&&cmv==null&&ch==null)return;
-   let top=yb,used=0;
-   [cl,cmv,ch].forEach((v,j)=>{const hh=Math.min(bandH-used,Math.max(0,(v||0)/100*bandH));if(hh<=0)return;ctx.fillStyle=cc[j];ctx.fillRect(x,top-hh,w,hh);top-=hh;used+=hh;});
-  };
   const tot=(cl,cmv,ch)=>Math.min(100,Math.round((cl||0)+(cmv||0)+(ch||0)));
-  const cf=FNT(9,700);lastR.cloud=null;
-  if(z==='d'){
-   (D.daysFull||[]).forEach(d=>{const ag=agOf(d.dt),x=X(tsMin(d.dt+'T12:00')),w=pxH*24;if(x<-w||x>W+w)return;
-    col1(x-w/2+0.5,w-1,ag.cl,ag.cm,ag.ch);
-    if(LB.cloud&&ag.cl!=null){const s2=tot(ag.cl,ag.cm,ag.ch)+'';if(fits('cloud',x,tlw(s2,cf)))tx(s2,x,bandTop+bandH/2+0.5,strong,'center',cf);}});
+  const mixc=(c1,a,c0)=>{const p=tlRgb(c1),q=tlRgb(c0);if(!p||!q)return c0;return '#'+[0,1,2].map(i=>Math.round(q[i]+(p[i]-q[i])*a).toString(16).padStart(2,'0')).join('');};
+  const cfn=s2=>FNT(s2.length>=3?8:9,700); /* 3 digits: a font 1 px smaller instead of dropping the number */
+  const cLab=(s2,x,y,fill)=>{ /* H1: the ink is chosen against the fill actually under the number, with a thin halo in the opposite tone: readable at 100 in both themes */
+   const ink2=tlTextOn(fill);ctx.font=cfn(s2);ctx.textAlign='center';
+   {const w0=ctx.measureText(s2).width;if(x-w0/2<SL+1||x+w0/2>W-SR-1)return;} /* never half under an axis strip */
+   ctx.lineWidth=2.4;ctx.lineJoin='round';ctx.strokeStyle=ink2==='#fff'?'#111':'#fff';ctx.strokeText(s2,x,y);ctx.fillStyle=ink2;ctx.fillText(s2,x,y);
+  };
+  lastR.cloud=null;lastR.cH=null;lastR.cM=null;lastR.cL=null;
+  if(!cxOn){
+   ctx.fillStyle=grid;ctx.fillRect(SL,bandTop,W-SL-SR,bandH);
+   const col1=(x,w,cl,cmv,ch)=>{
+    if(cl==null&&cmv==null&&ch==null)return;
+    let top=yb,used=0;
+    [cl,cmv,ch].forEach((v,j)=>{const hh=Math.min(bandH-used,Math.max(0,(v||0)/100*bandH));if(hh<=0)return;ctx.fillStyle=cc[j];ctx.fillRect(x,top-hh,w,hh);top-=hh;used+=hh;});
+   };
+   const under=(cl,cmv,ch)=>{ /* the fill colour at the label's centre */
+    const v=[cl,cmv,ch],mid=bandH/2;let acc=0;
+    for(let j=0;j<3;j++){acc+=Math.min(bandH-acc,Math.max(0,(v[j]||0)/100*bandH));if(mid<acc)return cc[j];}
+    return BG;
+   };
+   if(z==='d'){
+    (D.daysFull||[]).forEach(d=>{const ag=agOf(d.dt),x=X(tsMin(d.dt+'T12:00')),w=pxH*24;if(x<-w||x>W+w)return;
+     col1(x-w/2+0.5,w-1,ag.cl,ag.cm,ag.ch);
+     if(LB.cloud&&ag.cl!=null){const s2=tot(ag.cl,ag.cm,ag.ch)+'';if(fits('cloud',x,tlw(s2,cfn(s2))))cLab(s2,x,bandTop+bandH/2+0.5,under(ag.cl,ag.cm,ag.ch));}});
+   }else{
+    const cstp=Math.max(1,Math.ceil((tlw('100',cfn('100'))+6)/pxH));
+    for(let i=iA;i<=iB;i++){const r=hr[i];const x=X(tm[i]);
+     col1(x-pxH/2,pxH+0.6,r.cl,r.cm,r.ch);
+     if(LB.cloud&&r.cl!=null&&Math.round(tm[i]/60)%cstp===0&&x>SL&&x<W-SR){const s2=tot(r.cl,r.cm,r.ch)+'';cLab(s2,x,bandTop+bandH/2+0.5,under(r.cl,r.cm,r.ch));}}
+   }
   }else{
-   const cstp=Math.max(1,Math.ceil((tlw('100',cf)+6)/pxH));
-   for(let i=iA;i<=iB;i++){const r=hr[i];const x=X(tm[i]);
-    col1(x-pxH/2,pxH+0.6,r.cl,r.cm,r.ch);
-    if(LB.cloud&&r.cl!=null&&Math.round(tm[i]/60)%cstp===0&&x>SL&&x<W-SR)tx(tot(r.cl,r.cm,r.ch)+'',x,bandTop+bandH/2+0.5,strong,'center',cf);}
+   const gr=1,rh=(bandH-2*gr)/3,cInk=cc[0],ys=[0,1,2].map(j=>bandTop+j*(rh+gr)),keys=['cH','cM','cL'];
+   ctx.fillStyle=grid;ys.forEach(y=>ctx.fillRect(SL,y,W-SL-SR,rh));
+   const colX=(x,w,cl,cmv,ch,cad)=>{
+    const v=[ch,cmv,cl];
+    for(let j=0;j<3;j++){const q=v[j];if(q==null)continue;
+     const a=Math.max(0,Math.min(1,q/100));
+     ctx.save();ctx.globalAlpha=al('cloud')*a;ctx.fillStyle=cInk;ctx.fillRect(x,ys[j],w,rh);ctx.restore();
+     if(LB.cloud&&cad&&x+w/2>SL&&x+w/2<W-SR){const s2=String(Math.round(q));if(fits(keys[j],x+w/2,tlw(s2,cfn(s2))))cLab(s2,x+w/2,ys[j]+rh/2+0.5,mixc(cInk,a,BG));}
+    }
+   };
+   if(z==='d'){
+    (D.daysFull||[]).forEach(d=>{const ag=agOf(d.dt),x=X(tsMin(d.dt+'T12:00')),w=pxH*24;if(x<-w||x>W+w)return;
+     colX(x-w/2+0.5,w-1,ag.cl,ag.cm,ag.ch,true);});
+   }else{
+    const cstp=Math.max(1,Math.ceil((tlw('100',cfn('100'))+6)/pxH));
+    for(let i=iA;i<=iB;i++){const r=hr[i];const x=X(tm[i]);
+     colX(x-pxH/2,pxH+0.6,r.cl,r.cm,r.ch,Math.round(tm[i]/60)%cstp===0);}
+   }
   }
   ctx.fillStyle=grid;ctx.fillRect(SL,bandTop+bandH,W-SL-SR,1);
   ctx.restore();
@@ -3728,33 +3834,59 @@ function tlDraw(){
  /* temperature grid (belongs to the axis, so it is always there) */
  ctx.fillStyle=grid;
  dT.ticks.forEach(v=>{const y=yTemp(v);if(y>=zoneTop-4&&y<=zoneBot+4)ctx.fillRect(SL,Math.round(y),W-SL-SR,1);});
- /* rain + snow */
+ /* rain + snow. H1: the mm are the towers (bars of the full column width, scaled 0..max(floor, visible max): floor 2 mm per hour, 4 per 3 h, 10 per day) and the probability is a line over them on its own 0-100 % scale */
  if(rainOn){
   ctx.save();
   ctx.fillStyle=grid;ctx.fillRect(0,rainBase,W,1);
-  const colPP=C.sky+'70',rf=FNT(9,500),snCol=tlCol('snow'),snInk=ink(snCol),sf2=FNT(9,700);
-  lastR.rain=null;lastR.snow=null;
-  const snCl=(v)=>Math.max(1.5,v*rainH);
+  const cPP=dark?'#8fd2ff':'#1597e0',rf=FNT(9,500),snCol=tlCol('snow'),snInk=ink(snCol),sf2=FNT(9,700);
+  const hdr=Math.round(Math.min(11+F,rainH*0.25)),rH=Math.max(8,rainH-hdr); /* the top of the lane stays free for the labels */
+  lastR.rmm=null;lastR.rpp=null;lastR.snow=null;
+  const snCl=(v)=>Math.max(1.5,v*rH);
   if(vis.rain){
-   ctx.globalAlpha=al('rain');
+   const cols=[];
    if(z==='h'){
-    for(let i=iA;i<=iB;i++){const r=hr[i];const x=X(tm[i]),bw=pxH*0.66;
-     if(r.pp>0){const h1=r.pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
-     if(r.mm>0.04){const h2=Math.max(1.5,Math.min(1,r.mm/3)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.32,rainBase-h2,bw*0.64,h2);
-      if(LB.rain&&r.mm>=0.5){const s2=tlN(r.mm,1);if(fits('rain',x,tlw(s2,rf)))tx(s2,x,rainBase-h2-6,txt,'center',rf);}}}
+    for(let i=iA;i<=iB;i++){const r=hr[i],x=X(tm[i]);if(x<-pxH||x>W+pxH)continue;cols.push({x:x,w:pxH,gap:1,mm:r.mm,pp:r.pp});}
    }else if(z==='3'){
-    for(let i=iA;i<=iB;i++){const r=hr[i];if(r.hi%3!==0)continue;let pp=null,mm=0;
-     for(let k=i-1;k<=i+1;k++){const q=hr[k];if(!q)continue;if(q.pp!=null&&(pp==null||q.pp>pp))pp=q.pp;if(q.mm!=null)mm+=q.mm;}
-     const x=X(tm[i]),bw=pxH*3*0.8;
-     if(pp>0){const h1=pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
-     if(mm>0.04){const h2=Math.max(1.5,Math.min(1,mm/8)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.3,rainBase-h2,bw*0.6,h2);
-      if(LB.rain&&mm>=1){const s2=tlN(mm,mm>=10?0:1);if(fits('rain',x,tlw(s2,rf)))tx(s2,x,rainBase-h2-6,txt,'center',rf);}}}
+    for(let i=iA;i<=iB;i++){const r=hr[i];if(r.hi%3!==0)continue;let pp=null,mm=null;
+     for(let k=i-1;k<=i+1;k++){const q=hr[k];if(!q)continue;if(q.pp!=null&&(pp==null||q.pp>pp))pp=q.pp;if(q.mm!=null)mm=(mm||0)+q.mm;}
+     const x=X(tm[i]);if(x<-pxH*3||x>W+pxH*3)continue;cols.push({x:x,w:pxH*3,gap:1.5,mm:mm,pp:pp});}
    }else{
-    (D.daysFull||[]).forEach(d=>{const x=X(tsMin(d.dt+'T12:00'));if(x<-60||x>W+60)return;const bw=pxH*24*0.62;
-     if(d.pp>0){const h1=d.pp/100*rainH;ctx.fillStyle=colPP;ctx.fillRect(x-bw/2,rainBase-h1,bw,h1);}
-     if(d.mm!=null&&d.mm>0.04){const h2=Math.max(1.5,Math.min(1,d.mm/25)*rainH);ctx.fillStyle=cRain;ctx.fillRect(x-bw*0.3,rainBase-h2,bw*0.6,h2);
-      if(LB.rain&&d.mm>=1){const s2=tlN(d.mm,d.mm>=10?0:1);if(fits('rain',x,tlw(s2,rf)))tx(s2,x,rainBase-h2-6,txt,'center',rf);}}});
+    (D.daysFull||[]).forEach(d=>{const x=X(tsMin(d.dt+'T12:00'));if(x<-pxH*24||x>W+pxH*24)return;cols.push({x:x,w:pxH*24,gap:2,mm:d.mm,pp:d.pp});});
    }
+   let mmS=(z==='h')?2:(z==='3'?4:10);
+   cols.forEach(c=>{if(c.mm!=null&&c.mm>mmS)mmS=c.mm;});
+   cols.forEach(c=>{
+    if(c.mm!=null&&c.mm>0.04){const bw=Math.max(1,c.w-c.gap),h2=Math.max(1.5,Math.min(1,c.mm/mmS)*rH);
+     ctx.globalAlpha=al('rain')*0.9;ctx.fillStyle=cRain;ctx.fillRect(c.x-bw/2,rainBase-h2,bw,h2);c.h2=h2;}
+    if(c.pp!=null)c.yp=rainBase-Math.max(0,Math.min(100,c.pp))/100*rH;
+   });
+   { /* the probability line (TL.style applies), a thin halo under it keeps it visible over the towers */
+    const segs=[];let cur=null;
+    cols.forEach(c=>{if(c.yp==null){cur=null;return;}if(!cur){cur=[];segs.push(cur);}cur.push([c.x,c.yp]);});
+    ctx.lineJoin='round';ctx.lineCap='round';ctx.setLineDash([]);
+    ctx.globalAlpha=al('rain')*0.7;ctx.strokeStyle=BG;ctx.lineWidth=4;tlStroke(ctx,segs,sty);
+    ctx.globalAlpha=al('rain');ctx.strokeStyle=cPP;ctx.lineWidth=2;tlStroke(ctx,segs,sty);
+    if(LB.rain)cols.forEach(c=>{if(c.yp==null)return;ctx.fillStyle=cPP;ctx.beginPath();ctx.arc(c.x,c.yp,2,0,6.283);ctx.fill();ctx.lineWidth=1;ctx.strokeStyle=BG;ctx.stroke();});
+    ctx.lineCap='butt';
+   }
+   if(LB.rain){ /* state 2: the tower scale, mm above every tower and the probability % by the line points - each kind thinned by fits(), kept apart from the others by rOcc */
+    ctx.globalAlpha=al('rain');
+    const rOcc=[];
+    const rFree=(x,w,y)=>!rOcc.some(o=>x-w/2<o.x2&&x+w/2>o.x1&&y-6-F/2<o.y2&&y+6+F/2>o.y1);
+    const rPut=(x,w,y)=>{rOcc.push({x1:x-w/2,x2:x+w/2,y1:y-6-F/2,y2:y+6+F/2});};
+    {const s2='0–'+tlN(mmS,mmS<10?1:0)+' mm',w2=tlw(s2,rf),x2=SL+5+w2/2,y2=rainTop+6+F/2;tx(s2,x2,y2,ink(cRain),'center',rf);rPut(x2,w2,y2);}
+    const thr=(z==='h')?0.1:0.5;
+    cols.forEach(c=>{if(c.h2==null||c.mm<thr)return;
+     const s2=tlMm(c.mm),w2=tlw(s2,rf),y2=rainBase-c.h2-6-F/2;
+     if(c.x-w2/2<SL+1||c.x+w2/2>W-SR-1)return;
+     if(rFree(c.x,w2,y2)&&fits('rmm',c.x,w2)){tx(s2,c.x,y2,txt,'center',rf);rPut(c.x,w2,y2);}});
+    cols.forEach(c=>{if(c.yp==null||!(c.pp>0))return;
+     const s2=Math.round(c.pp)+'%',w2=tlw(s2,rf);let y2=null;
+     if(c.x-w2/2<SL+1||c.x+w2/2>W-SR-1)return;
+     [c.yp-7-F/2,c.yp+8+F/2].some(q=>{if(q<rainTop-2||q>rainBase-5)return false;if(!rFree(c.x,w2,q))return false;y2=q;return true;});
+     if(y2!=null&&fits('rpp',c.x,w2)){tx(s2,c.x,y2,ink(cPP),'center',rf);rPut(c.x,w2,y2);}});
+   }
+   ctx.globalAlpha=al('rain');
    if(r15){ /* next-2h rain in 15-minute slots, a thin strip under the baseline */
     const mx=Math.max(0.6,...r15.map(s=>s.v||0));
     let prev=-1,dOff=0;const base=tsMin(today+'T00:00');
@@ -3841,16 +3973,29 @@ function tlDraw(){
   const colA=isC?CMP.a:C.hi;
   if(z==='d'){
    const tf=FNT(11,600),twd=tlw('-88°',tf);
-   const drawBars=(days,off,col,dashed,second)=>{
+   /* H1: the colour modes of the day bars (one place only): 1 = the day's maximum against the normal of its date, 2 = the visible range (coolest day bluest, warmest reddest) */
+   let tcF=null;
+   if(!isC&&(TL.tcol|0)>0){
+    if(TL.tcol===1){
+     if(D.climo&&D.climo.byDay){const st=tlTcStops(1);tcF=d=>{const nv=D.climo.byDay[d.dt.slice(5)];return(nv==null||d.hi==null)?colA:tlRamp(st,(Math.max(-8,Math.min(8,d.hi-nv))/8+1)/2);};}
+    }else{
+     let lo2=1e9,hi2=-1e9;
+     (D.daysFull||[]).forEach(d=>{const m=tsMin(d.dt+'T12:00');if(d.hi==null||m<xm||m>mR)return;if(d.hi<lo2)lo2=d.hi;if(d.hi>hi2)hi2=d.hi;});
+     if(lo2>hi2)(D.daysFull||[]).forEach(d=>{if(d.hi==null)return;if(d.hi<lo2)lo2=d.hi;if(d.hi>hi2)hi2=d.hi;});
+     const st=tlTcStops(2);tcF=d=>d.hi==null?colA:tlRamp(st,hi2>lo2?(d.hi-lo2)/(hi2-lo2):0.5);
+    }
+   }
+   const drawBars=(days,off,col0,dashed,second)=>{
     const bw=Math.min(isC?20:34,pxH*24*(isC?0.28:0.5));
     const stp=Math.max(1,Math.ceil((twd+6)/(pxH*24)));
     days.forEach((d,idx)=>{const xc=X(tsMin(d.dt+'T12:00'))+off;if(xc<-50||xc>W+50)return;
+     const col=(!second&&tcF)?tcF(d):col0;
      const y1=yTemp(d.hi),y2=yTemp(d.lo);
      if(!second&&!isC&&idx>=7){const w=(100-confD(idx))/10;ctx.fillStyle=col+'22';rr(xc-bw/2-3,yTemp(d.hi+w),bw+6,yTemp(d.lo-w)-yTemp(d.hi+w),6);ctx.fill();}
      ctx.lineWidth=dashed?1.6:1.2;ctx.strokeStyle=col;ctx.setLineDash(dashed?[4,3]:[]);
      ctx.fillStyle=dashed?col+'30':col+'88';rr(xc-bw/2,y1,bw,Math.max(4,y2-y1),Math.min(8,bw/2));ctx.fill();ctx.stroke();ctx.setLineDash([]);
      if(LB.temp&&Math.round(tsMin(d.dt+'T12:00')/1440)%stp===0){
-      if(!second){tx(d.hi+'°',xc,y1-8,strong,'center',tf);tx(d.lo+'°',xc,y2+8,txt,'center',FNT(10,500));}
+      if(!second){tx(d.hi+'°',xc,y1-8,(tcF?ink(col):strong),'center',tf);tx(d.lo+'°',xc,y2+8,txt,'center',FNT(10,500));}
       else{tx(d.hi+'°',xc,y1-7,txt,'center',FNT(9,500));}
      }
     });};
@@ -4058,7 +4203,9 @@ function tlDraw(){
   ctx.save();ctx.beginPath();ctx.rect(0,my,SL,mh);ctx.rect(W-SR,my,SR,mh);ctx.clip();
   ctx.globalAlpha=(vis.temp||vis.feels||vis.norm)?1:0.5;
   dT.ticks.forEach(v=>{const y=yTemp(v);if(y<zoneTop-5||y>zoneBot+5)return;ctx.fillStyle=grid;ctx.fillRect(SL-3,Math.round(y),3,1);tx(tlN(v,dT.step<1?1:0)+'°',SL-5,y,txt,'right',tf2,false);});
-  tx('°C',SL-5,my+6+F/2,txt,'right',FNT(9,600),false);
+  if(!cxOn)tx('°C',SL-5,my+6+F/2,txt,'right',FNT(9,600),false); /* H1: the expanded cloud rows own the top of the strip (the tick labels carry the degree sign anyway) */
+  if(cxOn){const cr=LBL.tlCxRow||[],rhx=(bandH-2)/3; /* H1: the expanded cloud rows are named in the left strip (high / mid / low) */
+   for(let j=0;j<3;j++)tx(cr[j]||'',SL-5,bandTop+j*(rhx+1)+rhx/2,txt,'right',FNT(9,700),false);}
   if(rax==='humid'){ /* the humidity scale (0-100 %) owns the right-hand strip while pressure is off */
    const hc=ink(tlCol('humid'));ctx.globalAlpha=1;
    [0,20,40,60,80,100].forEach(v=>{const y=yHm(v);if(y<zoneTop-5||y>zoneBot+5)return;ctx.fillStyle=grid;ctx.fillRect(W-SR,Math.round(y),3,1);tx(String(v),W-SR+5,y,hc,'left',pf2,false);});
@@ -4155,7 +4302,7 @@ function tlDraw(){
 function tlHoverAt(cv,px,py){ /* C-05: a mouse over the canvas shows the readout of the column under it */
  if(!TLC.tm||!D||!tlOk())return;
  const ax=tlAxisAt(px,py);
- cv.style.cursor=ax?'ns-resize':'';
+ cv.style.cursor=ax?'ns-resize':(tlCloudAt(px,py)?'pointer':'');
  let m=null;
  if(!ax&&px>=0&&px<=TLC.W)m=tlCurClamp(TL.x0/60000+px/tlPpm());
  if(m!==TLC.hov){TLC.hov=m;tlSchedule();}
@@ -4166,9 +4313,9 @@ function tlInit(){
  cv.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse'&&e.button!==0)return;
   const p=pos(e),ax=e.pointerType==='mouse'?tlAxisAt(p[0],p[1]):null; /* R23: a touch swipe that starts inside an axis strip pans, it never creates an axis override */
-  if(ax){ /* C-17: dragging an axis strip rescales it instead of panning */
+  if(ax){ /* C-17 / H1: dragging an axis strip pans that axis (the scale follows the pointer) instead of panning the time */
    const b=tlAxisBase(ax);
-   if(b){tlAxD={id:e.pointerId,which:ax,y:e.clientY,base:b};try{cv.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();return;}
+   if(b){tlAxD={id:e.pointerId,which:ax,y:e.clientY,base:b,zh:Math.max(1,(TLC.lay.zb||0)-(TLC.lay.zt||0))};try{cv.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();return;}
   }
   if(e.pointerType!=='mouse'){
    TLC.hov=null;
@@ -4189,7 +4336,7 @@ function tlInit(){
  });
  cv.addEventListener('pointermove',e=>{
   if(tlAxD&&e.pointerId===tlAxD.id){
-   tlAxisScale(tlAxD.which,tlAxD.base,Math.exp((e.clientY-tlAxD.y)*0.008));
+   tlAxisPan(tlAxD.which,tlAxD.base,e.clientY-tlAxD.y,tlAxD.zh);
    tlSchedule();return;
   }
   if(tlPts[e.pointerId])tlPts[e.pointerId]={x:e.clientX,y:e.clientY};
@@ -4213,7 +4360,7 @@ function tlInit(){
   if(!tlPtr||e.pointerId!==tlPtr.id)return;
   const p=tlPtr;tlPtr=null;cv.classList.remove('drag');
   try{cv.releasePointerCapture(e.pointerId);}catch(err){}
-  if(e.type==='pointerup'&&!p.moved&&Date.now()-p.t<700){const q=pos(e);tlTap(q[0]);}
+  if(e.type==='pointerup'&&!p.moved&&Date.now()-p.t<700){const q=pos(e);tlTap(q[0]);if(tlCloudAt(q[0],q[1]))tlToggleCloudX();} /* H1: the same tap inside the cloud band also expands / collapses it */
  };
  cv.addEventListener('pointerup',end);
  cv.addEventListener('pointercancel',end);
@@ -4226,9 +4373,11 @@ function tlInit(){
  });
  cv.addEventListener('wheel',e=>{
   const p=pos(e),ax=tlAxisAt(p[0],p[1]);
-  if(ax&&Math.abs(e.deltaY)>=Math.abs(e.deltaX)&&e.deltaY){ /* wheel on an axis strip: up = smaller max, down = larger */
-   const b=tlAxisBase(ax);
-   if(b){e.preventDefault();let dy=e.deltaY;if(e.deltaMode===1)dy*=16;tlAxisScale(ax,b,Math.exp(Math.max(-120,Math.min(120,dy))*0.0018));savePrefs();tlSchedule();return;}
+  if(ax&&Math.abs(e.deltaY)>=Math.abs(e.deltaX)&&e.deltaY){ /* H1: the wheel over an axis strip zooms that axis around the value under the pointer (wheel up = zoom in), in both views */
+   const b=tlAxisBase(ax),L=TLC.lay;
+   if(b&&L){e.preventDefault();let dy=e.deltaY;if(e.deltaMode===1)dy*=16;else if(e.deltaMode===2)dy*=100;
+    const zh=Math.max(1,L.zb-L.zt),v0=b.lo+(L.zb-p[1])/zh*(b.hi-b.lo);
+    tlAxisZoom(ax,b,v0,Math.pow(1.15,Math.max(-300,Math.min(300,dy))/100));savePrefs();tlSchedule();return;}
   }
   let dx=e.deltaX,dy=e.deltaY;
   if(e.deltaMode===1){dx*=16;dy*=16;}else if(e.deltaMode===2){dx*=100;dy*=100;}
@@ -4251,6 +4400,7 @@ function tlInit(){
   else if(k==='Home'){e.preventDefault();tlHome();}
   else if(k==='+'||k==='='||k==='NumpadAdd'){e.preventDefault();tlStepScale(1);}
   else if(k==='-'||k==='_'||k==='NumpadSubtract'){e.preventDefault();tlStepScale(-1);}
+  else if((k==='c'||k==='C')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&TLC.lay&&TLC.lay.cb){e.preventDefault();tlToggleCloudX();} /* H1: keyboard twin of the tap on the cloud band */
   else if(k==='Escape'){if(!TL.full)tlHide();} /* fullscreen: Esc closes the overlay (document handler below) */
   else if(k==='Enter'||k===' '){e.preventDefault();if(TL.cursor==null)tlHome();else{tlRO=!tlRO;tlSchedule();}}
  });
@@ -4262,6 +4412,7 @@ function tlInit(){
    const t=e.target;if(!t||!t.closest)return;
    const mb=t.closest('#tlMiniMore');if(mb&&leg.contains(mb)){tlPanelOpen(mb);return;}
    const nb=t.closest('#tlNames');if(nb&&leg.contains(nb)){tlToggleNames();return;}
+   const cb=t.closest('#tlCloudX');if(cb&&leg.contains(cb)){tlToggleCloudX();return;}
    const b=t.closest('.tlk');
    if(b&&leg.contains(b)){
     const k=b.getAttribute('data-k'),cur=TL.layers[k]|0;
@@ -4444,6 +4595,7 @@ function markBtns(){
  ['h','3','d'].forEach(z=>{states['btn-tlz-'+z]=(tlRep()===z);}); /* K1: timeline zoom pills */
  ['auto','full'].forEach(m=>{states['btn-tlf-'+m]=(TL.axis.temp.mode===m);}); /* F1: axis fit + line style segmented controls */
  TLSTYLES.forEach(st=>{states['btn-tls-'+st]=(TL.style===st);});
+ [0,1,2].forEach(m=>{states['btn-tltc-'+m]=((TL.tcol|0)===m);}); /* H1: day-colour segmented control */
  const paint=(b,on)=>{
   b.style.background=on?actBg:'transparent';b.style.color=on?actFg:inFg;b.style.border=bd;
   b.style.borderRadius='8px';b.style.padding='4px 10px';b.style.fontSize='12px';b.style.fontWeight='500';b.style.cursor='pointer';b.style.boxShadow='none';
@@ -5944,7 +6096,7 @@ function gridDraw(list){
    html+='<div style="font-size:10.5px;color:#0E7490;font-weight:600;">💧'+(Math.round(sum*10)/10)+'</div>';
   }
   if(MLAYERS.clouds&&GRIDHR>0&&g.cloud_cover!=null&&g.cloud_cover>=15){
-   html+='<div style="font-size:10px;font-weight:600;color:'+(dk?'#cfd6de':'#5b6573')+';">☁'+Math.round(g.cloud_cover)+'%</div>';
+   html+='<div style="font-size:10px;font-weight:700;white-space:nowrap;color:'+(dk?'#fff':'#141a22')+';'+(dk?'text-shadow:0 0 2px #000,0 0 2px #000,0 0 4px #000,0 1px 3px #000;':'text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 4px #fff,0 1px 3px #fff;')+'">☁'+Math.round(g.cloud_cover)+'%</div>'; /* H1: readable over the densest forecast field in both map themes, one line */
   }
   if(html){
    gridLG.addLayer(L.marker([lat,lon],{icon:L.divIcon({className:'gridlbl',html:'<div style="text-align:center;line-height:1.25;'+halo+'">'+html+'</div>',iconSize:null,iconAnchor:[18,10]}),interactive:false,keyboard:false}));

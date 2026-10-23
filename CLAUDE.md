@@ -175,7 +175,7 @@ days). It is a **custom Canvas 2D** drawing (`#tlCanvas` inside `#tlWrap`), not 
 control, every series the data has is a layer, and a full-screen view shows it all at once (since v3.26 that is the GRAPH tab). The chart rules
 that shaped it are cited by number in the code comments: C-02 value labels, C-03 line style, C-05 hover
 readout, C-06 contrast-safe ink, C-13 no series without data, C-15 legend as control, C-16 axis furniture
-always drawn, C-17 axis drag / wheel rescale, C-18 Auto / Full, RT-24 series names inside the plot, RT-22 the
+always drawn, C-17 axis drag pans / wheel zooms, C-18 Auto / Full, RT-24 series names inside the plot, RT-22 the
 full-screen shell (now the graph view).
 
 - **DOM** (compact since v3.26: one control bar, one legend row, everything else in a panel). On NOW `#tlSec` holds, in
@@ -191,12 +191,15 @@ full-screen shell (now the graph view).
   on) with the readout box `#tlReadout`, the **mini legend `#tlMini`** (a `.dragx` row, `role=group`, built by
   `tlLegend()`; replaces the old inline grouped legend `#tlLeg`, which is gone) and the screen-reader live region
   `#tlLive` (`role=status`). The bar also contains four graph-only controls that are hidden on NOW (see "Graph
-  view"): the place + summary slot `#tlBarStart` (`#tlBarLoc`), `btn-tltheme`, `btn-tlcollapse`, `btn-tlfsx`. The
+  view"): the place + summary slot `#tlBarStart` (`#tlBarLoc`), `btn-tltheme`, `btn-tlcollapse`, `btn-tlfsx`. Between the zoom group and the Layers
+  button sits `btn-tltcol` (H1, the day-zoom temperature colour mode: hidden unless `tlRep()==='d'`, the temperature layer is visible and there is
+  no comparison; shows a colour swatch of the mode plus a word, and only the swatch in the graph view on a phone; label / `aria-label` written by
+  `tlSyncUi()`, `tt_tltcol`, `tlTc_0..2`, `tlTcw_0..2`, plus "no normals" `tlTcNA`). The
   rest lives in the **Layers & display panel `#tlPanel`** (see "Legend as control"), whose static markup (backdrop
   `#tlPanelBk`, then the `<aside>`) sits after `#view-graph` at the end of `#wrap`. The canvas has `tabindex=0`,
   `role=img` and `data-tt="ar_tl"`; the zoom group uses `tlZoomAria`, the panel's pairs `tlFitAria` / `tlStyleAria`.
   There are no separate layer pills any more: the legend chips are the only series control (C-15).
-- **State.** `TL={zoom,layers,style,names,axis,x0,cursor,full,pxh,fit,ui}`. `zoom` is `'h'` (hours), `'3'` (every 3 h) or
+- **State.** `TL={zoom,layers,style,names,axis,x0,cursor,full,pxh,fit,ui,cx,tcol}`. `zoom` is `'h'` (hours), `'3'` (every 3 h) or
   `'d'` (days; the order is `TLZ`): the last chosen preset / the current representation, and what is saved. `pxh` is
   the continuous horizontal scale in px per hour (session only, `null` = the preset of `zoom`), `fit` is true while
   all days are fitted to the width (see Scale). `layers` has one flag per entry of `TLLAYERS` (the readout order `TLORDER`,
@@ -208,8 +211,9 @@ full-screen shell (now the graph view).
   where `lo`/`hi` are a manual override (both `null` = automatic). `x0` is the left edge and `cursor` the
   selected column, both in "location-local wall-clock minutes × 60000" (the `tsMin()` of Open-Meteo's time
   strings, so a day is always 1440 minutes wide and DST never shifts the axis); `cursor===null` means nothing
-  selected; `full` is true while the timeline is mounted in the graph view. **Remembered**
-  (`wd_prefs.tl={v:2,zoom,layers,style,names,axis,ui}`): everything except `x0`, `cursor`, `full`, `pxh` and `fit`;
+  selected; `full` is true while the timeline is mounted in the graph view; `cx` (0 / 1) is the expanded cloud band and `tcol` (0 / 1 / 2) the
+  day-zoom temperature colour mode (see "Cloud band" and "Day-zoom temperature colours" below). **Remembered**
+  (`wd_prefs.tl={v:2,zoom,layers,style,names,axis,ui,cx,tcol}`): everything except `x0`, `cursor`, `full`, `pxh` and `fit`;
   restoring `zoom` applies that preset's px/hour.
   **Defaults** with no stored preference: exactly temperature, rain and score at state 2, every other layer
   hidden; stored preferences win (`loadPrefs()` migrates the pre-v3.23 0 / 1 / boolean flags, where a stored
@@ -237,12 +241,12 @@ full-screen shell (now the graph view).
   (value labels, hour ticks, day ticks, score cells) is chosen from `pxh` with the `fits()` decimation, so no
   scale overlaps labels.
 - **Layers and their data** (`tlHas()` says which the place offers, `tlAvail(k,has)` also applies the zoom;
-  a series with no data is never drawn and never listed in the legend, C-13). `temp`, `rain` (rain % bars plus
-  mm; the next-2h `D.rain15` strip at hours zoom), `wind`, `pres`, `uv`, `air` (the hourly AQI series
+  a series with no data is never drawn and never listed in the legend, C-13). `temp`, `rain` (H1: mm towers with the
+  rain probability as a line over them, see "Rain lane"; the next-2h `D.rain15` strip at hours zoom), `wind`, `pres`, `uv`, `air` (the hourly AQI series
   `D.air.aqi.series`), `sea` (`D.sea.days`), `norm` (day zoom only, `D.climo.byDay`) and `score` are the v3.22
   layers. New in v3.23: `feels` (`hr[].fl`, hours and 3 h only; dotted, on the temperature scale), `humid`
   (`rh`; takes the right-hand axis strip while pressure is off, else a thin lane of its own), `cloud`
-  (`cl`/`cm`/`ch` as three stacked grey bands at the top of the main area; day zoom the daily mean), `snow`
+  (`cl`/`cm`/`ch` as three stacked grey bands at the top of the main area, or three rows when expanded, see "Cloud band"; day zoom the daily mean), `snow`
   (`hr[].snow`, cm, violet bars inside the rain lane: 1.5 cm is full height at hours zoom, 4 cm at 3 h, 15 cm
   at days), `gust` (`g`, a line over the wind lane), `vis` (`vis`, metres shown in km on a log-ish scale; fog
   below 1 km in the warning colour), `frz` (`frz`, freezing level in m, a line with its own small scale drawn
@@ -272,6 +276,36 @@ full-screen shell (now the graph view).
   `CMP.a`/`CMP.b`); every other lane shows A only. The compact canvas grows to fit every lane that is on (a
   phone with many layers gets taller, never clipped); in the graph view the lanes are scaled up to the free
   height and the type is 2 px larger.
+- **Cloud band** (H1). Compact = the stacked low / mid / high band (`bandH0` = 12 px, +2 in the graph view). **Expanded** (`TL.cx===1`
+  and the cloud layer visible, `cxOn` in `tlDraw()`): the band is 4 × `bandH0` tall and drawn as three rows — high on top, mid, low at
+  the bottom, as in the sky — each a strip of the grey `cc[0]` whose opacity is that layer's cover / 100 on a `grid` track; the left axis strip
+  names the rows with `T.tlCxRow` (`['H','M','L']` / `['V','S','N']`, full names stay in the readout's "low · mid · high" line) and the
+  strip's `°C` unit label is dropped while expanded. State 2 prints each row's % (decimated per row with the `fits` keys `cH`/`cM`/`cL`,
+  centre of the column, day zoom the means in `ag`). `MAINMIN` and the compact canvas height formula include `cloudX` (the band plus a
+  1.45 × margin of its added height, because the rain lane takes 30 % of the main area), so the temperature zone does not shrink below its
+  compact minimum. **Toggle:** a tap / click inside the band (`tlCloudAt(px,py)`, `TLC.lay.cb`: the band plus a few px of slack) toggles
+  it *and* sets the cursor as any tap does; the `c` key on the focused canvas and the panel switch `#tlCloudX` ("Clouds expanded: low · mid ·
+  high", `aria-pressed`) do the same (`tlToggleCloudX()`, saves the prefs). The cloud chip's tooltip adds `tlCloudTip` ("tap the cloud band
+  to expand"). **Cloud numbers** (both forms) go through `cLab()`: the ink is `tlTextOn(fill under the number)` (the layer colour at the band's
+  centre in the compact band, the alpha-blended row colour when expanded) with a 2.4 px halo in the opposite tone, so "100" is readable in
+  both themes at every cover; three digits use a 1 px smaller font (`cfn`), and a label that would sit under an axis strip is skipped.
+- **Rain lane** (H1). The mm are the towers: one bar per column (hour / 3 h row / day) of the full column width minus a 1 / 1.5 / 2 px gap,
+  height = mm / `mmS` of the lane (`rH`: the lane height minus a label headroom `hdr`), where `mmS` = max(floor, the visible maximum) with the
+  floors 2 mm (hours), 4 mm (3 h, the sum of the three rows) and 10 mm (days, `daysFull[].mm`). The probability is a **line** over the towers
+  on its own 0–100 % scale in the same lane (colour `cPP`, light `#1597e0` / dark `#8fd2ff`, a 4 px `BG` halo under it; `TL.style` applies; 3 h =
+  the maximum of the three rows, day = `daysFull[].pp`); dots on the points and the labels only in state 2: the scale hint "0–N mm" at the
+  lane's top left, mm above each tower (hours ≥ 0.1 mm, 3 h / days ≥ 0.5 mm, `tlMm`) and the % beside the line points (`> 0`; above the
+  point, else below). Each kind is thinned by its own `fits` key (`rmm`, `rpp`) and all three are kept apart by the lane's `rOcc` rectangles.
+  Snow stays a violet core inside the towers; the `rain15` strip is unchanged. The rain chip's swatch is a small SVG (bars + line, class
+  `tlsvg`) instead of the plain swatch.
+- **Day-zoom temperature colours** (H1, `TL.tcol`, day zoom and a single place only). 0 = the temperature colour (as before); 1 = vs the normal:
+  the day's maximum minus `D.climo.byDay` of its date, ±8 °C saturates, a diverging ramp blue ← neutral grey → red (`TLTC`, `tlTcStops(m)`,
+  `tlRamp()`; without normals the mode is drawn as 0 and `tlTcolNA()` makes the control say "no normals for this place"); 2 = the visible
+  range: the coolest visible day's maximum is the bluest, the warmest the reddest (blue → amber → red, recomputed from the days whose centre
+  is in view whenever the view pans or zooms). It colours the hi / lo bars (fill, outline, the day 8+ confidence band) and the hi label's ink
+  (`ink(colour)`, 4.5:1 on the background; the labels sit outside the bars). Control: `btn-tltcol` cycles 0 → 1 → 2 → 0 (`tlCycleTcol()`), the
+  panel's segmented `#tlTcol` (`btn-tltc-0..2`, `tlSetTcol(m)`) sets it; with the mode ≠ 0 (and usable) the mini legend shows a gradient key
+  after the temperature chip ("−8° … +8°" for 1, `tlTcKeyR` "coolest … warmest" for 2). Colours are read at draw / legend time.
 - **Legend as control** (`tlLegend()`; one delegated click / pointer listener set on `#tlMini` and on `#tlPanel` in
   `tlInit()`). Chips are `<button class="tlk s0|s1|s2" data-k="…">`. A click calls `tlSetLayer(k)` and cycles 2 → 1 → 0 → 2
   (filled swatch / hollow swatch / grey and struck through); the chip's `aria-pressed` means "visible" and its
@@ -289,7 +323,8 @@ full-screen shell (now the graph view).
   states and the unit (`#tlPanelGroups`, filled by `tlLegend()` only while open), the confidence-band and score-tier swatches,
   then the "Display" block (`tlDisplay`): Auto / Full `#tlFit` (`btn-tlf-auto`/`-full`, `tlSetFit`), line style `#tlStyle`
   (`btn-tls-linear`/`-step`/`-smooth`, `tlSetStyle`), the series-names switch `#tlNames` (`tlToggleNames()`, writes
-  `TL.names.c` or `.f`, `aria-pressed` kept by `tlSyncUi()`) and the muted hint `tlHint` (hidden on touch). Opening moves focus to
+  `TL.names.c` or `.f`, `aria-pressed` kept by `tlSyncUi()`), the cloud switch `#tlCloudX` (H1, `tlToggleCloudX()`), the day-colour segmented
+  control `#tlTcol` (H1) and the muted hint `tlHint` ("drag an axis to pan · wheel zooms the axis · double-click resets", hidden on touch). Opening moves focus to
   `btn-tlpx`; Tab is trapped inside (`document` keydown in `tlInit()`); Esc, the ✕ or the backdrop close it and focus returns to the
   opener (`TLP.opener` is an id, because the mini chip is re-rendered). A view change or a collapse closes it. The old inline
   grouped legend, the "More / Less" chip (`#tlMore`, `tlToggleMore()`, `TLmore`, `TLC.keep`) and the `tlMore` / `tlLess` keys are gone.
@@ -297,7 +332,7 @@ full-screen shell (now the graph view).
   draw); `fits(key,x,w)` refuses a label that would touch the previous one of the same kind, so labels thin
   out instead of overlapping; text on a coloured cell uses `tlTextOn(c)` (black or white by luminance) and a
   series colour used as ink goes through `tlInk(c,BG)` (mixed towards black / white until it reaches 4.5:1,
-  cached in `TLINK`) — C-06.
+  cached in `TLINK`) — C-06. The cloud numbers use the ink of the fill under them plus an opposite-tone halo (see "Cloud band").
 - **Series-name overlays** (RT-24, `TL.names`). With the switch on, every visible line series (temperature,
   feels like, pressure, humidity, freezing level, gusts, normal, and B in comparison mode) writes its short
   name (`tlN_temp`, `tlN_feels`, `tlN_pres`, `tlN_humid`, `tlN_frz`, `tlN_gust`, `tlN_norm`) inside the plot at
@@ -306,17 +341,18 @@ full-screen shell (now the graph view).
 - **Axes** (C-16 / C-17 / C-18). The temperature axis is the left strip (30 px), the pressure axis the right
   strip (34 px; it shows the humidity scale while pressure is off, and that one is not draggable). Ticks and
   labels are **always drawn**, dimmed while their series is hidden. `tlAxisCalc(which,rng,zoneH)` returns
-  `{lo,hi,step,ticks,manual,mode}`; `tlRange()` supplies the data range (Auto = the visible window, Full =
-  all data). **Mouse only:** dragging an axis strip vertically (`tlAxisAt` finds the strip, `tlAxisBase` /
-  `tlAxisScale` rescale) or the wheel over it rescales the axis (up = smaller maximum, down = larger; Auto
-  keeps the minimum, Full scales around the middle) and creates a manual override `TL.axis.*.lo/hi`;
-  double-click on the strip, or choosing Auto / Full (`tlSetFit(mode)`), drops it. A touch swipe that starts
+  `{lo,hi,step,ticks,manual,mode,asp}` (`asp` = the span the automatic fit would use); `tlRange()` supplies the data range (Auto = the visible window, Full =
+  all data). **Mouse only (H1: pan / zoom, no longer a rescale of the maximum):** dragging an axis strip vertically **pans** the axis, the scale follows
+  the pointer (`tlAxisPan`: dragging down by dy px moves `lo` and `hi` up by dy × (hi − lo) / zoneH, with `zoneH` = `TLC.lay.zb − zt`); the **wheel** over the
+  strip **zooms** it around the value under the pointer (`tlAxisZoom`: f = 1.15^(deltaY/100), wheel up = zoom in, `lo = v0 − (v0 − lo)·f`, `hi = v0 + (hi − v0)·f`;
+  the span stays in [3 °C | 4 hPa, 8 × `asp`]; `preventDefault` in both views); `tlAxisAt` finds the strip, `tlAxisBase` the starting range. Both create a manual
+  override `TL.axis.*.lo/hi` (it wins over the refit and survives layer toggles); double-click on the strip, or choosing Auto / Full (`tlSetFit(mode)`), drops it. A touch swipe that starts
   inside a strip pans like anywhere else (the axis branch of `pointerdown` requires `pointerType==='mouse'`).
   `tlPrep()` also drops the overrides when the forecast place changes (`TLC.locKey`, from `D.loc` / `D.tz`),
   since a range set for one place means nothing for another. `tlSetStyle(st)` sets the line style of the
   temperature (A and B), feels, pressure, humidity, freezing-level, gust, normal and (without labels) sea lines.
 - **Interaction** (`tlInit()`, one-time listeners on the canvas). Pointer events: drag pans (`TL.x0`, clamped
-  by `tlClamp()` to now − 6 h … the end of the data), a quick tap (< 5 px, < 700 ms) calls `tlTap(px)`;
+  by `tlClamp()` to now − 6 h … the end of the data), a quick tap (< 5 px, < 700 ms) calls `tlTap(px)` (a tap inside the cloud band also calls `tlToggleCloudX()`, H1);
   horizontal wheel / shift+wheel pans; in the graph view the plain vertical wheel zooms the time
   scale, in the compact view only ctrl/meta+wheel (and a trackpad pinch, which arrives as ctrl+wheel) does and a
   plain vertical wheel scrolls the page (no `preventDefault`); the factor is 1.15^(−Δy/100) around the pointer
@@ -327,7 +363,7 @@ full-screen shell (now the graph view).
   shows the readout of the column under it plus a crosshair, with no tap needed
   (`tlPlaceReadout(x,m,hover)`); leaving the canvas hides it unless a cursor is set. Keyboard (canvas
   focused): ←/→ `tlMoveCursor(±1)` (one column), Home `tlHome()` (cursor to now), +/− `tlStepScale(±1)` (×1.5 / ÷1.5 around the cursor or the view centre),
-  Enter/Space toggles the readout, Esc `tlHide()` (in the graph view the document handler runs instead: panel → expand → leave, see "Graph view").
+  Enter/Space toggles the readout, `c` toggles the expanded cloud band, Esc `tlHide()` (in the graph view the document handler runs instead: panel → expand → leave, see "Graph view").
   `tlSetZoom(z)` (a preset) keeps the view centred on the cursor (or the view centre); `tlSetLayer(k,st)` sets a layer
   state (without `st` it cycles); all of these save the prefs and refresh the toolbar and the legend. **The
   cursor is always a column inside the pannable range** (now − 6 h … the last row): `tlCurClamp(m)` snaps and
@@ -672,10 +708,10 @@ weekends, and destroys the charts of activity sections that are not showing.
 
 `wd_prefs` (`PREFS_KEY`) is written by `savePrefs()` and read once at boot by `loadPrefs()`. It stores
 `lang`, `theme`, `VEGAN`, `act` (the PLAN activity, `PLAN.act`), `groups` (open state of the four groups) and
-`aiModel` (the AI-search model, one of `ASKMODELS`) and `tl` (`{v:2,zoom,layers,style,names,axis,ui}` of the
+`aiModel` (the AI-search model, one of `ASKMODELS`) and `tl` (`{v:2,zoom,layers,style,names,axis,ui,cx,tcol}` of the
 timeline; `loadPrefs()` accepts only known zoom values, 0/1/2/boolean layer flags for known layers — an older
 snapshot's "on" becomes state 2 —, a known line style, the boolean `names.c`/`names.f` and an `axis` mode with a
-numeric `lo < hi` override, and `ui.c` only when it is 1 or `true`, otherwise 0). The v3.21 keys `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`CMODE` are no longer written; only a stored
+numeric `lo < hi` override, `ui.c` only when it is 1 or `true`, otherwise 0, `cx` only when 1 or `true`, otherwise 0, and `tcol` only when 1 or 2, otherwise 0). The v3.21 keys `CONF`/`MOON`/`TIDE`/`PRES`/`BBQ`/`CMODE` are no longer written; only a stored
 `PRES` is migrated once into `tl.layers.pres` (only when no timeline pressure choice is stored) and disappears
 with the next save. **MP (Monty Python) is deliberately not stored.** `PREFS_LIVE`
 is `false` during boot, so reading the saved prefs never rewrites them; it flips to `true` at the end of
@@ -784,8 +820,9 @@ lives in the bottom panel. The ✕ (desktop only) returns to `#now`.
   the satellite's map-theme tint and aMax from `satTint()` (shared with `satPaint`: dark map white 0.85, light map slate rgb(92,104,122) 0.75; the 0.65 keeps a
   textureless 100 % field from washing the map out). It lives in `satPane`
   (above the base tiles, below the radar) and is rebuilt by `gridDraw` on every hour, view and theme change (`mapThemeToggle` → `gridRefresh`); `removeCloudOv()`
-  drops it at ⏱ 0, when ☁️ goes off and when `gridRefresh` finds no active grid layer. **(2) Labels** — `gridDraw` adds "☁NN%" (cover ≥ 15) to the label stack, in the
-  theme-aware tone `#cfd6de` (dark map) / `#5b6573` (light map) inside the existing text halo. **(3) Satellite gating** — `satVis()` (called by `satShow` and so by
+  drops it at ⏱ 0, when ☁️ goes off and when `gridRefresh` finds no active grid layer. **(2) Labels** — `gridDraw` adds "☁NN%" (cover ≥ 15) to the label stack, in a
+  theme-aware high-contrast ink (`#fff` on the dark map, `#141a22` on the light map, bold, `white-space:nowrap`) with an extra tight text halo on top of the
+  existing one, so it stays readable over the densest field (H1). **(3) Satellite gating** — `satVis()` (called by `satShow` and so by
   every `tlmSync` while ☁️ is on and satellite frames exist) sets `display:none` on the current satellite overlay and any kept previous one while `GRIDHR>0`; `satShow` paints nothing then; at ⏱ 0 the overlays are
   shown again and the current frame is painted. The satellite loading / queue logic is untouched. **(4) Observation controls** — `tlmSync()` computes
   `lock = ☁️ on && GRIDHR>0 && master is not the radar`: it stops the play timer (`stopRadarAnim`), disables `#radarPrev`/`#radarPlay`/`#radarNext`/`#radarSlider`
