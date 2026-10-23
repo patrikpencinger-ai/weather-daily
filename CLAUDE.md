@@ -194,7 +194,7 @@ full-screen shell (now the graph view).
   view"): the place + summary slot `#tlBarStart` (`#tlBarLoc`), `btn-tltheme`, `btn-tlcollapse`, `btn-tlfsx`. Between the zoom group and the Layers
   button sits `btn-tltcol` (H1, the day-zoom temperature colour mode: hidden unless `tlRep()==='d'`, the temperature layer is visible and there is
   no comparison; shows a colour swatch of the mode plus a word, and only the swatch in the graph view on a phone; label / `aria-label` written by
-  `tlSyncUi()`, `tt_tltcol`, `tlTc_0..2`, `tlTcw_0..2`, plus "no normals" `tlTcNA`). The
+  `tlSyncUi()` from `tlTc_0..2`, `tlTcw_0..2`, plus "no normals" `tlTcNA`). The
   rest lives in the **Layers & display panel `#tlPanel`** (see "Legend as control"), whose static markup (backdrop
   `#tlPanelBk`, then the `<aside>`) sits after `#view-graph` at the end of `#wrap`. The canvas has `tabindex=0`,
   `role=img` and `data-tt="ar_tl"`; the zoom group uses `tlZoomAria`, the panel's pairs `tlFitAria` / `tlStyleAria`.
@@ -282,12 +282,14 @@ full-screen shell (now the graph view).
   names the rows with `T.tlCxRow` (`['H','M','L']` / `['V','S','N']`, full names stay in the readout's "low · mid · high" line) and the
   strip's `°C` unit label is dropped while expanded. State 2 prints each row's % (decimated per row with the `fits` keys `cH`/`cM`/`cL`,
   centre of the column, day zoom the means in `ag`). `MAINMIN` and the compact canvas height formula include `cloudX` (the band plus a
-  1.45 × margin of its added height, because the rain lane takes 30 % of the main area), so the temperature zone does not shrink below its
-  compact minimum. **Toggle:** a tap / click inside the band (`tlCloudAt(px,py)`, `TLC.lay.cb`: the band plus a few px of slack) toggles
+  1.45 × margin of its added height, `cxd`, because the rain lane takes 30 % of the main area), and the compact canvas grows by the whole `cxd`,
+  so expanding the band does not shrink the temperature zone on NOW; with the band expanded `MAINMIN` is also at least (69 + 4 × `bandH0`) / (1 − the rain share), i.e. room for a 40 px
+  temperature zone, which matters in a short graph view (the lanes below are squeezed instead). **Toggle:** a tap / click inside the band (`tlCloudAt(px,py)`, `TLC.lay.cb`: the band plus a few px of slack) toggles
   it *and* sets the cursor as any tap does; the `c` key on the focused canvas and the panel switch `#tlCloudX` ("Clouds expanded: low · mid ·
   high", `aria-pressed`) do the same (`tlToggleCloudX()`, saves the prefs). The cloud chip's tooltip adds `tlCloudTip` ("tap the cloud band
-  to expand"). **Cloud numbers** (both forms) go through `cLab()`: the ink is `tlTextOn(fill under the number)` (the layer colour at the band's
-  centre in the compact band, the alpha-blended row colour when expanded) with a 2.4 px halo in the opposite tone, so "100" is readable in
+  to expand"). **Cloud numbers** (both forms) go through `cLab()`: the ink is pure `#000` or `#fff`, whichever contrasts more with the colour under
+  the number (compact band: the colour that covers most of the digits' height, `under()`; expanded: the row colour; both composited over the
+  `grid` tint on `BG`, `gq`), so it always gets at least 4.58:1, with a 2.4 px halo in the opposite tone, so "100" is readable in
   both themes at every cover; three digits use a 1 px smaller font (`cfn`), and a label that would sit under an axis strip is skipped.
 - **Rain lane** (H1). The mm are the towers: one bar per column (hour / 3 h row / day) of the full column width minus a 1 / 1.5 / 2 px gap,
   height = mm / `mmS` of the lane (`rH`: the lane height minus a label headroom `hdr`), where `mmS` = max(floor, the visible maximum) with the
@@ -427,7 +429,9 @@ full-screen shell (now the graph view).
   Layers button and, right-aligned, `btn-tltheme` (sun / moon, `toggleTheme()`, `data-tt="tt_theme"`; `applyTheme()` keeps its icon in
   step with `btn-theme`, so the graph has its own light/dark switch), `btn-tlcollapse` (`tt_tlcollapse`) and `btn-tlfsx` ✕ (desktop only).
   `#tlWrap` flex-grows between the bar and `#tlMini`; the view scrolls (`overflow:auto`) only if a very short viewport cannot fit the
-  bar, a 140 px plot and the legend row.
+  bar, a 140 px plot and the legend row, or the main area plus the lanes that are on: `tlDraw()` then gives `#tlWrap` the `min-height` they need
+  with the lanes squeezed to half (V-H1, e.g. 9 layers and the expanded cloud band on an 800 × 300 landscape screen); the compact view and
+  `tlUnmountGraph()` clear it.
   **Collapse (immersive).** `TL.ui={c:0|1}`, remembered in `wd_prefs.tl.ui` (a missing or invalid value is 0). `tlSetCollapsed(c)` saves it,
   closes the panel and calls `tlUiApply()`, which toggles `#view-graph.imm` and `#tabs.tlimm` (`tlImm()` = graph view active, `TL.ui.c===1`
   and a timeline exists) and refreshes `--navh`. Collapsed: `#tlBar`, `#tlSum`, `#tlMini` and the panel are hidden, on mobile/mid the
@@ -850,8 +854,8 @@ lives in the bottom panel. The ✕ (desktop only) returns to `#now`.
   textureless 100 % field from washing the map out). It lives in `satPane`
   (above the base tiles, below the radar) and is rebuilt by `gridDraw` on every hour, view and theme change (`mapThemeToggle` → `gridRefresh`); `removeCloudOv()`
   drops it at ⏱ 0, when ☁️ goes off and when `gridRefresh` finds no active grid layer. **(2) Labels** — `gridDraw` adds "☁NN%" (cover ≥ 15) to the label stack, in a
-  theme-aware high-contrast ink (`#fff` on the dark map, `#141a22` on the light map, bold, `white-space:nowrap`) with an extra tight text halo on top of the
-  existing one, so it stays readable over the densest field (H1). **(3) Satellite gating** — `satVis()` (called by `satShow` and so by
+  theme-aware high-contrast ink (`#fff` on the dark map, `#141a22` on the light map, bold, `white-space:nowrap`) on a translucent chip
+  (`rgba(10,14,20,0.66)` / `rgba(255,255,255,0.72)`, no text shadow), so it stays readable (at least 6:1) over the densest field (H1, V-H1). **(3) Satellite gating** — `satVis()` (called by `satShow` and so by
   every `tlmSync` while ☁️ is on and satellite frames exist) sets `display:none` on the current satellite overlay and any kept previous one while `GRIDHR>0`; `satShow` paints nothing then; at ⏱ 0 the overlays are
   shown again and the current frame is painted. The satellite loading / queue logic is untouched. **(4) Observation controls** — `tlmSync()` computes
   `lock = ☁️ on && GRIDHR>0 && master is not the radar`: it stops the play timer (`stopRadarAnim`), disables `#radarPrev`/`#radarPlay`/`#radarNext`/`#radarSlider`
@@ -1032,7 +1036,7 @@ These are the non-negotiable house rules for any change:
     string it draws or announces (labels, readout, legend, aria) exists in both languages. Keep the cursor
     inside the pannable range (`tlCurClamp`) and redraw through `tlSchedule()`. The legend chips (mini row and panel) are the only series
     control (three states per series: labels / no labels / hidden), the axis strips always draw their ticks, a
-    series with no data is never drawn or listed, and a touch swipe must never start an axis rescale.
+    series with no data is never drawn or listed, and a touch swipe must never pan or zoom an axis (axis drag and wheel are mouse-only).
 12. **The API key never appears in the source, prefs or snapshots.** The visitor's Claude API key exists only in
     `localStorage` `wd_apikey` (or `ASK.memKey` when storage is blocked) and in the `x-api-key` header of the
     request to `api.anthropic.com`. It is never written to `wd_prefs`, `wd_last`, a URL, the console, the DOM
