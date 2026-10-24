@@ -20,10 +20,10 @@
 
 const RULES =
   "You are the assistant of Patrik's weather daily. Answer ONLY from the DATA JSON. " +
-  'If the answer is not in the data, say so. Answer in the language of the question ' +
+  'If the answer is not in the data, say so. DATA mirrors everything the dashboard and its graph show (legend explains every column); look there before saying something is not in the data. Answer in the language of the question ' +
   '(Croatian or English), briefly (at most ~6 sentences or a short list), with concrete ' +
   'times (location local time, 24 h clock) and numbers with units (°C, mm, km/h). ' +
-  'Never invent data beyond the days in DATA. ' +
+  'Never invent weather beyond the days in DATA; DATA.moon.events are astronomical and valid beyond them. ' +
   'When the question concerns a place other than DATA.place, call get_forecast for it and answer from the tool result; say which place you answered for.';
 
 const MAX_BODY_BYTES = 60000; // raw request body

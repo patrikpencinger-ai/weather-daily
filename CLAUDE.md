@@ -6,7 +6,7 @@ Guidance for working in this repository.
 
 **Patrik's weather daily** — a bilingual (English / Croatian) weather dashboard.
 The entire app is a **single self-contained file**: [weather-dashboard.html](weather-dashboard.html)
-(HTML + CSS + vanilla JS, ~7,000 lines). Current version: **v3.29** (also in the `APPV` JS constant,
+(HTML + CSS + vanilla JS, ~7,000 lines). Current version: **v3.30** (also in the `APPV` JS constant,
 used for the dynamic `document.title` and to tag `wd_last` snapshots — bump `<title>`, the footer and
 `APPV` together, add a `CHANGELOG` entry, and bump `CACHE` in `sw.js`).
 
@@ -105,7 +105,7 @@ the fetch handler returns early, before the navigation rule, for every same-orig
 intercepted or cached. `tools/make-icons.js` is a dependency-free
 node script (hand-rolled PNG encoder: raw RGBA scanlines → `zlib.deflateSync` → PNG chunks with a
 hand-rolled CRC32) that regenerates the three icon PNGs; `tools/` is excluded from the deployed site via
-`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.29`) with every release, since the
+`.assetsignore`. **Bump `CACHE` in `sw.js`** (currently `wd-shell-v3.30`) with every release, since the
 shell is the HTML, and whenever the precache list or pinned CDN versions change — the old cache is
 dropped on activate. The SW registers only on `https:` (never on `file://`, and it's a no-op if
 registration fails — the page works identically without it); its status is reported through the same
@@ -253,7 +253,7 @@ full-screen shell (now the graph view).
   inside the plot), `sun` (**`D.sunDays=[{dt,rise,set}]`**, added by `buildOpenMeteo` for every day of the
   response — `D.sun` stays today's — gives the exact-minute night shading `tlNights()` and the sun-up /
   sun-down ticks on the axis, and with labels the sunrise / sunset times), `moon` (`moonIcon`/`moonName`/
-  `moonIllum`: day zoom one icon per day above the day label, hours / 3 h the icon at local midnight), `tide`
+  `moonIllum`, true phases since v3.30, see "Moon phases": day zoom one icon per day above the day label, hours / 3 h the icon at local midnight), `tide`
   (`D.sea.tide` daily high / low levels in cm as ↑ / ↓ marks in the sea lane; the data has no times, which the
   legend tooltip `tlTideTip` says; omitted inland) and `pollen` (**`D.air.pollenH=[{ts,k,v}]`**, the dominant
   pollen type and value of every hour, built by `ensureAir()` from the hourly `*_pollen` arrays of the same
@@ -493,7 +493,7 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
   `#askGo` and the key button `#btn-askKey` (🔑, `askKeyGo()`); then the mode hint `#askHint` (always one line,
   see below), the example chips `#askEx` (`.askchip` buttons from `T.askEx`; index 7, the sea question, is skipped for
   inland places; index 8 "What is the weather in Split tomorrow?" shows unless the shown place is Split, in which
-  case index 9 (the same question for Rijeka) shows instead; shown only while there is no answer yet) and the answer panel `#askOut` (`aria-live=polite`,
+  case index 9 (the same question for Rijeka) shows instead; index 10 "When is the next full moon?" always shows; shown only while there is no answer yet) and the answer panel `#askOut` (`aria-live=polite`,
   `aria-busy` while an answer streams so screen readers read the finished text; header with collapse and Clear,
   a note — "no key" or "limit reached" — with a button, one `.askent` per answer). The bar is hidden on the MAP
   view and the graph view (`askUi()` toggles `.hidden` for `#view-map` and `#view-graph`; `html.tlfs` also hides it by CSS); it shows
@@ -618,20 +618,47 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
 - **Models and cost.** Key mode: `claude-sonnet-5` (default, more accurate) and `claude-haiku-4-5-20251001`
   (cheaper), the choice is `wd_prefs.aiModel` (`loadPrefs` accepts only `ASKMODELS`); `max_tokens` is 600. A
   question costs roughly 1–3 cents on Sonnet and under 1 cent on Haiku (said in the settings panel,
-  `askSetNote`); an other-place question adds a second request that carries the ~6 kB brief, roughly doubling that
+  `askSetNote`; the DATA block is about 18,000 characters for Zagreb since v3.30); an other-place question adds a second request that carries the ~6 kB brief, roughly doubling that
   (a third only when a second place is looked up); the system prompt's rules-and-data block carries `cache_control: ephemeral` and the changing
   clock line comes after it. Proxy mode uses the server's model (`ASK_MODEL`). Each answer shows the model and
   the tokens in / out / cached.
 - **What is sent.** The question (at most 300 characters in the page; the Worker accepts 500) and
-  `askContext()`, a compact JSON string of what is already loaded: place and time zone, today's date and weekday
-  (`askDow`, UTC noon, no browser clock), a unit legend, `now` (`askNow`), `hourly` (`askHourly`: 48 hourly rows,
-  then 3-hour blocks up to +168 h; the AI fallback feed sends its 24 rows), `daily` (`askDaily`: 16 days with the
-  day's wind / gust / UV maxima and sunrise / sunset from `D.sunDays`), alerts, sea, air quality with the
-  strongest pollen, climate normals (and, in the `daily` rows, the `hist` column of the History layer: typical range, records with their years and last year's max / min of each date) and the activity scores of the next seven days (`askScores`, straight from
-  `scoreDays`), plus the second place in comparison mode (48 h and 7 days). Key mode sends it through
-  `askSystem(ctx)` (the two system blocks). Proxy mode sends `{q, lang, ctx, place}` where `ctx` is the parsed
-  `askContext()` object plus `now_local` (`"YYYY-MM-DD HH:MM"` from `locNowStr()`, the place's clock) and
-  `place`. No coordinates, no key and nothing personal is included.
+  `askContext()`, a compact JSON string that mirrors **everything the dashboard and the graph show** (v3.30; about 18,000
+  characters for Zagreb, target ≤ 20,000, the Worker's hard cap is 40,000). The `legend` entry explains every field and
+  column (a column that is empty for all days, like `hist`, `norm`, `aqi_max` or `vis_min`, is left out together with its legend entry);
+  nulls are dropped. Keys: `place`, `tz`, `date`, `dow` (`askDow`, UTC noon, no browser clock), `legend`, `now` (`askNow`),
+  `hourly` (`askHourly(…,true,true)`: 48 hourly rows, then 3-hour blocks up to +168 h; columns `time,t,fl,pp,mm,w,g,uv,cond,night`
+  plus `cl,cm,ch` (low / mid / high cloud %, blocks = mean), `vis` (km, blocks = minimum), `frz` (m), `snow` (cm, blocks = sum),
+  `rh`, `p`; the AI fallback feed sends its 24 rows; if the whole JSON passes 20,000 characters the blocks stop after `vis`, noted in
+  `legend.blocks`), `daily` (`askDaily(…,16,true)`: 16 days with the day's wind / gust / UV maxima, sunrise / sunset from `D.sunDays`,
+  `hist` (History layer: typical range, records with their years, last year's max / min) and the per-date extras of `askDayX`:
+  `moon` (phase name + illumination %), `norm` (normal max), `sst`, `aqi_max`, `pollen` (strongest type + grains/m³), `snow` (sum),
+  `cl,cm,ch` (day means of the three layers, as the graph's day zoom shows them) and `vis_min`), `rain_next2h` (`D.rain15`, [time, mm]),
+  `alerts`, `sea` (sst, waves, swell with period, current, `sst_days`, `tide_cm` for 7 days), `air` (AQI now / yesterday, PM2.5, PM10,
+  NO₂, O₃, dust, strongest pollen, `aqi_next` every 3 h to +72 h from `D.air.aqi.hs`, `pollen_next` every 3 h from `D.air.pollenH`,
+  `askPollenNext`), `climate` (normals), `moon` (`askMoon`: today's phase and illumination, `next_full`, `next_new` and `events`, every
+  phase event of the next 60 days in the place's local time, "astronomical, computed; valid beyond the forecast days"), `pressure_trend`
+  (`askPres`: the 72 h series every 3 h, start / now / end, 3 h and 24 h change with the dashboard's words, min / max ahead), `bio`
+  (`askBio`: the BIOMETEO daily load score with level and triggers, and the next 24 h as one digit per hour), `fact` (`buildFact`, plain
+  text ≤ 400 characters), `summary` (`askSummary`: the verdict, the day text, the tomorrow line and the outlook sentence as plain text
+  in the UI language), `weekend` (`askWeekend`: the best day per activity for this and next weekend, from `scoreDay`) and `scores`
+  (`askScores(A,16)`: the activity scores of all 16 days, straight from `scoreDays`, the same days PLAN shows), plus the second place in
+  comparison mode (48 h and 7 days, without the extras). `askBrief` (the tool result for other places) is unchanged and keeps its ≤ 6 kB
+  rule. Everything added is plain data for the model (English keys and values); there are no coordinates, no key and nothing personal.
+  **Rules** (identical wording in `askSystem` and the Worker's `RULES`): "DATA mirrors everything the dashboard and its graph show (legend
+  explains every column); look there before saying something is not in the data." and "Never invent weather beyond the days in DATA;
+  DATA.moon.events are astronomical and valid beyond them." Key mode sends it through `askSystem(ctx)` (the two system blocks). Proxy
+  mode sends `{q, lang, ctx, place}` where `ctx` is the parsed `askContext()` object plus `now_local` (`"YYYY-MM-DD HH:MM"` from
+  `locNowStr()`, the place's clock) and `place`.
+- **Moon phases (v3.30).** The phase events are **true**, not the old mean synodic phase (which was off by up to ±0.7 day): the pure
+  `moonQuarterMs(q)` (q = 4 × lunation number + 0 new / 1 first quarter / 2 full / 3 last quarter) is Meeus, "Astronomical Algorithms" ch. 49
+  (mean phase, the main periodic terms, the 14 planetary arguments, delta-T from the 2005–2050 polynomial; accurate to about a minute
+  and cached per event in `MOONQ`). `moonEvents(fromIso,days[,off])` returns `[{k:'new'|'fq'|'full'|'lq', ts:'YYYY-MM-DDTHH:MM' in the
+  place's local time, utc:'…Z'}]` (`off` = `LOCTZ.off`, `moonOff()`; the browser offset only when the place has none). `moonPh(iso)` takes the
+  place's local noon of the date and interpolates the phase fraction between the surrounding true events (`moonPhAt`), so `moonIdx` /
+  `moonIcon` / `moonName` / `moonIllum` (signatures unchanged) show the full moon on the dates of the real full moon: the timeline's moon
+  layer, the day readout, the MOON chart, the fact line and the AI search all agree. `node` check values: full moons 2026-10-26 04:12 UTC,
+  2026-11-24 14:53, 2026-12-24 01:28, new moon 2026-11-09 07:02, full moon 2025-01-13 22:27 (all within the minute).
 - **Never stored.** The answers live only in `ASK.hist` (the last five questions, in memory; `askClear()`
   also aborts a pending request); no question, answer or history is written to `localStorage`, and nothing is
   logged by the page.

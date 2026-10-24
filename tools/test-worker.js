@@ -343,6 +343,9 @@ async function main() {
     eq([b.model, b.max_tokens, b.stream], ['claude-sonnet-5', 600, true], 'upstream model/max_tokens/stream');
     eq(b.system.length, 2, 'two system blocks');
     ok(b.system[0].text.startsWith("You are the assistant of Patrik's weather daily."), 'RULES first');
+    ok(b.system[0].text.includes('Never invent weather beyond the days in DATA; DATA.moon.events are astronomical and valid beyond them.'), 'K1: RULES let the astronomical moon events reach past the forecast days');
+    ok(!b.system[0].text.includes('Never invent data beyond the days in DATA'), 'K1: the old "never invent data" wording is gone');
+    ok(b.system[0].text.includes('DATA mirrors everything the dashboard and its graph show (legend explains every column); look there before saying something is not in the data.'), 'K1: RULES say DATA mirrors the dashboard and the graph');
     ok(b.system[0].text.includes('\n\nDATA:\n{"now_local":"2026-10-18T16:00"'), 'DATA json follows RULES');
     eq(b.system[0].cache_control, { type: 'ephemeral' }, 'cache_control on the data block');
     eq(b.system[1].text, 'Today is 2026-10-18T16:00', 'now_local used for the date line');
