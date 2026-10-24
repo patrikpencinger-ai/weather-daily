@@ -625,7 +625,8 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
 - **What is sent.** The question (at most 300 characters in the page; the Worker accepts 500) and
   `askContext()`, a compact JSON string that mirrors **everything the dashboard and the graph show** (v3.30; about 18,000
   characters for Zagreb, target ≤ 20,000, the Worker's hard cap is 40,000). The `legend` entry explains every field and
-  column (a column that is empty for all days, like `hist`, `norm`, `aqi_max` or `vis_min`, is left out together with its legend entry);
+  column; a legend entry exists only for a column or section that is really in DATA (a column that is empty for all days, like `hist`, `norm`,
+  `aqi_max`, `vis_min` or `sst`, is left out together with its entry; so are `air`, `sea`, `pollen`, … when absent, e.g. inland);
   nulls are dropped. Keys: `place`, `tz`, `date`, `dow` (`askDow`, UTC noon, no browser clock), `legend`, `now` (`askNow`),
   `hourly` (`askHourly(…,true,true)`: 48 hourly rows, then 3-hour blocks up to +168 h; columns `time,t,fl,pp,mm,w,g,uv,cond,night`
   plus `cl,cm,ch` (low / mid / high cloud %, blocks = mean), `vis` (km, blocks = minimum), `frz` (m), `snow` (cm, blocks = sum),
@@ -654,10 +655,15 @@ as it is written. It is **optional**: nothing else in the app depends on it. The
   `moonQuarterMs(q)` (q = 4 × lunation number + 0 new / 1 first quarter / 2 full / 3 last quarter) is Meeus, "Astronomical Algorithms" ch. 49
   (mean phase, the main periodic terms, the 14 planetary arguments, delta-T from the 2005–2050 polynomial; accurate to about a minute
   and cached per event in `MOONQ`). `moonEvents(fromIso,days[,off])` returns `[{k:'new'|'fq'|'full'|'lq', ts:'YYYY-MM-DDTHH:MM' in the
-  place's local time, utc:'…Z'}]` (`off` = `LOCTZ.off`, `moonOff()`; the browser offset only when the place has none). `moonPh(iso)` takes the
-  place's local noon of the date and interpolates the phase fraction between the surrounding true events (`moonPhAt`), so `moonIdx` /
-  `moonIcon` / `moonName` / `moonIllum` (signatures unchanged) show the full moon on the dates of the real full moon: the timeline's moon
-  layer, the day readout, the MOON chart, the fact line and the AI search all agree. `node` check values: full moons 2026-10-26 04:12 UTC,
+  place's local time, utc:'…Z'}]`. **Every event gets the UTC offset of its own moment**, so a clock change inside the 60 days is honoured
+  (Zagreb's 2026-10-26 full moon is 05:12 CET, not 06:12): `moonOff(ms)` takes the offset from the IANA zone `LOCTZ.name` through
+  `Intl.DateTimeFormat` (`moonZoneOff`, cached per 15 minutes), `LOCTZ.off` only when there is no valid zone name, and the browser offset when the
+  place has neither; the optional `off` argument forces a fixed offset. `moonLocalMs` turns a local wall-clock time into UTC the same way.
+  `moonPh(iso)` takes the place's local noon of the date and interpolates the phase fraction between the surrounding true events
+  (`moonPhAt`). `moonIdx(iso)` gives the new / quarter / full names (0, 2, 4, 6) **only to the local date of the real event**; every other day is a
+  crescent or gibbous (1, 3, 5, 7) by its phase. So `moonIcon` / `moonName` / `moonIllum` (signatures unchanged), the timeline's moon layer, the day
+  readout, the MOON chart, the fact line (the next full / new moon of 14 days, from `moonEvents`) and the AI search (`moon.today`, the daily
+  `moon` column, `next_full`) all give the same date. `tools/test-time.js` has the zone fixtures (Zagreb, New York, Tokyo, fixed offset, invalid zone name). `node` check values: full moons 2026-10-26 04:12 UTC,
   2026-11-24 14:53, 2026-12-24 01:28, new moon 2026-11-09 07:02, full moon 2025-01-13 22:27 (all within the minute).
 - **Never stored.** The answers live only in `ASK.hist` (the last five questions, in memory; `askClear()`
   also aborts a pending request); no question, answer or history is written to `localStorage`, and nothing is

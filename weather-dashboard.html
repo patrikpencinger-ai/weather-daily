@@ -845,16 +845,39 @@ function moonQuarterMs(q){ /* UTC ms of phase event q = 4 x lunation number (k, 
  const y=Math.min(2050,Math.max(2005,2000+k/12.3685)),t0=y-2000,dT=62.92+0.32217*t0+0.005589*t0*t0; /* TD -> UT: delta-T from the 2005-2050 polynomial (error of a few seconds) */
  return(MOONQ[q]=(jde-2440587.5)*86400000-dT*1000);
 }
-function moonOff(ms){return(LOCTZ&&typeof LOCTZ.off==='number'&&isFinite(LOCTZ.off))?LOCTZ.off:-new Date(ms).getTimezoneOffset()*60;} /* the place's UTC offset in seconds (browser offset only when the place has none) */
-function moonEvents(fromIso,days,off){ /* every phase event from the local midnight of fromIso to days later: [{k:'new'|'fq'|'full'|'lq', ts:'YYYY-MM-DDTHH:MM' in the place's local time, utc:'YYYY-MM-DDTHH:MMZ'}] */
+const MOONFMT={},MOONOFF={};
+function moonZoneOff(name,ms){ /* UTC offset in seconds of an IANA zone at the instant ms (daylight saving aware); null when there is no valid zone name */
+ if(!name||typeof Intl==='undefined'||!Intl.DateTimeFormat)return null;
+ const key=name+'|'+Math.floor(ms/900000);
+ if(MOONOFF[key]!==undefined)return MOONOFF[key];
+ let r=null;
+ try{
+  const f=MOONFMT[name]||(MOONFMT[name]=new Intl.DateTimeFormat('en-US',{timeZone:name,hourCycle:'h23',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric'}));
+  const p={};f.formatToParts(new Date(ms)).forEach(x=>{p[x.type]=x.value;});
+  r=Math.round((Date.UTC(+p.year,+p.month-1,+p.day,(+p.hour)%24,+p.minute,+p.second)-Math.floor(ms/1000)*1000)/1000);
+  if(!isFinite(r))r=null;
+ }catch(e){r=null;}
+ MOONOFF[key]=r;return r;
+}
+function moonOff(ms){ /* the place's UTC offset in seconds at the instant ms: its IANA zone (LOCTZ.name) first, so a clock change inside the 60 days is honoured; LOCTZ.off only when there is no valid zone name; the browser offset when the place has neither */
+ const z=moonZoneOff(LOCTZ&&LOCTZ.name,ms);if(z!=null)return z;
+ if(LOCTZ&&typeof LOCTZ.off==='number'&&isFinite(LOCTZ.off))return LOCTZ.off;
+ return -new Date(ms).getTimezoneOffset()*60;
+}
+function moonLocalMs(y,m,d,h,off){ /* UTC ms of the local wall-clock time y-m-d h:00 (m is 1-based, d may overflow); off = a fixed offset in seconds, else the place's own at that moment */
+ const u=Date.UTC(y,m-1,d,h);
+ if(typeof off==='number')return u-off*1000;
+ return u-moonOff(u-moonOff(u)*1000)*1000;
+}
+function moonEvents(fromIso,days,off){ /* every phase event from the local midnight of fromIso to days later: [{k:'new'|'fq'|'full'|'lq', ts:'YYYY-MM-DDTHH:MM' in the place's local time (each event with the offset of its own date), utc:'YYYY-MM-DDTHH:MMZ'}]; off = optional fixed offset in seconds */
  const p=String(fromIso).slice(0,10).split('-').map(Number);
  if(p.length<3||!isFinite(p[0]+p[1]+p[2]))return[];
- const o=(typeof off==='number')?off:moonOff(Date.UTC(p[0],p[1]-1,p[2]));
- const s=Date.UTC(p[0],p[1]-1,p[2])-o*1000,e=s+days*86400000,out=[];
+ const s=moonLocalMs(p[0],p[1],p[2],0,off),e=moonLocalMs(p[0],p[1],p[2]+days,0,off),out=[];
  let q=Math.floor((s-MOON_REF)/(MOON_SYN*86400000)*4)-2;
  for(let n=0;n<4*Math.ceil(days/29)+16;n++,q++){
   const t=Math.round(moonQuarterMs(q)/60000)*60000;
   if(t>=e)break;if(t<s)continue;
+  const o=(typeof off==='number')?off:moonOff(t);
   out.push({k:MOON_K[((q%4)+4)%4],ts:new Date(t+o*1000).toISOString().slice(0,16),utc:new Date(t).toISOString().slice(0,16)+'Z'});
  }
  return out;
@@ -866,12 +889,16 @@ function moonPhAt(t){ /* phase fraction 0..1 (0 new, .25 first quarter, .5 full,
  const a=moonQuarterMs(q),b=moonQuarterMs(q+1);
  return((((q%4)+4)%4)+(t-a)/(b-a))/4;
 }
-function moonPh(iso){ /* phase of a local date, taken at the place's local noon */
+function moonPh(iso){ /* phase of a local date, taken at the place's local noon (that moment's own offset) */
  const p=String(iso).slice(0,10).split('-').map(Number);
- const u=Date.UTC(p[0],p[1]-1,p[2],12);
- return moonPhAt(u-moonOff(u)*1000);
+ return moonPhAt(moonLocalMs(p[0],p[1],p[2],12));
 }
-function moonIdx(iso){return Math.round(moonPh(iso)*8)%8;}
+function moonIdx(iso){ /* 0..7 index into MOONS / moonNames: the new, quarter and full moon names (0, 2, 4, 6) belong ONLY to the local date of the real event; every other day is a crescent or gibbous (1, 3, 5, 7) by its phase, so the icon, the name, the AI search and the fact line agree */
+ const d=String(iso).slice(0,10),ev=moonEvents(d,1);
+ if(ev.length){const k=ev[0].k;return k==='new'?0:(k==='fq'?2:(k==='full'?4:6));}
+ const p=moonPh(d);
+ return p<0.25?1:(p<0.5?3:(p<0.75?5:7));
+}
 function moonIcon(iso){return MOONS[moonIdx(iso)];}
 function moonIllum(iso){return (1-Math.cos(2*Math.PI*moonPh(iso)))/2*100;}
 function moonName(iso){return (LBL.moonNames||T.en.moonNames)[moonIdx(iso)];}
@@ -2433,15 +2460,14 @@ function buildFact(d,l){
   :('Daylight today: '+H+'h '+Mn+'m (sun '+d.sun.rise+'–'+d.sun.set+'); days are '+(dm>=0?'lengthening':'shortening')+' by ~'+Math.abs(dm)+' min/day — '+nDays+' days to the '+(summer?'summer':'winter')+' solstice.')});
  }
  if(d.days&&d.days.length){
-  for(const x of d.days.slice(0,14)){
-   const idx=Math.round(moonPh(x.dt)*8)%8;
-   if(idx===4||idx===0){
-    const full=idx===4;
+  { /* K1 fix: the true full / new moon of the next 14 days, on the event's local date (the same date the AI search and the graph give) */
+   const ev=moonEvents(d.days[0].dt,14).find(e=>e.k==='full'||e.k==='new');
+   if(ev){
+    const full=ev.k==='full',dt=ev.ts.slice(0,10),x=d.days.find(q=>q.dt===dt)||{};
     const clear=(x.cond==='sun'||x.cond==='partcloud');
     cand.push({sc:full?2.4:1.8,t:hrv?
-     ((full?'Puni mjesec':'Mlađak')+' pada u '+dayLab(x.dt)+(full&&clear?' — uz vedru prognozu, večer kao stvorena za promatranje.':'.'))
-    :((full?'Full moon':'New moon')+' lands on '+dayLab(x.dt)+(full&&clear?' — and skies look clear, a prime evening for moonwatching.':'.'))});
-    break;
+     ((full?'Puni mjesec':'Mlađak')+' pada u '+dayLab(dt)+(full&&clear?' — uz vedru prognozu, večer kao stvorena za promatranje.':'.'))
+    :((full?'Full moon':'New moon')+' lands on '+dayLab(dt)+(full&&clear?' — and skies look clear, a prime evening for moonwatching.':'.'))});
    }
   }
   const allDry=d.days.every(x=>(x.pp??0)===0);
@@ -6618,7 +6644,7 @@ function askContext(){ /* compact JSON string of what the app has loaded (no key
  if(A.hr&&A.hr.length&&i0>=0)o.hourly=askHourly(A,i0,48,120,true,true);
  else if(A.hours&&A.hours.length)o.hourly={cols:['time','t','pp','cond'],rows:A.hours.slice(0,24).map(h=>[h.h,h.t,h.pp,h.cond])};
  o.daily=askDaily(A,16,true);
- ['hist','norm','aqi_max','vis_min'].forEach(c=>{if(o.daily.cols.indexOf(c)<0)delete o.legend[c];}); /* V-H2: no column, no legend entry */
+ ['hist','norm','aqi_max','vis_min','sst'].forEach(c=>{if(o.daily.cols.indexOf(c)<0&&!(c==='sst'&&A.sea))delete o.legend[c];}); /* V-H2: no column, no legend entry */
  if(A.rain15&&A.rain15.length)o.rain_next2h=A.rain15.map(r=>[r.h,r.v]);
  if(A.alerts&&A.alerts.length)o.alerts=A.alerts.map(a=>{const x={};Object.keys(a).forEach(k=>{if(k!=='sev'&&a[k]!=null)x[k]=a[k];});return x;});
  if(A.sea){
@@ -6661,6 +6687,14 @@ function askContext(){ /* compact JSON string of what the app has loaded (no key
   if(D2.hr&&D2.hr.length&&j0>=0)b.hourly=askHourly(D2,j0,48,0,false);
   b.daily=askDaily(D2,7);
   o.compare_with=b;
+ }
+ { /* K1 fix: a legend entry only for a column or section that is really in DATA */
+  const has=c=>!!((o.hourly&&o.hourly.cols&&o.hourly.cols.indexOf(c)>=0)||o.daily.cols.indexOf(c)>=0);
+  ['cl','vis','frz','snow'].forEach(c=>{if(!has(c))delete o.legend[c];});
+  ['rh','p'].forEach(c=>{if(!has(c)&&!(o.now&&o.now[c]!=null))delete o.legend[c];});
+  if(!(o.hourly&&o.hourly.cols&&o.hourly.cols.indexOf('night')>=0))delete o.legend.night;
+  if(!has('pollen')&&!(o.air&&o.air.pollen_next))delete o.legend.pollen;
+  ['rain_next2h','pressure_trend','air','sea','bio','fact','summary','weekend','moon','scores'].forEach(k=>{if(o[k]==null)delete o.legend[k];});
  }
  const js=()=>JSON.stringify(o,(k,v)=>v===null?undefined:v);
  let s=js();

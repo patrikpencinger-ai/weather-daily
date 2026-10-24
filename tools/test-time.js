@@ -97,14 +97,16 @@ const scriptM = [...html.matchAll(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/g)]
 if (!scriptM) { console.log('FAIL cannot find the app <script>'); process.exit(1); }
 const script = scriptM[1];
 
-const CONSTS = ['APPV', 'WD_LAST_KEY', 'LOCTZ', 'ICON', 'ICON_NIGHT', 'GRILLALL', 'HRCOLS', 'WMO', 'COMPASS'];
+const CONSTS = ['APPV', 'WD_LAST_KEY', 'LOCTZ', 'ICON', 'ICON_NIGHT', 'GRILLALL', 'HRCOLS', 'WMO', 'COMPASS',
+  'MOON_SYN', 'MOON_T_NEW', 'MOON_T_FULL', 'MOON_T_QTR', 'MOON_PLAN', 'MOONQ', 'MOONFMT']; /* the moon constants (MOON_SYN's statement also declares MOON_REF and MOON_K) */
 const FUNCS = ['timePenalty', 'scoreBio', 'grillCompound', 'hrPack', 'hrRow', 'setLocTz', 'locNowAt', 'locNow', 'locNowStrAt', 'locNowStr',
-  'todayIso', 'tsMin', 'sameDayISO', 'iconFor', 'buildOpenMeteo', 'fetchOpenMeteo', 'saveLast', 'readWdLast'];
+  'todayIso', 'tsMin', 'sameDayISO', 'iconFor', 'buildOpenMeteo', 'fetchOpenMeteo', 'saveLast', 'readWdLast',
+  'moonQuarterMs', 'moonZoneOff', 'moonOff', 'moonLocalMs', 'moonEvents', 'moonPhAt', 'moonPh', 'moonIdx'];
 /* T (the translation table) pulls in half the app; the builder only reads three label keys from it, so it is stubbed */
 const parts = ['const T={en:{best:"Best",worst:"Worst",dry:"dry"},hr:{best:"Najbolje",worst:"Najgore",dry:"suho"}};', 'function feedMark(){}', 'function tfetch(){throw new Error("no network in tests");}'];
 CONSTS.forEach(n => parts.push(extractConst(script, n)));
 FUNCS.forEach(n => parts.push(extractFunction(script, n)));
-parts.push('return {hrPack, hrRow, iconFor, ICON, buildOpenMeteo, fetchOpenMeteo, locNow, locNowStr, locNowStrAt, locNowAt, todayIso, setLocTz, sameDayISO, saveLast, readWdLast, tsMin, APPV, getTz(){return LOCTZ;}};');
+parts.push('return {hrPack, hrRow, iconFor, ICON, buildOpenMeteo, fetchOpenMeteo, locNow, locNowStr, locNowStrAt, locNowAt, todayIso, setLocTz, sameDayISO, saveLast, readWdLast, tsMin, APPV, moonEvents, moonPh, moonIdx, getTz(){return LOCTZ;}};');
 const fakeLS = (() => { const m = {}; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, _m: m }; })();
 const app = new Function('localStorage', parts.join('\n'))(fakeLS);
 const builderSrc = extractFunction(script, 'buildOpenMeteo');
@@ -284,6 +286,28 @@ console.log('location clock (locNow / locNowStr / todayIso)');
   { const [v, a] = sameMinute(3600, () => app.locNowStrAt(3600)); eq(v, a, 'locNowStrAt(off) works for an explicit offset'); }
   app.setLocTz({ off: 'x' }); eq(app.getTz().off, null, 'setLocTz resets on garbage (browser time, never a stale location)');
   app.setLocTz(undefined); eq(app.getTz().off, null, 'setLocTz(undefined) resets to browser time');
+}
+
+console.log('moon phases (K1: true events in the place\'s own zone, daylight saving aware)');
+{
+  const ev = (from, days, k) => app.moonEvents(from, days).find(e => e.k === k);
+  app.setLocTz({ off: 7200, name: 'Europe/Zagreb' }); /* the offset of TODAY (CEST); the clocks go back on 2026-10-25 */
+  { const e = ev('2026-10-24', 60, 'full'); eq(e.utc + ' ' + e.ts, '2026-10-26T04:12Z 2026-10-26T05:12', 'Zagreb: the 2026-10-26 full moon is 05:12 CET (not 06:12 CEST)'); }
+  { const e = app.moonEvents('2026-10-24', 60).filter(x => x.k === 'full')[1]; eq(e.utc + ' ' + e.ts, '2026-11-24T14:53Z 2026-11-24T15:53', 'Zagreb: the 2026-11-24 full moon is 15:53 CET'); }
+  { const e = ev('2026-07-20', 20, 'full'); ok(e && e.ts.slice(11) === new Date(Date.parse(e.utc) + 7200000).toISOString().slice(11, 16), 'Zagreb: a summer full moon (' + (e && e.utc) + ') keeps CEST, +2 h'); }
+  { const e = ev('2025-01-10', 10, 'full'); eq(e.utc + ' ' + e.ts, '2025-01-13T22:27Z 2025-01-13T23:27', 'Zagreb: the 2025-01-13 full moon is 23:27 CET'); }
+  eq([app.moonIdx('2026-10-25'), app.moonIdx('2026-10-26'), app.moonIdx('2026-10-27')].join(','), '3,4,5', 'the full-moon name / icon belongs only to the event\'s local date (waxing gibbous, full, waning gibbous around it)');
+  eq(app.moonIdx('2026-11-09'), 0, 'the new-moon name belongs to the event\'s local date');
+  { const ph = app.moonPh('2026-10-26'); ok(ph > 0.49 && ph < 0.53, 'moonPh at local noon of the full-moon date is close to 0.5 (' + ph.toFixed(3) + ')'); }
+  app.setLocTz({ off: -4 * 3600, name: 'America/New_York' }); /* EDT today, EST from 2026-11-01 */
+  { const e = ev('2026-10-24', 60, 'new'); eq(e.utc + ' ' + e.ts, '2026-11-09T07:02Z 2026-11-09T02:02', 'New York: the 2026-11-09 new moon is 02:02 EST (not 03:02 EDT)'); }
+  app.setLocTz({ off: 32400, name: 'Asia/Tokyo' });
+  { const e = ev('2026-10-24', 60, 'full'); eq(e.utc + ' ' + e.ts, '2026-10-26T04:12Z 2026-10-26T13:12', 'Tokyo: the 2026-10-26 full moon is 13:12 JST'); }
+  app.setLocTz({ off: 7200 }); /* no zone name: the fixed offset */
+  { const e = ev('2026-10-24', 60, 'full'); eq(e.ts, '2026-10-26T06:12', 'no zone name: LOCTZ.off is used'); }
+  app.setLocTz({ off: 7200, name: 'Nope/Zone' }); /* invalid zone name: the fixed offset */
+  { const e = ev('2026-10-24', 60, 'full'); eq(e.ts, '2026-10-26T06:12', 'invalid zone name: LOCTZ.off is used'); }
+  app.setLocTz(undefined);
 }
 
 console.log('wd_last snapshot (version tag + tz round trip)');
